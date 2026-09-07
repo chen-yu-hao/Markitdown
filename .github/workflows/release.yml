@@ -52,6 +52,7 @@ jobs:
       - run: npm test -- --maxWorkers=2
       - run: npm run build
       - run: npx electron-builder --win nsis zip --x64 --publish never
+      - run: node scripts/verify-packaged.mjs
       - run: node scripts/release.mjs
 
       - name: Publish Verified Assets
