@@ -7,12 +7,13 @@ import { defaultHighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirr
 import { SearchQuery, findNext as searchNext, findPrevious, getSearchQuery, replaceAll, replaceNext, search, setSearchQuery } from '@codemirror/search';
 import { GFM } from '@lezer/markdown';
 import { defaultSettings, type DocumentPatch, type DocumentSession, type Settings } from '../shared/contracts';
-import { renderMarkdown, type EquationIndex } from '../shared/markdown';
+import { getSafeLinkURL, renderMarkdown, type EquationIndex } from '../shared/markdown';
 import { emptyCitationData, type CitationRenderData } from '../shared/academic-contracts';
 import { BIBLIOGRAPHY_MARKER, scanCitations } from '../shared/citations';
 import { headingText } from '../shared/markdown-preferences';
 import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitationScan, editorCitations, editorEquations, editorPreferences, editorSourceMode, equationIndexForCommand, preferenceExtensions } from './editor-preferences';
 import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, equationLabelInsertion } from './editor-academic';
+import { preservePointerPosition } from './editor-pointer';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 
@@ -206,7 +207,7 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
       if (name === 'Paragraph' && !active) {
         const source = state.sliceDoc(start, end);
         const overlapsMath = equations.some(equation => start < equation.to && end > equation.from);
-        if (!overlapsMath && (/^!\[[^\]]*\]\([^\n]*\)\s*$/.test(source) || /<br\s*\/?>/i.test(source) || (settings.editorWhitespace !== 'preserve' && node.node.parent?.name === 'Document') || (settings.autoLinks && /(?:https?:\/\/|www\.)\S+|[\w.+-]+@[\w.-]+\.\w+/.test(source)) || settings.smartPunctuation === 'render' || (!settings.strictMarkdown && /^#{1,6}[^#\s]/.test(source)))) {
+        if (!overlapsMath && (/^!\[[^\]]*\]\([^\n]*\)\s*$/.test(source) || /<br\s*\/?>/i.test(source) || (settings.editorWhitespace !== 'preserve' && node.node.parent?.name === 'Document') || settings.smartPunctuation === 'render' || (!settings.strictMarkdown && /^#{1,6}[^#\s]/.test(source)))) {
           render(start, end, true);
           return false;
         }
@@ -227,7 +228,13 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
       if (name === 'InlineCode') protectedRanges.push({ from: start, to: end });
       if (name === 'Link' || name === 'Autolink') {
         const url = node.node.getChild('URL');
-        decorations.push(Decoration.mark({ class: 'md-link', attributes: url ? { 'data-link': state.sliceDoc(url.from, url.to) } : undefined }).range(start, end));
+        const destination = url && getSafeLinkURL(state.sliceDoc(url.from, url.to), name === 'Autolink' ? 'autolink' : false);
+        decorations.push(Decoration.mark({ class: 'md-link', attributes: destination ? { 'data-link': destination } : undefined }).range(start, end));
+      }
+      if (name === 'URL' && node.node.parent?.name !== 'Link' && node.node.parent?.name !== 'Autolink') {
+        const destination = settings.autoLinks && getSafeLinkURL(state.sliceDoc(start, end), true);
+        if (destination) decorations.push(Decoration.mark({ class: 'md-link', attributes: { 'data-link': destination } }).range(start, end));
+        return;
       }
       const markClass: Record<string, string> = { StrongEmphasis: 'md-strong', Emphasis: 'md-emphasis', Strikethrough: 'md-strike', InlineCode: 'md-inline-code' };
       if (markClass[name] && end > start) decorations.push(Decoration.mark({ class: markClass[name] }).range(start, end));
@@ -549,6 +556,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
             ...(initial.document.mode === 'source' ? [syntaxHighlighting(defaultHighlightStyle)] : []),
           ]),
           editorEquations, editorCitationScan, liveDecorations, viewportTracker,
+          preservePointerPosition(view => view.state.facet(liveMode) && !(propsRef.current.typewriter && (propsRef.current.settings || defaultSettings).alwaysCenterCaret)),
           placeholder(''),
           keymap.of([
             { key: 'Mod-b', run: () => { command('bold'); return true; } },

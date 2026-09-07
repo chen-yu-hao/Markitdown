@@ -310,6 +310,30 @@ export function isSafeLocalImage(destination: string): boolean {
   return /^[a-z]:[/\\]|^file:\/\/\/[a-z]:[/\\]/i.test(text) || !/^[a-z][a-z\d+.-]*:|^[/\\]{2}/i.test(text);
 }
 
+export function getSafeLinkURL(source: string, automatic: boolean | 'autolink' = false): string | undefined {
+  if (!source || /[\u0000-\u001f\u007f]/.test(source)) return undefined;
+  let destination: string;
+  if (automatic === 'autolink') {
+    const tokens: ReturnType<typeof md.parseInline> = [];
+    md.inline.parse(`<${source}>`, md, {}, tokens);
+    if (tokens.length !== 3 || tokens[0].type !== 'link_open' || tokens[0].markup !== 'autolink' || tokens[2].type !== 'link_close') return undefined;
+    destination = String(tokens[0].attrGet('href') || '');
+  } else if (automatic) {
+    const matches = md.linkify.match(source);
+    if (matches?.length !== 1 || matches[0].index !== 0 || matches[0].lastIndex !== source.length) return undefined;
+    destination = matches[0].url;
+  } else {
+    const parsed = md.helpers.parseLinkDestination(source, 0, source.length);
+    if (!parsed.ok || parsed.pos !== source.length) return undefined;
+    destination = parsed.str;
+  }
+  if (/[\u0000-\u001f\u007f]/.test(destination)) return undefined;
+  const normalized = md.normalizeLink(destination);
+  if (!/^(?:https?:\/\/|mailto:)/i.test(normalized) || !md.validateLink(normalized)) return undefined;
+  try { new URL(normalized); } catch { return undefined; }
+  return normalized;
+}
+
 md.renderer.rules.image = (tokens, index, _options, environment) => {
   const env = (environment || {}) as RenderOptions;
   const token = tokens[index];

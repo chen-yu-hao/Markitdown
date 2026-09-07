@@ -1,8 +1,14 @@
-# Windows 0.3.1 验证记录
+# Windows 0.3.2 验证记录
 
 环境：Windows 11 x64、Node.js 24.14.0、Electron 44.2.0、Zotero 9.0.6、本机 Pandoc 2.12。日期：2026-09-07。
 
-## 已完成
+## 本次验证（0.3.2）
+
+- TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：236 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
+- `verify-editor.mjs` 的 18 组真实 Electron 编辑检查通过，包括 Shift+点击、鼠标拖选、双击选词、三击选行、非空旧选区外点击，以及既有 Unicode/Chromium IME 组合输入、跨标签撤销、模式切换、查找替换和异步批量图片插入。未出现渲染错误。
+- `verify-caret-position.mjs` 的 134 组坐标检查和 17 组点击后立即输入检查通过。覆盖 100%/125%/150%/200% 应用缩放、1280/620 窗宽、普通正文/粗体/链接/公式、软换行/显式换行、前置标题/表格/代码/行间公式、上下段源码展开收起、长短文稿及源码模式。全部源码位置准确，最大纵向偏差约 0.307 CSS px（断言上限 2px），无渲染错误。已检查短文链接、公式点击前后的截图。
+
+## 既有验收（0.3.1）
 
 - TypeScript 检查与生产构建通过。
 - 全套命令 `npm test -- --maxWorkers=2` 通过：227 项单元测试通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。默认并发的首次运行中，一项 Windows 平台测试超过 5 秒超时；降低并发后完整复验通过。覆盖文件可靠性、设置、复制与导出、公式索引、引用扫描、CRLF 源码映射、手动公式编号、CSL 排版、Zotero 缓存、扩展注册生命周期和学术导出。
@@ -42,6 +48,8 @@ node scripts/verify-markdown-advanced.mjs
 node scripts/verify-academic.mjs
 node scripts/verify-academic-live.mjs
 node scripts/verify-large-images.mjs
+node scripts/verify-caret-position.mjs
+node scripts/verify-editor.mjs
 node scripts/verify-packaged.mjs
 node scripts/verify-academic.mjs release/win-unpacked/Markedown.exe
 ```

@@ -6,11 +6,11 @@ Markedown 是一款 Windows Markdown 编辑器，提供即时排版、多标签�
 
 ## 下载
 
-当前版本为 **Markedown 0.3.1**，适用于 **Windows x64**。安装程序和便携程序均未签名。
+当前版本为 **Markedown 0.3.2**，适用于 **Windows x64**。安装程序和便携程序均未签名。
 
 - [最新版本与发布说明](https://github.com/chen-yu-hao/Markitdown/releases/latest)
-- [下载 0.3.1 安装程序 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.1/Markedown-0.3.1-Windows-x64-Setup.exe)
-- [下载 0.3.1 便携版 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.1/Markedown-0.3.1-Windows-x64.zip)
+- [下载 0.3.2 安装程序 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.2/Markedown-0.3.2-Windows-x64-Setup.exe)
+- [下载 0.3.2 便携版 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.2/Markedown-0.3.2-Windows-x64.zip)
 
 ## 界面与设置
 
@@ -46,8 +46,8 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会在目标旁生成 `markedow
 
 ## 启动与使用
 
-- 安装版：运行发布目录中的 `Markedown-0.3.1-Windows-x64-Setup.exe`。安装器注册 Markdown 的“打开方式”，不强制改变默认应用。
-- 便携版：将 `Markedown-0.3.1-Windows-x64.zip` 完整解压到可写目录，运行 `Markedown.exe`。保留同目录中的 `portable.json` 标记及其余文件。
+- 安装版：运行发布目录中的 `Markedown-0.3.2-Windows-x64-Setup.exe`。安装器注册 Markdown 的“打开方式”，不强制改变默认应用。
+- 便携版：将 `Markedown-0.3.2-Windows-x64.zip` 完整解压到可写目录，运行 `Markedown.exe`。保留同目录中的 `portable.json` 标记及其余文件。
 - 可从资源管理器拖入文稿，或运行 `Markedown.exe "C:\文稿\笔记.md"`。同一文件重复打开时激活已有文稿。
 - DOCX、EPUB、LaTeX、RTF、ODT、MediaWiki、RST、Textile、OPML 导出需要另外安装 Pandoc。程序检查 `PATH` 与常见 Pandoc 安装目录，也可以在设置中指定 `pandoc.exe`。内建 HTML、PDF、PNG 导出不需要 Pandoc。
 - 图片粘贴、拖入与选择导入保留原图；静态图片最多 2.56 亿像素，动画或多页图片合计最多 8000 万像素、500 帧。单张文件最多 64 MiB，每批最多 100 张、合计 256 MiB；大图预览默认使用 2048 像素以内的缓存缩略图。
@@ -89,6 +89,8 @@ node scripts/verify-menus.mjs
 node scripts/verify-markdown-advanced.mjs
 node scripts/verify-academic.mjs
 node scripts/verify-large-images.mjs
+node scripts/verify-caret-position.mjs
+node scripts/verify-editor.mjs
 ```
 
 `npm test` 使用 Vitest；`test:e2e` 使用 Playwright 启动实际 Electron 程序；`test:ui` 检查顶栏、主题、分类设置、切换保存和自定义快捷键。新增脚本分别验证二级菜单、公式设置、代码输入、真实剪贴板及四种内建导出。修改依赖后须更新并提交锁文件，再使用 `npm ci` 重装确认。
@@ -104,15 +106,15 @@ npm run dist
 
 | 文件 | 内容 |
 | --- | --- |
-| `Markedown-0.3.1-Windows-x64-Setup.exe` | 未签名 NSIS 安装程序 |
-| `Markedown-0.3.1-Windows-x64.zip` | 含 `portable.json` 的便携程序 |
-| `Markedown-0.3.1-Windows-Source.zip` | Windows 源码、测试、脚本、锁文件、文档和 macOS 对照资料 |
+| `Markedown-0.3.2-Windows-x64-Setup.exe` | 未签名 NSIS 安装程序 |
+| `Markedown-0.3.2-Windows-x64.zip` | 含 `portable.json` 的便携程序 |
+| `Markedown-0.3.2-Windows-Source.zip` | Windows 源码、测试、脚本、锁文件、文档和 macOS 对照资料 |
 | `THIRD_PARTY_LICENSES.txt` | 从已安装运行依赖收集的原始许可证文本 |
 | `THIRD_PARTY_DEPENDENCIES.json` | 依赖版本、许可证声明、来源、原生组件版本和待核实项 |
 | `ThirdPartyNotices.md` / `README.zh-CN.md` | 来源说明 / 中文说明 |
 | `SHA256SUMS.txt` | 以上 7 个文件的 SHA-256 校验值 |
 
-源码 ZIP 内包含单一 `Markedown-0.3.1-Windows-Source` 顶层目录，排除依赖安装目录、构建产物、发布目录、缓存和 Git 元数据。便携 ZIP 会执行完整性检查，并检查版本对应的便携标记。
+源码 ZIP 内包含单一 `Markedown-0.3.2-Windows-Source` 顶层目录，排除依赖安装目录、构建产物、发布目录、缓存和 Git 元数据。便携 ZIP 会执行完整性检查，并检查版本对应的便携标记。
 
 ```powershell
 npm run notices
@@ -120,7 +122,7 @@ node scripts/release.mjs --check
 node scripts/release.mjs
 ```
 
-`--check` 只检查源码输入和工具解析器，不创建 ZIP；不带参数时要求安装程序和便携 ZIP 已存在，再重新生成源码归档、说明副本和校验文件。检查下载文件时可使用 `Get-FileHash -Algorithm SHA256 .\release\Markedown-0.3.1-Windows-x64-Setup.exe`，将结果与 `SHA256SUMS.txt` 对照。
+`--check` 只检查源码输入和工具解析器，不创建 ZIP；不带参数时要求安装程序和便携 ZIP 已存在，再重新生成源码归档、说明副本和校验文件。检查下载文件时可使用 `Get-FileHash -Algorithm SHA256 .\release\Markedown-0.3.2-Windows-x64-Setup.exe`，将结果与 `SHA256SUMS.txt` 对照。
 
 构建使用未签名的 Windows 可执行文件，没有自动更新服务。
 
