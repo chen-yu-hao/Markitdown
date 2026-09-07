@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "package": "mj-context-menu",
+  "packageVersion": "0.6.1",
+  "declaredLicense": "Apache-2.0",
+  "retrievedOn": "2026-09-07",
+  "registryMetadata": "https://registry.npmjs.org/mj-context-menu/0.6.1",
+  "registryGitHead": "8ddd26a41f834cd23b9bb20737dfae5fa9b05eb4",
+  "upstreamRepository": "https://github.com/zorkow/context-menu",
+  "canonicalRepository": "https://github.com/mathjax/context-menu",
+  "releaseTag": "v0.6.1",
+  "releaseTagCommit": "e44c1eaa3fe202af467557c01eee68b86410dcce",
+  "rootLicenseOrNoticePresent": false,
+  "verificationScope": "The installed npm package and recursive Git trees at both the registry gitHead and release-tag commit omit a package-root LICENSE or NOTICE. The copyright material is the exact first comment in ts/context_menu.ts at the registry gitHead. The Apache-2.0 text comes from the official license URL referenced by that comment. A license under doc/jsdoc/scripts/prettify belongs to a different component and is not used as this package's license evidence.",
+  "files": [
+    {
+      "file": "mj-context-menu-0.6.1-Copyright.txt",
+      "source": "https://github.com/zorkow/context-menu/blob/8ddd26a41f834cd23b9bb20737dfae5fa9b05eb4/ts/context_menu.ts",
+      "gitBlob": "83733821d8e23ab5bff94faa071dfad29f70754e",
+      "extraction": "First comment, lines 1-16; unchanged UTF-8/LF text with trailing LF.",
+      "sha256": "251cca251e91daa52b471d2336de272c693a0b4db859a7cc4ca81a4e9d8c57d3"
+    },
+    {
+      "file": "mj-context-menu-0.6.1-Apache-2.0.txt",
+      "source": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "extraction": "Complete original Apache License, Version 2.0, January 2004, referenced by the upstream copyright header; unchanged UTF-8/LF text.",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ]
+}

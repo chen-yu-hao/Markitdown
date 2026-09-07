@@ -1,0 +1,102 @@
+{
+  "name": "markedown-windows",
+  "productName": "Markedown",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Markedown Markdown editor for Windows",
+  "author": "Markedown contributors",
+  "main": "dist/main/index.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "notices": "node scripts/notices.mjs",
+    "prebuild": "npm run notices",
+    "build": "tsc --noEmit && vite build && node scripts/build-main.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "node scripts/smoke.mjs",
+    "pack": "npm run build && electron-builder --win dir --x64",
+    "dist": "npm run build && electron-builder --win nsis zip --x64 && node scripts/release.mjs",
+    "test:ui": "node scripts/verify-ui-v2.mjs"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "6.20.3",
+    "@codemirror/commands": "^6.10.0",
+    "@codemirror/lang-css": "6.3.1",
+    "@codemirror/lang-html": "6.4.12",
+    "@codemirror/lang-javascript": "6.2.5",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/search": "^6.5.0",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "6.43.11",
+    "@lezer/markdown": "^1.4.0",
+    "@xmldom/xmldom": "0.8.15",
+    "citeproc": "2.4.63",
+    "dompurify": "^3.3.0",
+    "fflate": "0.8.2",
+    "highlight.js": "^11.11.0",
+    "katex": "^0.16.22",
+    "lucide-react": "^0.468.0",
+    "markdown-it": "15.0.1",
+    "mathjax-full": "3.2.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sanitize-html": "2.17.7",
+    "sharp": "^0.34.0"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/sanitize-html": "2.16.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "44.2.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.27.0",
+    "playwright": "^1.58.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.0"
+  },
+  "build": {
+    "appId": "com.zhuanz.markedown",
+    "productName": "Markedown",
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "dist/**/*",
+      "resources/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "afterPack": "scripts/after-pack.cjs",
+    "asarUnpack": [
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*"
+    ],
+    "win": {
+      "icon": "resources/icon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "signExecutable": false,
+      "artifactName": "Markedown-${version}-Windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "resources/installer.nsh",
+      "artifactName": "Markedown-${version}-Windows-${arch}-Setup.${ext}"
+    }
+  }
+}

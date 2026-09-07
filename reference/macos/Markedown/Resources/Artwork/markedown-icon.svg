@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e9f0f1"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26383b"/>
+      <stop offset="1" stop-color="#132326"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="32" stdDeviation="30" flood-color="#132326" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect x="72" y="72" width="880" height="880" rx="206" fill="#21827f"/>
+  <path d="M212 262c0-57 46-103 103-103h314l183 183v420c0 57-46 103-103 103H315c-57 0-103-46-103-103z" fill="url(#paper)" filter="url(#shadow)"/>
+  <path d="M629 159v116c0 37 30 67 67 67h116z" fill="#cadbdd"/>
+  <path d="M337 373h80l95 169 95-169h80v300h-72V493l-78 137h-50l-78-137v180h-72z" fill="url(#ink)"/>
+  <rect x="329" y="735" width="286" height="20" rx="10" fill="#83a4a5"/>
+  <rect x="637" y="725" width="18" height="40" rx="9" fill="#d49835"/>
+</svg>

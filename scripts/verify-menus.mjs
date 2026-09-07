@@ -1,0 +1,99 @@
+import { _electron as electron } from 'playwright';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+const evidence = path.resolve('test-results', 'menus');
+await mkdir(evidence, { recursive: true });
+const run = await mkdtemp(path.join(evidence, 'run-'));
+const file = path.join(run, '菜单 测试.md');
+await writeFile(file, 'plain text\n');
+const env = { ...process.env, MARKEDOWN_DATA_DIR: path.join(run, 'data') };
+delete env.ELECTRON_RUN_AS_NODE;
+delete env.MARKEDOWN_DEV_URL;
+const checks = [], errors = [];
+let app, page;
+const assert = (value, message) => { if (!value) throw new Error(message); };
+const wait = async predicate => { const start = Date.now(); while (Date.now() - start < 10000) { if (await predicate()) return; await new Promise(resolve => setTimeout(resolve, 30)); } throw new Error('Application state did not settle'); };
+try {
+  app = await electron.launch({ args: [process.cwd(), '--test-mode', file], env, timeout: 30000 });
+  page = await app.firstWindow();
+  await app.evaluate(({ BrowserWindow }) => { const win = BrowserWindow.getAllWindows()[0]; win.webContents.setBackgroundThrottling(false); win.show(); });
+  page.on('pageerror', error => errors.push(error.message));
+  await page.locator('.cm-content:visible').waitFor();
+  await page.evaluate(() => window.markedown.updateSettings({ language: 'zh-CN', autoSave: false }));
+  const edit = page.getByRole('menuitem', { name: '编辑', exact: true });
+  const format = page.getByRole('menuitem', { name: '格式', exact: true });
+  const root = page.getByRole('menu', { name: '编辑', exact: true });
+  const child = page.getByRole('menu', { name: '格式', exact: true });
+  await edit.click();
+  for (const label of ['打开…', '保存', '导出…', '正文', '分隔线']) assert(await root.getByRole('menuitem', { name: label, exact: true }).count() === 0, `${label} remains in the top-level Edit menu`);
+  for (const label of ['偏好设置…', '撤销', '重做', '剪切', '复制', '粘贴', '全选', '查找…', '替换…', '格式']) assert(await root.getByRole('menuitem', { name: label, exact: true }).count() === 1, `${label} is missing from Edit`);
+  await format.hover();
+  await child.waitFor();
+  const expected = ['正文', ...Array.from({ length: 6 }, (_, i) => `标题 ${i + 1}`), '加粗', '斜体', '删除线', '高亮', '引用', '无序列表', '有序列表', '任务列表', '链接', '插入图片…', '行内代码', '代码块', '公式', '分隔线'];
+  assert(await child.getByRole('menuitem').count() === expected.length, 'Format commands were lost or duplicated');
+  for (const label of expected) assert(await child.getByRole('menuitem', { name: label, exact: true }).count() === 1, `${label} is missing from Format`);
+  await page.screenshot({ path: path.join(evidence, 'format-submenu.png') });
+  checks.push('compact Edit menu, complete Format submenu, pointer hover');
+
+  await page.locator('.cm-content:visible').click();
+  await page.keyboard.press('Control+Home');
+  await page.keyboard.press('Alt+e');
+  await wait(() => root.getByRole('menuitem', { name: '偏好设置…', exact: true }).evaluate(el => el === document.activeElement));
+  await page.keyboard.press('End');
+  assert(await format.evaluate(el => el === document.activeElement), 'End did not focus Format');
+  await page.keyboard.press('ArrowRight');
+  await wait(() => child.getByRole('menuitem', { name: '正文', exact: true }).evaluate(el => el === document.activeElement));
+  assert(await child.getByRole('menuitem', { name: '正文', exact: true }).evaluate(el => el === document.activeElement), 'ArrowRight did not enter submenu');
+  await page.keyboard.press('End');
+  assert(await child.getByRole('menuitem', { name: '分隔线', exact: true }).evaluate(el => el === document.activeElement), 'End did not reach the final command');
+  await page.keyboard.press('ArrowLeft');
+  assert(await child.count() === 0 && await format.evaluate(el => el === document.activeElement), 'ArrowLeft did not return to Format');
+  await page.keyboard.press('ArrowRight');
+  await wait(() => child.getByRole('menuitem', { name: '正文', exact: true }).evaluate(el => el === document.activeElement));
+  await page.keyboard.press('Escape');
+  assert(await child.count() === 0 && await root.count() === 1, 'Submenu Escape closed the parent menu');
+  await page.keyboard.press('ArrowRight');
+  await wait(() => child.getByRole('menuitem', { name: '正文', exact: true }).evaluate(el => el === document.activeElement));
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.some(doc => doc.source === '# plain text\n')));
+  assert(await page.getByRole('menu').count() === 0, 'Command execution left a popup open');
+  await page.locator('.cm-content:visible').focus(); await page.keyboard.press('Control+z');
+  await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.some(doc => doc.source === 'plain text\n')));
+  checks.push('keyboard navigation, layered Escape, command dispatch and undo');
+
+  await page.getByRole('menuitem', { name: '文件', exact: true }).click();
+  const fileMenu = page.getByRole('menu', { name: '文件', exact: true });
+  for (const label of ['打开…', '保存', '导出…']) assert(await fileMenu.getByRole('menuitem', { name: label, exact: true }).count() === 1, `${label} is missing from File`);
+  await page.keyboard.press('Escape');
+  checks.push('Open, Save and Export remain in File');
+
+  await app.evaluate(({ BrowserWindow }) => { const win = BrowserWindow.getAllWindows()[0]; win.setSize(700, 480); win.webContents.setZoomFactor(1.5); });
+  await edit.click();
+  await format.hover();
+  await child.waitFor();
+  await wait(() => child.evaluate(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; }));
+  assert(await child.evaluate(el => el.scrollHeight > el.clientHeight), 'Short window should offer scrolling');
+  await format.focus();
+  await page.keyboard.press('ArrowRight');
+  await wait(() => child.getByRole('menuitem', { name: '正文', exact: true }).evaluate(el => el === document.activeElement));
+  await page.keyboard.press('End');
+  assert(await child.getByRole('menuitem', { name: '分隔线', exact: true }).evaluate(el => { const r = el.getBoundingClientRect(), p = el.parentElement.getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom; }), 'Last command is clipped after keyboard scrolling');
+  // Electron's native capture preserves the device scale when webContents zoom is non-default.
+  const compactCapture = await app.evaluate(async ({ BrowserWindow }) => (await BrowserWindow.getAllWindows()[0].capturePage()).toPNG().toString('base64'));
+  await writeFile(path.join(evidence, 'format-compact-150-percent.png'), Buffer.from(compactCapture, 'base64'));
+  await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
+  assert(await page.getByRole('menu').count() === 0 && await edit.evaluate(el => el === document.activeElement), 'Root Escape did not restore trigger focus');
+  checks.push('viewport clamping and scrollable submenu at 150% zoom');
+  assert(errors.length === 0, errors.join('\n'));
+  const result = { status: 'passed', checks, errors, run };
+  await writeFile(path.join(evidence, 'results.json'), JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(result));
+} catch (error) {
+  if (page) await page.screenshot({ path: path.join(evidence, 'failure.png') }).catch(() => {});
+  await writeFile(path.join(evidence, 'results.json'), JSON.stringify({ status: 'failed', checks, errors, error: String(error), run }, null, 2));
+  throw error;
+} finally {
+  if (app) { await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1 }); }).catch(() => {}); await app.close(); }
+}

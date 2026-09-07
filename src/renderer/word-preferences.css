@@ -1,0 +1,6 @@
+.word-preferences{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:18px;margin-top:4px;min-width:0}
+.word-preferences h3{margin:0}.word-preferences .pref-hint{margin:0}
+.word-preferences input.pref-number{flex:0 0 auto!important;height:29px;width:88px!important}
+.word-color{display:flex;align-items:center;gap:8px;width:100%}.word-color input[type=color]{width:44px;flex:0 0 44px;padding:2px;cursor:pointer}.word-color input[type=text]{width:100%;max-width:125px}
+.word-heading-sizes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+@media(max-width:780px){.word-heading-sizes{grid-template-columns:minmax(0,1fr)}}

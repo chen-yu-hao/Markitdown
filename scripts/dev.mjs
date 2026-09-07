@@ -1,0 +1,14 @@
+import { spawn } from 'node:child_process';
+import { createServer } from 'vite';
+import electron from 'electron';
+const builder = spawn(process.execPath, ['scripts/build-main.mjs'], { stdio: 'inherit' });
+await new Promise((resolve, reject) => builder.on('exit', code => code ? reject(new Error('Main build failed')) : resolve()));
+const server = await createServer({ server: { strictPort: false } });
+await server.listen();
+const url = server.resolvedUrls.local[0];
+console.log(`Markedown development server: ${url}`);
+const env = { ...process.env, MARKEDOWN_DEV_URL: url };
+delete env.ELECTRON_RUN_AS_NODE;
+const child = spawn(electron, ['.'], { stdio: 'inherit', env, windowsHide: true });
+child.on('exit', async code => { await server.close(); process.exit(code ?? 0); });
+process.on('SIGINT', () => child.kill());

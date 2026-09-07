@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "package": "citeproc",
+  "packageVersion": "2.4.63",
+  "retrievedOn": "2026-09-07",
+  "registryMetadata": "https://registry.npmjs.org/citeproc/2.4.63",
+  "registryGitHead": "73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9",
+  "upstreamRepository": "https://github.com/Juris-M/citeproc-js",
+  "declaredLicense": "CPAL-1.0 OR AGPL-1.0",
+  "sourceLicenseDeclaration": "CPAL version 1 or later OR GNU AGPL version 3 or later",
+  "selectedLicense": "CPAL-1.0",
+  "licenseMetadataNote": "The npm package.json declares CPAL-1.0 OR AGPL-1.0, while its LICENSE, runtime source header and pinned upstream CPAL Exhibit A explicitly offer CPAL version 1 or later OR GNU AGPL version 3 or later. This distribution uses the CPAL 1.0 option for citeproc only; no overall application license is changed.",
+  "verificationScope": "The full CPAL and AGPLv3 files and LICENSE are copied without modification from the npm registry gitHead. The source archive contains all 930 upstream source files at that commit. Its citeproc_commonjs.js is byte-identical to the installed npm runtime. Original source and license texts are bundled for offline source access.",
+  "runtimeAttribution": {
+    "copyright": "(c) Frank Bennett",
+    "phrase": "citeproc-js implements the Citation Style Language",
+    "url": "https://citationstyles.org/",
+    "graphic": "No attribution graphic is provided in the installed npm package.",
+    "requirement": "CPAL section 14(a)-(b) and Exhibit B require a prominent display when the Larger Work is launched or initially run, for sufficient duration to give reasonable notice; no less prominent than other-party attribution. The license does not specify a fixed duration. A library's lazy loading does not remove the explicit Larger Work launch trigger."
+  },
+  "sourceArchive": {
+    "path": "resources/source-archives/citeproc-js-73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9.tar.gz",
+    "source": "https://codeload.github.com/Juris-M/citeproc-js/tar.gz/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9",
+    "sha256": "da00c73384be59e634dbbab912345f0199fae2913f501aa9d08eef7ee1d8abd4",
+    "fileCount": 930
+  },
+  "installedFiles": [
+    { "file": "citeproc_commonjs.js", "sha256": "55abba1a8b8b48c14323fd053f9646013b4b7a0c977938064ecf5195a502b9f1" },
+    { "file": "LICENSE", "sha256": "b96ca8e1716f93449b480083c7510c18d129fa9afa4644d62c6347c06177ce30" }
+  ],
+  "files": [
+    {
+      "file": "citeproc-2.4.63-CPAL.txt",
+      "source": "https://github.com/Juris-M/citeproc-js/blob/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9/CPAL",
+      "gitBlob": "ff98dbf084cd8e8428976d84e9056e9876a4bec1",
+      "sha256": "a953615139d8c767eb5e95f14215bf5c356ea23397a15137f6e119babf3fe69b"
+    },
+    {
+      "file": "citeproc-2.4.63-AGPLv3.txt",
+      "source": "https://github.com/Juris-M/citeproc-js/blob/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9/AGPLv3",
+      "gitBlob": "dba13ed2ddf783ee8118c6a581dbf75305f816a3",
+      "sha256": "57c8ff33c9c0cfc3ef00e650a1cc910d7ee479a8bc509f6c9209a7c2a11399d6"
+    },
+    {
+      "file": "citeproc-2.4.63-LICENSE.txt",
+      "source": "https://github.com/Juris-M/citeproc-js/blob/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9/LICENSE",
+      "gitBlob": "dbc0a018c367d83f061e706d52007d988d083d2a",
+      "sha256": "b96ca8e1716f93449b480083c7510c18d129fa9afa4644d62c6347c06177ce30"
+    },
+    {
+      "file": "citeproc-2.4.63-Attribution.txt",
+      "source": "https://github.com/Juris-M/citeproc-js/blob/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9/CPAL",
+      "extraction": "Exact Exhibit B, including original whitespace and final line feed.",
+      "sha256": "7a02b1cbe1fa971bcf473ed54a7710bcbe02e4778c6c78e5204893a0bf51b45f"
+    }
+  ]
+}
