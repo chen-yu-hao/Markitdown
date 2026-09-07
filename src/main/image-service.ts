@@ -8,12 +8,24 @@ import sharp from 'sharp';
 import type { DocumentSession, ImageInput, Settings } from '../shared/contracts';
 
 const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
-const MAX_IMAGE_PIXELS = 80_000_000;
+const MAX_IMAGE_PIXELS = 256_000_000;
+const MAX_ANIMATED_IMAGE_PIXELS = 80_000_000;
+const MAX_IMAGE_BATCH_BYTES = 256 * 1024 * 1024;
 const MAX_CACHE_BYTES = 128 * 1024 * 1024;
 const execFileAsync = promisify(execFile);
 const localDrives = new Map<string, { expires: number; result: Promise<boolean> }>();
 const thumbnailCache = new Map<string, { data: Buffer; mime: string; cost: number }>();
 let thumbnailCacheBytes = 0;
+type ImageResponse = { data: Buffer; mime: string };
+const imageRequests = new Map<string, Promise<ImageResponse>>();
+let imageWorker: Promise<unknown> = Promise.resolve();
+
+function processImage<T>(operation: () => Promise<T>): Promise<T> {
+  // Bound simultaneous native decodes, including previews requested by different windows.
+  const result = imageWorker.then(operation);
+  imageWorker = result.catch(() => {});
+  return result;
+}
 
 function isNetworkPath(value: string): boolean {
   return /^[\\/]{2}/.test(value) || /^\\[?.]\\/.test(value);
@@ -78,11 +90,21 @@ function rasterSignature(data: Buffer): boolean {
     || (data.toString('ascii', 4, 8) === 'ftyp' && /^(avif|avis|heic|heix|mif1)$/.test(data.toString('ascii', 8, 12)));
 }
 
-async function inspectImage(data: Buffer): Promise<sharp.Metadata> {
+async function inspectImage(data: Buffer, language: Settings['language'] = 'en'): Promise<sharp.Metadata> {
   if (!data.length || data.length > MAX_IMAGE_BYTES || !rasterSignature(data)) throw new Error('Unsupported or oversized image. Use PNG, JPEG, GIF, WebP, TIFF or AVIF.');
-  const metadata = await sharp(data, { animated: true, limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
+  // Metadata reads headers only. Apply our limits before starting any bounded pixel decode.
+  const metadata = await sharp(data, { animated: true, limitInputPixels: false }).metadata();
   const frames = metadata.pages ?? 1;
-  if (!metadata.width || !metadata.height || metadata.width * metadata.height > MAX_IMAGE_PIXELS || frames > 500) throw new Error('Image exceeds the decoded pixel or animation frame limit.');
+  const width = metadata.width ?? 0;
+  const height = metadata.pageHeight ?? metadata.height ?? 0;
+  const pixels = width * height * frames;
+  const limit = frames > 1 ? MAX_ANIMATED_IMAGE_PIXELS : MAX_IMAGE_PIXELS;
+  if (!width || !height || !Number.isSafeInteger(pixels) || pixels > limit || frames > 500) {
+    const size = `${width} x ${height}${frames > 1 ? ` x ${frames}` : ''}`;
+    throw new Error(language === 'en'
+      ? `Image dimensions ${size} exceed the limit: 256 million pixels per static image; 80 million total pixels and 500 frames for animations or multi-page images. Resize the image before inserting it.`
+      : `图片尺寸 ${size} 超过处理上限：静态图片最多 2.56 亿像素，动画或多页图片合计最多 8000 万像素、500 帧。请缩小图片后再插入。`);
+  }
   return metadata;
 }
 
@@ -110,16 +132,21 @@ async function localImageDirectory(candidate: string): Promise<string> {
 
 export async function importImages(document: DocumentSession, inputs: ImageInput[], settings: Partial<Settings> = {}): Promise<string[]> {
   if (!document.path) throw new Error('Save this document before inserting images.');
-  if (inputs.length > 100 || inputs.reduce((sum, input) => sum + input.bytes.byteLength, 0) > 256 * 1024 * 1024) throw new Error('The image batch is too large.');
+  if (inputs.length > 100 || inputs.reduce((sum, input) => sum + input.bytes.byteLength, 0) > MAX_IMAGE_BATCH_BYTES) throw new Error('The image batch is too large.');
   const validated: Array<{ input: ImageInput; data: Buffer; extension: string }> = [];
+  let validatedBytes = 0;
   for (const input of inputs) {
     let data: Buffer = Buffer.from(input.bytes);
-    const metadata = await inspectImage(data);
+    const metadata = await inspectImage(data, settings.language);
     let extension = metadata.format === 'jpeg' ? 'jpg' : metadata.format ?? 'png';
     if (!['jpeg', 'png', 'gif', 'webp', 'avif'].includes(metadata.format ?? '')) {
-      data = await sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).rotate().png().toBuffer();
+      data = await processImage(() => sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).timeout({ seconds: 30 }).rotate().png().toBuffer());
       extension = 'png';
     }
+    validatedBytes += data.length;
+    if (data.length > MAX_IMAGE_BYTES || validatedBytes > MAX_IMAGE_BATCH_BYTES) throw new Error(settings.language === 'en'
+      ? 'Converted images exceed the size limit: 64 MiB per image and 256 MiB per batch. Reduce the image sizes before inserting them.'
+      : '转换后的图片超过大小上限：单张 64 MiB、每批合计 256 MiB。请缩小图片后再插入。');
     validated.push({ input, data, extension });
   }
   const folder = settings.imageFolder?.trim() || 'assets';
@@ -156,7 +183,7 @@ export async function importImages(document: DocumentSession, inputs: ImageInput
   }
 }
 
-export async function imageResponse(documentPath: string | null, destination: string, options: { thumbnails?: boolean } = {}): Promise<{ data: Buffer; mime: string } | null> {
+export async function imageResponse(documentPath: string | null, destination: string, options: { thumbnails?: boolean } = {}): Promise<ImageResponse | null> {
   const target = await resolveImage(documentPath, destination);
   if (!target) return null;
   try {
@@ -169,30 +196,42 @@ export async function imageResponse(documentPath: string | null, destination: st
       thumbnailCache.set(key, cached);
       return { data: cached.data, mime: cached.mime };
     }
-    let data: Buffer = await readFile(target);
-    const metadata = await inspectImage(data);
-    let mime: string;
-    const animated = (metadata.pages ?? 1) > 1 && ['gif', 'webp'].includes(metadata.format ?? '');
-    if (animated) mime = metadata.format === 'gif' ? 'image/gif' : 'image/webp';
-    else {
-      let pipeline = sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
-      if (thumbnails) pipeline = pipeline.resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true });
-      data = await pipeline.png().toBuffer();
-      mime = 'image/png';
-    }
-    const cost = Math.max(data.length, animated
-      ? (metadata.width ?? 2048) * (metadata.height ?? 2048) * 4
-      : Math.min(metadata.width ?? 2048, thumbnails ? 2048 : Infinity) * Math.min(metadata.height ?? 2048, thumbnails ? 2048 : Infinity) * 4);
-    while (thumbnailCache.size && thumbnailCacheBytes + cost > MAX_CACHE_BYTES) {
-      const oldest = thumbnailCache.entries().next().value!;
-      thumbnailCache.delete(oldest[0]);
-      thumbnailCacheBytes -= oldest[1].cost;
-    }
-    if (cost <= MAX_CACHE_BYTES) {
-      thumbnailCache.set(key, { data, mime, cost });
-      thumbnailCacheBytes += cost;
-    }
-    return { data, mime };
+    const existing = imageRequests.get(key);
+    if (existing) return await existing;
+    const pending = processImage(async () => {
+      let data: Buffer = await readFile(target);
+      const metadata = await inspectImage(data);
+      let mime: string;
+      const animated = (metadata.pages ?? 1) > 1 && ['gif', 'webp'].includes(metadata.format ?? '');
+      if (animated) mime = metadata.format === 'gif' ? 'image/gif' : 'image/webp';
+      else if (!thumbnails && metadata.format === 'png' && !metadata.orientation) {
+        // Validate the pixel stream without allocating a full-resolution output buffer.
+        await sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).timeout({ seconds: 30 }).resize(1, 1).raw().toBuffer();
+        mime = 'image/png';
+      }
+      else {
+        let pipeline = sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).timeout({ seconds: 30 }).rotate();
+        if (thumbnails) pipeline = pipeline.resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true });
+        data = await pipeline.png().toBuffer();
+        mime = 'image/png';
+      }
+      const cost = Math.max(data.length, animated
+        ? (metadata.width ?? 2048) * (metadata.height ?? 2048) * 4
+        : Math.min(metadata.width ?? 2048, thumbnails ? 2048 : Infinity) * Math.min(metadata.height ?? 2048, thumbnails ? 2048 : Infinity) * 4);
+      while (thumbnailCache.size && thumbnailCacheBytes + cost > MAX_CACHE_BYTES) {
+        const oldest = thumbnailCache.entries().next().value!;
+        thumbnailCache.delete(oldest[0]);
+        thumbnailCacheBytes -= oldest[1].cost;
+      }
+      if (cost <= MAX_CACHE_BYTES) {
+        thumbnailCache.set(key, { data, mime, cost });
+        thumbnailCacheBytes += cost;
+      }
+      return { data, mime };
+    });
+    imageRequests.set(key, pending);
+    try { return await pending; }
+    finally { if (imageRequests.get(key) === pending) imageRequests.delete(key); }
   } catch {
     return null;
   }

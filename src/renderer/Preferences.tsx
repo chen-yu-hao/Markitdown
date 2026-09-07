@@ -46,7 +46,7 @@ export default function Preferences({ settings: s, zh, version, pandoc, update, 
     ],
     image: [
       { title:t('插入图片','Insert images'),hint:t('粘贴、拖入或选择多张图片。未命名文稿先保存，图片按顺序写入文稿旁的目录。','Paste, drop or choose multiple images. Save unnamed documents first; images are stored beside the document in order.'),content:<>{row(t('图片目录','Image folder'),text('imageFolder',t('图片目录','Image folder'),'assets'))}{check('imageUseRelative','优先使用相对路径','Use relative paths')}{check('imageAutoEscape','转义图片路径中的空格和特殊字符','Escape spaces and special characters in image paths')}</> },
-      { title:t('显示与性能','Display & performance'),content:<>{check('imageThumbnails','大图使用缓存缩略图','Use cached thumbnails for large images')}<p className="pref-hint">{t('单张图片上限 64 MiB；每批最多 100 张、合计 256 MiB。','64 MiB per image; up to 100 images and 256 MiB per batch.')}</p></> },
+      { title:t('显示与性能','Display & performance'),content:<>{check('imageThumbnails','大图使用缓存缩略图','Use cached thumbnails for large images')}<p className="pref-hint">{t('单张图片上限 64 MiB、静态图片上限 2.56 亿像素；动画或多页图片合计上限 8000 万像素、500 帧。每批最多 100 张、合计 256 MiB。','64 MiB and 256 million pixels per static image; animations or multi-page images: 80 million total pixels and 500 frames. Up to 100 images and 256 MiB per batch.')}</p></> },
       { title:t('远程图片','Remote images'),content:<p className="pref-hint">{t('编辑器默认阻止远程图片。HTML 导出可在导出设置中单独允许远程图片。','Remote images are blocked in the editor. They can be allowed separately for HTML exports.')}</p> },
     ],
     markdown: [

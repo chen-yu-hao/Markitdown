@@ -1,11 +1,18 @@
-# Windows 0.3.0 验证记录
+# Windows 0.3.1 验证记录
 
 环境：Windows 11 x64、Node.js 24.14.0、Electron 44.2.0、Zotero 9.0.6、本机 Pandoc 2.12。日期：2026-09-07。
 
 ## 已完成
 
 - TypeScript 检查与生产构建通过。
-- 220 项单元测试通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。覆盖原有文件可靠性、设置、复制与导出，以及新增公式索引、引用扫描、CRLF 源码映射、手动公式编号、CSL 排版、Zotero 缓存、扩展注册生命周期和学术导出。
+- 全套命令 `npm test -- --maxWorkers=2` 通过：227 项单元测试通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。默认并发的首次运行中，一项 Windows 平台测试超过 5 秒超时；降低并发后完整复验通过。覆盖文件可靠性、设置、复制与导出、公式索引、引用扫描、CRLF 源码映射、手动公式编号、CSL 排版、Zotero 缓存、扩展注册生命周期和学术导出。
+- 新增 7 项图片回归测试通过：真实 10000×8001 PNG 导入保留原始字节、2048×1639 预览、完整尺寸响应及 HTML 嵌入；超过 2.56 亿像素时在写入前拒绝并显示尺寸；损坏图片与混合批次不留下新增资源；动画总像素上限和 500/501 帧边界保持有效；头部有效但 IDAT 损坏的 PNG 不作为完整图片返回，处理队列在失败后仍能响应下一张正常图片。
+- 0.3.1 实际 Electron 大图粘贴的 6 组检查通过：原生系统剪贴板 Ctrl+V 输入 10000×8001 PNG，资产全部像素哈希一致，2048×1639 预览非空，真实行中光标插入、一次撤销/重做、未保存内容与完整原图 HTML 导出，以及 700×480 窗口的图像设置换行。无渲染错误，测试前系统剪贴板已恢复。测试确认剪贴板 PNG 就绪并将测试窗口置于前台，避免系统剪贴板空文件和后台帧节流影响自动化。
+
+## 既有验收（0.3.0）
+
+以下界面与集成验收来自 0.3.0。
+
 - 实际 Electron 学术编辑流程共 9 组通过，并在打包 EXE 上复验：旧文稿不改源码的临时文献列表，多选引用的顺序与真实选区插入，一次撤销/重做，公式标签与跳转，过期搜索与离线缓存，普通正文不重复解析文献，刷新途中继续编辑，组合输入结束后补占位符，以及桌面、700px 窄窗口与深色主题。无渲染错误。
 - 学术面板的 Ctrl+A 与后台命令隔离通过；Ctrl+V 验证键事件未被应用截获，此检查不等同于真实系统剪贴板粘贴。启动署名显示、窄窗布局及显示结束均已检查。
 - 实际 Electron 全流程回归 16 组通过，覆盖 Unicode/Chromium IME 组合事件、跨标签撤销、模式切换、查找替换、大纲与工作区搜索、批量图片及撤销、BOM/CRLF 保存、未保存内容及本地图片的 HTML/PDF 导出、窗口尺寸和大文稿规则。35 万字符文稿打开测量为 52ms，仅代表当前机器与测试样例。
@@ -26,7 +33,7 @@
 
 ```powershell
 npm run typecheck
-npm test
+npm test -- --maxWorkers=2
 npm run build
 npm run test:ui
 npm run test:e2e
@@ -34,6 +41,7 @@ node scripts/verify-menus.mjs
 node scripts/verify-markdown-advanced.mjs
 node scripts/verify-academic.mjs
 node scripts/verify-academic-live.mjs
+node scripts/verify-large-images.mjs
 node scripts/verify-packaged.mjs
 node scripts/verify-academic.mjs release/win-unpacked/Markedown.exe
 ```
