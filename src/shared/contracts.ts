@@ -162,7 +162,7 @@ export const defaultSettings: Settings = {
 export interface DirectoryEntry { name: string; path: string; directory: boolean }
 export interface SearchHit { path: string; line: number; column: number; offset: number; preview: string }
 export interface SearchResults { hits: SearchHit[]; truncated: boolean; cancelled: boolean }
-export interface Bootstrap { documents: DocumentSession[]; settings: Settings; workspace: string | null; recoveryErrors: string[]; locale: string; version: string }
+export interface Bootstrap { documents: DocumentSession[]; settings: Settings; workspace: string | null; recoveryErrors: string[]; locale: string; version: string; transfer?: { id: string; editorState: unknown } }
 export type AppEvent =
   | { type: 'document'; document: DocumentSession; activate?: boolean }
   | { type: 'external'; id: string; deleted: boolean }
@@ -182,6 +182,9 @@ export interface MarkedownAPI {
   updateDocument(id: string, patch: DocumentPatch): Promise<void>;
   saveDocument(id: string, patch: DocumentPatch, saveAs?: boolean): Promise<Result<DocumentSession>>;
   closeDocument(id: string): Promise<Result<boolean>>;
+  closeOtherDocuments(keepId: string): Promise<Result<string[]>>;
+  detachDocument(id: string, patch: DocumentPatch, editorState: unknown, position?: { x: number; y: number }): Promise<Result<boolean>>;
+  completeDocumentTransfer(id: string, accepted: boolean): Promise<void>;
   resolveExternal(id: string, action: 'reload' | 'copy' | 'cancel'): Promise<Result<DocumentSession>>;
   chooseWorkspace(path?: string): Promise<Result<string>>;
   listDirectory(path: string): Promise<Result<DirectoryEntry[]>>;

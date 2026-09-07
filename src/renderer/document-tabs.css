@@ -1,0 +1,17 @@
+.document-tabs[role=tablist]{min-width:0;max-width:100%;overscroll-behavior-x:contain;-webkit-app-region:no-drag}
+.document-tabs>.document-tab{height:100%;box-sizing:border-box;user-select:none;touch-action:none}
+.document-tabs>.document-tab>svg{flex-shrink:0;pointer-events:none}
+.document-tabs>.document-tab>span{min-width:0}
+.document-tabs>.document-tab.is-dragging{opacity:.5}
+.document-tabs>.document-tab[aria-disabled=true]{cursor:default}
+.document-tab-dragging,.document-tab-dragging *{cursor:grabbing!important;user-select:none!important}
+.document-tab-menu{position:fixed;left:6px;top:6px;z-index:120;box-sizing:border-box;width:200px;max-width:calc(100vw - 12px);max-height:calc(100vh - 12px);overflow:auto;padding:5px 0;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--text);box-shadow:0 7px 20px #0003;-webkit-app-region:no-drag;overscroll-behavior:contain;scrollbar-width:thin}
+.document-tab-menu>button{display:flex;align-items:center;gap:9px;width:100%;min-height:31px;padding:5px 12px;text-align:left;font-size:12px;line-height:1.5;color:inherit}
+.document-tab-menu>button>svg{flex-shrink:0;color:var(--muted)}
+.document-tab-menu>button>span{min-width:0;overflow-wrap:anywhere}
+.document-tab-menu>button:hover:not(:disabled),.document-tab-menu>button:focus-visible{background:var(--hover);outline:none}
+.document-tab-menu>button:disabled{opacity:.4;cursor:default}
+.document-tab-ghost{position:fixed;z-index:121;display:flex;align-items:center;gap:8px;box-sizing:border-box;width:220px;max-width:calc(100vw - 12px);height:34px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--text);box-shadow:0 4px 12px #0002;font-size:12px;pointer-events:none;opacity:.94}
+.document-tab-ghost.is-detaching{border-color:var(--accent)}
+.document-tab-ghost>svg{flex-shrink:0;color:var(--muted)}
+.document-tab-ghost>span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

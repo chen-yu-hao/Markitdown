@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, screen, shell } from 'electron';
 import { existsSync } from 'node:fs';
 import { mkdir, open, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -8,6 +8,7 @@ import { imageResponse, importImages } from './image-service';
 import { exportDocument, findPandoc, importDocumentToMarkdown } from './export-service';
 import { assertWritableDataDirectory, exportExtensions, newDocumentFilename, recentPaths, resolvedTheme, setNewFileRegistration, titleBarColors, validExportFormat } from './platform-service';
 import { prepareClose } from './close-policy';
+import { DocumentTransfers, transferEditorState, visibleWindowBounds, type DocumentTransfer } from './document-transfer';
 import type { AppEvent, DocumentPatch, DocumentSession, ExportFormat, ImageInput, Result, Settings } from '../shared/contracts';
 import { defaultSettings } from '../shared/contracts';
 import { ExtensionRegistry } from '../shared/extensions';
@@ -44,6 +45,21 @@ const closeRequests = new Set<number>();
 const rendererReady = new Set<number>();
 const initialErrors = new Map<number, string[]>();
 const integratedWindows = new Set<number>();
+const documentBusy = new Map<string, number>();
+const transfers = new DocumentTransfers(owners, (transfer, result) => {
+  const target = transfer.targetWindow === undefined ? undefined : windows.get(transfer.targetWindow);
+  if (result.status === 'ok') {
+    if (target && !target.isDestroyed()) { fitWindowToDisplay(target); target.show(); target.focus(); }
+  } else {
+    if (target && !target.isDestroyed()) { closing.add(target.id); target.destroy(); }
+    const source = windows.get(transfer.sourceWindow);
+    const document = service.docs.get(transfer.id);
+    if (source && !source.isDestroyed()) { if (document) publish(document, true); source.show(); source.focus(); }
+    else { owners.delete(transfer.id); void service.flushRecovery().catch(error => dialog.showErrorBox('Markedown', String(error))); }
+  }
+  externallyNotified.delete(transfer.id);
+  scheduleAutoSave(transfer.id);
+});
 
 let polling = false;
 let reportedRecoveryErrors = 0;
@@ -102,6 +118,7 @@ async function selectWorkspace(win: BrowserWindow, directory: string) {
 }
 function own(win: BrowserWindow, id: string) {
   if (owners.get(id) !== win.id) throw new Error('This document is not owned by this window.');
+  if (transfers.get(id)) throw new Error('The document is being moved to another window.');
   const doc = service.docs.get(id);
   if (!doc) throw new Error('Document has already closed.');
   return doc;
@@ -115,11 +132,13 @@ function applyPatch(id: string, patch: DocumentPatch) {
 }
 function scheduleAutoSave(id: string) {
   clearTimeout(saveTimers.get(id));
+  saveTimers.delete(id);
   const doc = service.docs.get(id);
-  if (!settings.autoSave || !doc?.dirty || !doc.path || doc.recovered || closeRequests.has(owners.get(id) ?? -1)) return;
+  const owner = owners.get(id);
+  if (owner === undefined || !settings.autoSave || !doc?.dirty || !doc.path || doc.recovered || transfers.get(id) || documentBusy.has(id) || closeRequests.has(owner)) return;
   saveTimers.set(id, setTimeout(async () => {
     saveTimers.delete(id);
-    if (saving.has(id)) { scheduleAutoSave(id); return; }
+    if (saving.has(id) || documentBusy.has(id) || transfers.get(id) || closeRequests.has(owners.get(id) ?? -1)) { scheduleAutoSave(id); return; }
     saving.add(id);
     try {
       const result = await service.save(id, undefined, true);
@@ -128,6 +147,14 @@ function scheduleAutoSave(id: string) {
       else if (result.status === 'error') emit(owners.get(id), { type: 'error', message: result.message });
     } finally { saving.delete(id); }
   }, 1100));
+}
+function holdDocument(id: string): () => void {
+  documentBusy.set(id, (documentBusy.get(id) || 0) + 1);
+  return () => {
+    const count = (documentBusy.get(id) || 1) - 1;
+    if (count) documentBusy.set(id, count);
+    else { documentBusy.delete(id); if (!saveTimers.has(id)) scheduleAutoSave(id); }
+  };
 }
 function notifyExternal(id: string, deleted: boolean) {
   if (externallyNotified.has(id)) return;
@@ -155,7 +182,7 @@ async function saveWithDialog(win: BrowserWindow, id: string, saveAs = false): P
   } finally { saving.delete(id); }
 }
 async function closeDocuments(win: BrowserWindow, ids: string[], entireWindow = false): Promise<Result<boolean>> {
-  if (closeRequests.has(win.id)) return { status: 'cancelled' };
+  if (closeRequests.has(win.id) || transfers.forWindow(win.id)) return { status: 'cancelled' };
   closeRequests.add(win.id);
   for (const [id, owner] of owners) if (owner === win.id) clearTimeout(saveTimers.get(id));
   try {
@@ -196,12 +223,14 @@ async function checkExternalChanges(windowId?: number) {
   try {
     for (const doc of [...service.docs.values()]) {
       const owner = owners.get(doc.id);
-      if ((windowId !== undefined && owner !== windowId) || saving.has(doc.id) || closeRequests.has(owner ?? -1)) continue;
+      if ((windowId !== undefined && owner !== windowId) || saving.has(doc.id) || documentBusy.has(doc.id) || transfers.get(doc.id) || closeRequests.has(owner ?? -1)) continue;
+      const release = holdDocument(doc.id);
       try {
         const result = await service.checkExternal(doc.id);
         if (result === 'reloaded') { externallyNotified.delete(doc.id); const current = service.docs.get(doc.id); if (current) publish(current); }
         else if (result === 'conflict' || result === 'deleted') notifyExternal(doc.id, result === 'deleted');
       } catch (error) { emit(owner, { type: 'error', message: String(error) }); }
+      finally { release(); }
     }
     for (const message of service.recoveryErrors.slice(reportedRecoveryErrors)) for (const win of windows.values()) emit(win.id, { type: 'error', message });
     reportedRecoveryErrors = service.recoveryErrors.length;
@@ -241,10 +270,17 @@ async function openPaths(win: BrowserWindow, paths: string[]): Promise<DocumentS
   for (const filename of paths) {
     try {
       const doc = await service.open(filename);
+      const transfer = transfers.get(doc.id);
+      if (transfer) {
+        const source = windows.get(transfer.sourceWindow);
+        source?.restore(); source?.show(); source?.focus();
+        succeeded++;
+        continue;
+      }
       const owner = owners.get(doc.id);
-      if (owner !== undefined && owner !== win.id) {
-        const existing = windows.get(owner);
-        existing?.restore(); existing?.show(); existing?.focus(); publish(doc, true);
+      const existing = owner === undefined ? undefined : windows.get(owner);
+      if (owner !== win.id && existing && !existing.isDestroyed()) {
+        existing.restore(); existing.show(); existing.focus(); publish(doc, true);
       } else { owners.set(doc.id, win.id); opened.push(doc); publish(doc, true); }
       succeeded++;
       if (doc.path) await rememberPath(win.id, 'recentFiles', doc.path);
@@ -282,14 +318,37 @@ async function importDocumentPaths(win: BrowserWindow, filenames: string[]): Pro
   }
   return imported;
 }
-async function createWindow(paths: string[] = []) {
+function fitWindowToDisplay(win: BrowserWindow) {
+  const display = screen.getDisplayMatching(win.getBounds());
+  const area = display.workArea;
+  const inset = 8;
+  let bounds = win.getBounds();
+  if (bounds.width > area.width - inset * 2 || bounds.height > area.height - inset * 2) {
+    win.setMinimumSize(Math.min(700, area.width - inset * 2), Math.min(480, area.height - inset * 2));
+    win.setSize(Math.min(bounds.width, area.width - inset * 2), Math.min(bounds.height, area.height - inset * 2));
+    bounds = win.getBounds();
+  }
+  // Leave space for Windows resize borders and rounding across display scales.
+  const x = Math.max(area.x + inset, Math.min(area.x + area.width - bounds.width - inset, bounds.x));
+  const y = Math.max(area.y + inset, Math.min(area.y + area.height - bounds.height - inset, bounds.y));
+  if (x !== bounds.x || y !== bounds.y) win.setPosition(x, y);
+}
+async function createWindow(paths: string[] = [], transfer?: DocumentTransfer, position?: { x: number; y: number }) {
+  const display = transfer ? screen.getDisplayNearestPoint(position || screen.getCursorScreenPoint()) : undefined;
   const win = new BrowserWindow({
     width: 1280, height: 860, minWidth: 700, minHeight: 480, title: 'Markedown', show: false,
+    ...(display ? visibleWindowBounds(display.workArea, position) : {}),
     backgroundColor: titleBarColors(settings, nativeTheme.shouldUseDarkColors).color, icon: path.join(app.getAppPath(), 'resources', 'icon.png'),
     ...(settings.windowStyle === 'integrated' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: titleBarColors(settings, nativeTheme.shouldUseDarkColors) } : {}),
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true },
   });
   windows.set(win.id, win);
+  win.on('closed', () => { const pending = transfers.forWindow(win.id); if (pending) transfers.cancel(pending.id); windows.delete(win.id); integratedWindows.delete(win.id); workspaces.delete(win.id); searches.get(win.id)?.abort(); searches.delete(win.id); referenceSearches.get(win.id)?.abort(); referenceSearches.delete(win.id); initialErrors.delete(win.id); rendererReady.delete(win.id); closeRequests.delete(win.id); closing.delete(win.id); });
+  if (transfer) {
+    transfers.attach(transfer.id, win.id);
+    const workspace = workspaces.get(transfer.sourceWindow);
+    if (workspace) workspaces.set(win.id, workspace);
+  }
   if (settings.windowStyle === 'integrated') integratedWindows.add(win.id);
   applyWindowSettings(win);
   if (firstWindow) {
@@ -301,14 +360,17 @@ async function createWindow(paths: string[] = []) {
     if (!paths.length && service.docs.size === 0 && settings.startup === 'recent') paths = settings.recentFiles.slice(0, 10);
     firstWindow = false;
   }
-  await openPaths(win, paths).catch(error => emit(win.id, { type: 'error', message: String(error) }));
-  if (![...owners.values()].includes(win.id)) { const doc = service.create(settings); owners.set(doc.id, win.id); }
+  if (!transfer) await openPaths(win, paths).catch(error => emit(win.id, { type: 'error', message: String(error) }));
+  if (!transfer && ![...owners.values()].includes(win.id)) { const doc = service.create(settings); owners.set(doc.id, win.id); }
   win.webContents.setWindowOpenHandler(({ url }) => { void safeExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', event => event.preventDefault());
-  win.once('ready-to-show', () => win.show());
+  if (!transfer) win.once('ready-to-show', () => win.show());
+  win.webContents.on('render-process-gone', () => { const pending = transfers.forWindow(win.id); if (pending) transfers.cancel(pending.id, 'The editor stopped while moving the document.'); });
   win.on('close', event => {
     if (closing.has(win.id)) return;
     event.preventDefault();
+    const pending = transfers.forWindow(win.id);
+    if (pending) { transfers.cancel(pending.id); return; }
     if (closeRequests.has(win.id)) return;
     if (win.webContents.isDestroyed()) {
       closeRequests.add(win.id);
@@ -322,9 +384,9 @@ async function createWindow(paths: string[] = []) {
     }).catch(error => dialog.showErrorBox('Markedown', String(error)));
   });
   win.on('focus', () => { if (rendererReady.has(win.id)) void checkExternalChanges(win.id); });
-  win.on('closed', () => { windows.delete(win.id); integratedWindows.delete(win.id); workspaces.delete(win.id); searches.get(win.id)?.abort(); searches.delete(win.id); referenceSearches.get(win.id)?.abort(); referenceSearches.delete(win.id); initialErrors.delete(win.id); rendererReady.delete(win.id); closeRequests.delete(win.id); closing.delete(win.id); });
   if (process.env.MARKEDOWN_DEV_URL) await win.loadURL(process.env.MARKEDOWN_DEV_URL);
   else await win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  if (transfer && !win.isDestroyed()) fitWindowToDisplay(win);
   return win;
 }
 async function safeExternal(raw: string) {
@@ -336,10 +398,14 @@ function installMenu() {
   for (const win of windows.values()) win.setMenu(null);
 }
 function installIPC() {
+  const busyMethods = new Set(['saveDocument', 'resolveExternal', 'importImages', 'exportDocument']);
   const handle = (name: string, fn: (win: BrowserWindow, ...args: any[]) => unknown) => ipcMain.handle(`markedown:${name}`, (event, ...args) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win || !windows.has(win.id) || event.senderFrame !== event.sender.mainFrame) throw new Error('Untrusted IPC sender.');
-    return fn(win, ...args);
+    if (!busyMethods.has(name) || typeof args[0] !== 'string') return fn(win, ...args);
+    const release = holdDocument(args[0]);
+    try { return Promise.resolve(fn(win, ...args)).finally(release); }
+    catch (error) { release(); throw error; }
   });
   handle('references.status', () => zotero.status());
   handle('references.search', async (win, query: string) => {
@@ -356,10 +422,29 @@ function installIPC() {
     rendererReady.add(win.id);
     const recoveryErrors = [...service.recoveryErrors, ...initialErrors.get(win.id) || []];
     initialErrors.delete(win.id);
-    return { documents: [...service.docs.values()].filter(doc => owners.get(doc.id) === win.id), settings, workspace: workspaces.get(win.id) || null, recoveryErrors, locale: app.getLocale(), version: app.getVersion() };
+    const transfer = transfers.forWindow(win.id);
+    return { documents: [...service.docs.values()].filter(doc => owners.get(doc.id) === win.id), settings, workspace: workspaces.get(win.id) || null, recoveryErrors, locale: app.getLocale(), version: app.getVersion(), ...(transfer?.targetWindow === win.id ? { transfer: { id: transfer.id, editorState: transfer.editorState } } : {}) };
   });
   handle('newDocument', win => { const doc = service.create(settings); owners.set(doc.id, win.id); return doc; });
   handle('newWindow', () => createWindow().then(() => undefined));
+  handle('detachDocument', async (win, id: string, patch: DocumentPatch, editorState: unknown, position?: { x: number; y: number }): Promise<Result<boolean>> => {
+    try {
+      const document = own(win, id);
+      if (closeRequests.has(win.id) || closing.has(win.id) || transfers.forWindow(win.id) || saving.has(id) || documentBusy.has(id)) return { status: 'conflict', message: tr('文稿正在处理其他操作，请稍后再移动。', 'The document is busy. Try moving it again after the current operation finishes.') };
+      if (position && (!Number.isFinite(position.x) || !Number.isFinite(position.y) || Math.abs(position.x) > 1_000_000 || Math.abs(position.y) > 1_000_000)) throw new Error('Invalid window position.');
+      const state = transferEditorState(editorState, patch?.source);
+      if (patch.editVersion < document.editVersion || patch.editVersion === document.editVersion && patch.source !== document.source) return { status: 'conflict', message: 'The document changed before its editor state could be moved.' };
+      applyPatch(id, patch);
+      const transfer = transfers.begin(id, win.id, state);
+      clearTimeout(saveTimers.get(id)); saveTimers.delete(id);
+      void createWindow([], transfer, position).catch(error => transfers.cancel(id, String(error)));
+      return await transfer.result;
+    } catch (error) { return fail(error); }
+  });
+  handle('completeDocumentTransfer', (win, id: string, accepted: boolean) => {
+    if (typeof id !== 'string' || typeof accepted !== 'boolean') throw new Error('Invalid document transfer acknowledgment.');
+    transfers.acknowledge(id, win.id, accepted);
+  });
   handle('openFiles', async (win, paths?: string[]) => {
     try {
       if (!paths) { const result = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: [{ name: 'Markdown', extensions: textExtensions }] }); if (result.canceled) return { status: 'cancelled' }; paths = result.filePaths; }
@@ -373,6 +458,14 @@ function installIPC() {
   });
   handle('saveDocument', async (win, id: string, patch: DocumentPatch, saveAs = false) => { try { own(win, id); applyPatch(id, patch); return await saveWithDialog(win, id, saveAs); } catch (error) { return fail(error); } });
   handle('closeDocument', async (win, id: string) => { try { own(win, id); return await closeDocuments(win, [id]); } catch (error) { return fail(error); } });
+  handle('closeOtherDocuments', async (win, keepId: string): Promise<Result<string[]>> => {
+    try {
+      own(win, keepId);
+      const ids = [...owners].filter(([id, owner]) => owner === win.id && id !== keepId).map(([id]) => id);
+      const result = await closeDocuments(win, ids);
+      return result.status === 'ok' ? { status: 'ok', value: ids } : result;
+    } catch (error) { return fail(error); }
+  });
   handle('resolveExternal', async (win, id: string, action: 'reload' | 'copy' | 'cancel') => {
     try {
       own(win, id);

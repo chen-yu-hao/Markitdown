@@ -78,7 +78,10 @@ try {
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].blur());
   await writeFile(realDocument, '# Other text\n');
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].focus());
-  await page.waitForFunction(id => window.qaEvents.some(event => event.type === 'document' && event.document.id === id && event.document.source === '# Other text\n'), imageId);
+  await page.waitForFunction(id => window.qaEvents.some(event => event.type === 'document' && event.document.id === id && event.document.source === '# Other text\n'), imageId, { polling: 100 }).catch(async error => {
+    console.error(JSON.stringify(await page.evaluate(async id => ({ document: (await window.markedown.bootstrap()).documents.find(doc => doc.id === id), events: window.qaEvents.filter(event => event.type === 'document' && event.document.id === id) }), imageId), null, 2));
+    throw error;
+  });
   assert(await page.evaluate(async id => (await window.markedown.bootstrap()).documents.find(doc => doc.id === id)?.source === '# Other text\n', imageId), 'The main process did not retain the external reload.');
   console.log(JSON.stringify({ directory, checks:['startup error delivery','atomic close preflight','close cancellation preserves all tabs','duplicate native close guard','single-tab close','image picker size/count limits','image IPC count limit','external reload on focus'] }));
 } finally {

@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
-import { Annotation, Compartment, EditorSelection, EditorState, Facet, StateEffect, StateField, Transaction, type Range } from '@codemirror/state';
+import { Annotation, Compartment, EditorSelection, EditorState, Facet, StateEffect, StateField, Transaction, type EditorStateConfig, type Range } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType, drawSelection, dropCursor, keymap, placeholder, type DecorationSet, type ViewUpdate } from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory, redo, selectAll, undo } from '@codemirror/commands';
+import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, isolateHistory, redo, selectAll, undo } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultHighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { SearchQuery, findNext as searchNext, findPrevious, getSearchQuery, replaceAll, replaceNext, search, setSearchQuery } from '@codemirror/search';
@@ -25,6 +25,8 @@ export interface EditorHandle {
   scrollTo(offset: number): void;
   focus(): void;
   insertText(text: string, bibliography?: boolean): void;
+  beginTransfer(): { patch: DocumentPatch; editorState: unknown } | null;
+  cancelTransfer(): void;
 }
 
 export interface EditorProps {
@@ -39,6 +41,8 @@ export interface EditorProps {
   onChange(patch: DocumentPatch): void;
   onImportImages(files?: File[]): Promise<string[]>;
   onFindResult?(result: { current: number; total: number }): void;
+  transferState?: unknown;
+  onTransferReady?(accepted: boolean): Promise<void>;
 }
 
 const sourceLimit = 5 * 1024 * 1024;
@@ -370,6 +374,13 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   const deferredBibliographyRef = useRef(false);
   const pendingExternalRef = useRef<DocumentSession | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const transferLocked = useRef(props.transferState !== undefined);
+  const transferConfig = useRef(new Compartment());
+
+  function lockTransfer(locked: boolean) {
+    transferLocked.current = locked;
+    viewRef.current?.dispatch({ effects: transferConfig.current.reconfigure([EditorState.readOnly.of(locked), EditorView.editable.of(!locked)]) });
+  }
 
   function reportSearch(view: EditorView) {
     clearTimeout(searchTimerRef.current);
@@ -391,10 +402,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   }
 
   function publish(view: EditorView) {
+    if (transferLocked.current) return;
     const current = propsRef.current;
     const source = view.state.doc.toString();
     const mode = new TextEncoder().encode(source).length > sourceLimit ? 'source' : current.document.mode;
-    current.onChange({ source, mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: view.scrollDOM.scrollTop, editVersion: versionRef.current });
+    current.onChange({ source, mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current });
   }
 
   function applyExternal(view: EditorView, document: DocumentSession) {
@@ -412,7 +424,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
 
   async function importImages(files?: File[], position?: number) {
     const view = viewRef.current;
-    if (!view) return;
+    if (!view || transferLocked.current) return;
     const selection = view.state.selection.main;
     const id = crypto.randomUUID();
     view.dispatch({ effects: trackInsertion.of({ id, from: position ?? selection.from, to: position ?? selection.to }) });
@@ -434,7 +446,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
 
   function command(name: string) {
     const view = viewRef.current;
-    if (!view) return;
+    if (!view || transferLocked.current) return;
     const settings = propsRef.current.settings || defaultSettings;
     if (name === 'bibliography') { insertText('', true); return; }
     if (name === 'math') {
@@ -500,7 +512,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
 
   function insertText(text: string, bibliography = false) {
     const view = viewRef.current;
-    if (!view || view.composing || view.compositionStarted) return;
+    if (!view || transferLocked.current || view.composing || view.compositionStarted) return;
     view.dispatch(academicInsertion(view.state, text, bibliography, view.state.facet(editorPreferences)));
     view.focus();
   }
@@ -508,6 +520,17 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   useImperativeHandle(ref, () => ({
     command,
     insertText,
+    beginTransfer() {
+      const view = viewRef.current;
+      if (!view || transferLocked.current || view.composing || view.compositionStarted || view.state.field(insertions).size || deferredBibliographyRef.current || pendingExternalRef.current) return null;
+      const editorState = view.state.toJSON({ history: historyField });
+      const source = view.state.doc.toString();
+      const current = propsRef.current;
+      const patch: DocumentPatch = { source, mode: current.document.mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current };
+      lockTransfer(true);
+      return { patch, editorState };
+    },
+    cancelTransfer() { lockTransfer(false); },
     find(query, options) {
       const view = viewRef.current;
       if (!view) return;
@@ -542,13 +565,13 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     const resolver = (destination: string) => window.markedown.imageURL(initial.document.id, destination);
     let scrollFrame = 0;
     let centerPending = false;
-    const view = new EditorView({
-      parent: host.current,
-      state: EditorState.create({
+    const config: EditorStateConfig = {
         doc: initial.document.source,
         selection: EditorSelection.single(Math.min(initial.document.selection.anchor, initial.document.source.length), Math.min(initial.document.selection.head, initial.document.source.length)),
         extensions: [
           history(), drawSelection(), dropCursor(), EditorView.lineWrapping, insertions,
+          transferConfig.current.of([EditorState.readOnly.of(transferLocked.current), EditorView.editable.of(!transferLocked.current)]),
+          EditorState.transactionFilter.of(transaction => transferLocked.current && (transaction.docChanged || transaction.selection) ? [] : transaction),
           EditorState.transactionExtender.of(transaction => ['input.format', 'input.replace', 'input.paste'].some(event => transaction.isUserEvent(event)) ? { annotations: isolateHistory.of('full') } : null),
           markdown({ extensions: GFM, completeHTMLTags: false, pasteURLAsLink: false, addKeymap: false, codeLanguages: codeLanguage }),
           preferencesRef.current.of(preferenceExtensions(initial.settings || defaultSettings)),
@@ -638,10 +661,28 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
             }
           }),
         ],
-      }),
-    });
+    };
+    let state: EditorState;
+    let restored = true;
+    try {
+      state = initial.transferState === undefined ? EditorState.create(config) : EditorState.fromJSON(initial.transferState, config, { history: historyField });
+      if (state.doc.toString() !== initial.document.source) throw new Error('Transferred editor content does not match the document.');
+    } catch (error) {
+      if (initial.transferState === undefined) throw error;
+      restored = false;
+      state = EditorState.create(config);
+    }
+    const view = new EditorView({ parent: host.current, state });
     viewRef.current = view;
     view.scrollDOM.scrollTop = initial.document.scrollTop;
+    if (initial.transferState !== undefined && initial.onTransferReady) {
+      void initial.onTransferReady(restored).then(() => {
+        if (viewRef.current === view && restored) {
+          lockTransfer(false);
+          view.requestMeasure({ read: () => initial.document.scrollTop, write: top => { view.scrollDOM.scrollTop = top; } });
+        }
+      }).catch(() => {});
+    }
     return () => {
       cancelAnimationFrame(scrollFrame);
       clearTimeout(searchTimerRef.current);

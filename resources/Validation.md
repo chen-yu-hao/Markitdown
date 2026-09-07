@@ -1,8 +1,18 @@
-# Windows 0.3.3 验证记录
+# Windows 0.3.4 验证记录
 
 环境：Windows 11 x64、Node.js 24.14.0、Electron 44.2.0、Zotero 9.0.6、本机 Pandoc 2.12。日期：2026-09-07。
 
-## 本次验证（0.3.3）
+## 本次验证（0.3.4）
+
+- TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：268 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
+- 新增 10 项文稿迁移单元测试通过。实际 Electron 主进程的 16 组迁移检查和既有 8 组主进程回归通过，覆盖成功确认、失败回滚、超时、窗口关闭、失效归属回收、恢复保护、保存互斥及窗口位置约束。
+- 实际 Electron 标签界面的 7 组综合流程通过：右键非当前标签、单标签关闭及取消、关闭其他标签的整体确认和窗口隔离、移窗后文稿 ID/未保存内容/选区/滚动/模式与撤销重做、文件去重、拖回/按 Esc/关闭按钮拖动取消，以及移出窗口后松开鼠标。无渲染错误。
+- 已检查迁移后的编辑器和菜单截图，覆盖 700 DIP 窄窗口及 125%/200% Chromium 设备缩放；窄窗按现有抽屉交互收起侧栏后操作标签。
+- 18 组实际 Electron 编辑器回归通过，包括中文组合输入事件、Unicode、跨标签撤销、模式切换、查找替换、异步批量图片插入、选区及点击定位。无渲染错误。
+- 0.3.4 打包 EXE 的全部 7 组标签工作流复验通过。滚动恢复检查等待键盘选区触发的滚动完成后，再同时校验编辑器 DOM 与主进程记录，确认非当前标签的 450px 滚动位置及撤销/重做记录随文稿迁移。
+- 0.3.4 常规打包验证通过：实际 ASAR、隔离数据目录、原生 Sharp 图片导入及本地缩略图、包含当前未保存内容的 HTML/PDF/PNG 导出、导出窗口清理，以及 100%/125%/150%/200% 应用显示缩放。桌面和紧凑窗口无空白、横向溢出或渲染错误。
+
+## 既有验收（0.3.3）
 
 - TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：258 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
 - 实际 Electron 公式布局检查通过：菜单插入行间公式及一次撤销/重做、默认全部编号、六种公式对齐和编号位置组合、多行公式单编号、手动编号、禁止编号、行内公式、设置持久化，以及 700×480 窗口。切换布局不修改 Markdown 源码，无渲染错误。
@@ -61,9 +71,12 @@ node scripts/verify-large-images.mjs
 node scripts/verify-caret-position.mjs
 node scripts/verify-equation-layout.mjs
 node scripts/verify-editor.mjs
+node scripts/verify-document-transfer.mjs
+node scripts/verify-document-tabs.mjs
 node scripts/verify-packaged.mjs
+node scripts/verify-document-tabs.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-equation-layout.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-academic.mjs release/win-unpacked/Markedown.exe
 ```
 
-测试使用独立数据目录，结果和截图保存在 `test-results`。公式布局为 `equation-layout/run-*/results.json`，本机 Word 布局为 `equation-layout-word/results.json`，学术界面为 `academic/results.json`，真实文库与导出为 `academic-live/results.json`，常规打包验证为 `packaged-results.json`。历史验证记录保存在 `validation-history`。
+测试使用独立数据目录，结果和截图保存在 `test-results`。标签操作为 `document-tabs/run-*/results.json`，公式布局为 `equation-layout/run-*/results.json`，本机 Word 布局为 `equation-layout-word/results.json`，学术界面为 `academic/results.json`，真实文库与导出为 `academic-live/results.json`，常规打包验证为 `packaged-results.json`。历史验证记录保存在 `validation-history`。

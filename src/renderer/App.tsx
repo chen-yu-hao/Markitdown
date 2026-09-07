@@ -9,6 +9,7 @@ import Preferences from './Preferences';
 import './themes.css';
 import AcademicPanel from './AcademicPanel';
 import CitationCredits from './CitationCredits';
+import DocumentTabs from './DocumentTabs';
 import { emptyCitationData, type CitationRenderData } from '../shared/academic-contracts';
 import { scanCitations } from '../shared/citations';
 
@@ -119,6 +120,10 @@ export default function App() {
   const [searchTruncated, setSearchTruncated] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis>(emptyAnalysis);
   const editors = useRef(new Map<string, EditorHandle>());
+  const [tabBusy, setTabBusy] = useState(false);
+  const tabBusyRef = useRef(false);
+  const removedDocuments = useRef(new Set<string>());
+  const [transfer, setTransfer] = useState<{ id: string; editorState: unknown } | null>(null);
   const actions = useRef<(name: string) => void>(() => {});
   const mounted = useRef(false);
   const analysisWorker = useRef<Worker | null>(null);
@@ -132,6 +137,8 @@ export default function App() {
   const replaceDocs = useCallback((next: DocumentSession[]) => { docsRef.current = next; setDocuments(next); }, []);
   const showError = useCallback((text: string) => setToast({ text, error: true }), []);
   const upsert = useCallback((incoming: DocumentSession, activate = false) => {
+    if (removedDocuments.current.has(incoming.id) && !activate) return;
+    if (activate) removedDocuments.current.delete(incoming.id);
     const previous = docsRef.current.find(doc => doc.id === incoming.id);
     let next = incoming;
     if (previous && (previous.editVersion > incoming.editVersion || (previous.editVersion === incoming.editVersion && previous.source === incoming.source))) next = { ...incoming, ...patchOf(previous), dirty: previous.source !== incoming.savedSource || incoming.recovered };
@@ -151,6 +158,7 @@ export default function App() {
     void window.markedown.bootstrap().then(initial => {
       if (!mounted.current) return;
       applySettings(initial.settings); setVersion(initial.version); setLocale(initial.locale); setWorkspace(initial.workspace); setRecoveryErrors(initial.recoveryErrors);
+      if (initial.transfer) setTransfer(initial.transfer);
       for (const doc of initial.documents) upsert(doc);
       setReady(true);
     }).catch(error => showError(String(error)));
@@ -231,15 +239,41 @@ export default function App() {
     else if (result.status === 'error') showError(result.message);
     return false;
   }
-  async function closeDocument(id: string) {
-    const result = await window.markedown.closeDocument(id);
-    if (result.status === 'ok') {
-      const index = docsRef.current.findIndex(doc => doc.id === id);
-      const remaining = docsRef.current.filter(doc => doc.id !== id);
-      replaceDocs(remaining); editors.current.delete(id); setConflicts(items => items.filter(item => item !== id));
-      if (activeIdRef.current === id) select(remaining[Math.min(index, remaining.length - 1)]?.id || '');
-      if (!remaining.length) await newDocument();
-    } else if (result.status === 'error') showError(result.message);
+  async function removeDocuments(ids: string[]) {
+    const removed = new Set(ids);
+    const index = docsRef.current.findIndex(doc => doc.id === activeIdRef.current);
+    const remaining = docsRef.current.filter(doc => !removed.has(doc.id));
+    for (const id of ids) { removedDocuments.current.add(id); editors.current.delete(id); resolvedCitationSignatures.current.delete(id); }
+    replaceDocs(remaining);
+    setCitationData(previous => Object.fromEntries(Object.entries(previous).filter(([id]) => !removed.has(id))));
+    setConflicts(items => items.filter(id => !removed.has(id)));
+    if (removed.has(activeIdRef.current)) select(remaining[Math.min(index, remaining.length - 1)]?.id || '');
+    if (!remaining.length) await newDocument();
+  }
+  async function closeDocument(id: string, others = false) {
+    if (tabBusyRef.current) return;
+    tabBusyRef.current = true; setTabBusy(true);
+    try {
+      const result = others ? await window.markedown.closeOtherDocuments(id) : await window.markedown.closeDocument(id);
+      if (result.status === 'ok') await removeDocuments(Array.isArray(result.value) ? result.value : [id]);
+      else if (result.status === 'error' || result.status === 'conflict') showError(result.message);
+    } catch (error) { showError(String(error)); }
+    finally { tabBusyRef.current = false; setTabBusy(false); }
+  }
+  async function detachDocument(id: string, position?: { x: number; y: number }) {
+    if (tabBusyRef.current) return;
+    const editor = editors.current.get(id);
+    if (!editor) return;
+    tabBusyRef.current = true; setTabBusy(true);
+    let completed = false;
+    try {
+      const snapshot = editor.beginTransfer();
+      if (!snapshot) { showError(t('请完成当前输入或图片插入后，再移动标签。', 'Finish the current input or image insertion before moving this tab.')); return; }
+      const result = await window.markedown.detachDocument(id, snapshot.patch, snapshot.editorState, position);
+      if (result.status === 'ok') { completed = true; await removeDocuments([id]); }
+      else if (result.status === 'error' || result.status === 'conflict') showError(result.message);
+    } catch (error) { showError(String(error)); }
+    finally { if (!completed) editor.cancelTransfer(); tabBusyRef.current = false; setTabBusy(false); }
   }
   async function chooseWorkspace(path?: string) {
     const result = await window.markedown.chooseWorkspace(path);
@@ -276,6 +310,7 @@ export default function App() {
     change(doc.id, { ...patchOf(doc), mode: doc.mode === 'source' ? 'live' : 'source' });
   }
   actions.current = name => {
+    if (tabBusyRef.current) return;
     if (name.startsWith('savePrevious:')) { void save(name.slice(13)); return; }
     if (name.startsWith('openRecent:')) { void openFiles([name.slice(11)]); return; }
     if ((settingsOpen || academicOpen) && !['settings', 'about', 'zoomIn', 'zoomOut', 'zoomReset'].includes(name)) return;
@@ -369,11 +404,11 @@ export default function App() {
         <div className="sidebar-footer"><span>{t('本地文稿', 'Local documents')}</span><IconButton label={t('收起侧栏', 'Hide sidebar')} onClick={() => setSidebar(false)}><PanelLeft size={15} /></IconButton></div>
       </aside>}
       <main className="document-area">
-        {!focusMode && <div className="tab-band">{!sidebar && <IconButton label={t('显示侧栏', 'Show sidebar')} onClick={() => setSidebar(true)}><PanelLeft /></IconButton>}<div className="document-tabs" role="tablist" aria-label={t('文稿', 'Documents')}>{documents.map(doc => <div key={doc.id} role="tab" tabIndex={0} aria-selected={activeId === doc.id} className={`document-tab ${activeId === doc.id ? 'selected' : ''}`} onClick={() => select(doc.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') select(doc.id); }} title={doc.path || doc.title} data-testid="document-tab"><FileText size={14} /><span>{!doc.path && doc.title === 'Untitled' ? t('未命名', 'Untitled') : doc.title}</span>{(doc.dirty || doc.recovered) && <i className="dirty-dot" aria-label={t('未保存', 'Unsaved')} />}<button aria-label={t(`关闭 ${doc.title}`, `Close ${doc.title}`)} title={t('关闭', 'Close')} onClick={event => { event.stopPropagation(); void closeDocument(doc.id); }}><X size={13} /></button></div>)}</div><IconButton label={t('新建文稿', 'New document')} onClick={() => void newDocument()}><Plus /></IconButton></div>}
+        {!focusMode && <div className="tab-band">{!sidebar && <IconButton label={t('显示侧栏', 'Show sidebar')} onClick={() => setSidebar(true)}><PanelLeft /></IconButton>}<DocumentTabs documents={documents} activeId={activeId} zh={zh} busy={tabBusy} onSelect={select} onClose={id => void closeDocument(id)} onCloseOthers={id => void closeDocument(id, true)} onDetach={(id, position) => void detachDocument(id, position)} /><IconButton label={t('新建文稿', 'New document')} disabled={tabBusy} onClick={() => void newDocument()}><Plus /></IconButton></div>}
         {!focusMode && settings.showToolbar && <div className="format-toolbar"><div className="toolbar-group"><select className="heading-select" aria-label={t('段落样式', 'Paragraph style')} value={paragraphStyle} onChange={event => actions.current(event.target.value)} disabled={!active}><option value="paragraph">{t('正文', 'Text')}</option>{[1, 2, 3, 4, 5, 6].map(level => <option key={level} value={`heading${level}`}>{t('标题', 'Heading')} {level}</option>)}</select>{tool('bold', '加粗', 'Bold', <Bold />)}{tool('italic', '斜体', 'Italic', <Italic />)}{tool('strike', '删除线', 'Strikethrough', <Strikethrough />)}{tool('mark', '高亮', 'Highlight', <Highlighter />)}<span className="divider" />{tool('link', '链接', 'Link', <Link />)}{tool('image', '插入图片', 'Insert image', <ImagePlus />)}{tool('code', '行内代码', 'Inline code', <Code2 />)}{tool('codeblock', '代码块', 'Code block', <Braces />)}<span className="divider" />{tool('quote', '引用', 'Quote', <Quote />)}{tool('unorderedList', '无序列表', 'Bullet list', <List />)}{tool('orderedList', '有序列表', 'Numbered list', <ListOrdered />)}{tool('task', '任务列表', 'Task list', <ListChecks />)}</div><div className="toolbar-right">{tool('undo', '撤销', 'Undo', <Undo2 />)}{tool('redo', '重做', 'Redo', <Redo2 />)}<span className="divider" /><IconButton label={t('专注模式', 'Focus mode')} active={focusMode} onClick={() => setFocusMode(value => !value)}><Maximize2 /></IconButton></div></div>}
         {findOpen && <div className="find-bar" data-testid="find-bar"><div className="find-primary"><IconButton label={t('替换', 'Replace')} active={replaceOpen} onClick={() => setReplaceOpen(value => !value)}>{replaceOpen ? <ChevronDown /> : <ChevronRight />}</IconButton><div className={`input-with-tools find-input ${invalidRegex ? 'invalid' : ''}`}><Search size={15} /><input autoFocus aria-label={t('查找内容', 'Find text')} placeholder={t('查找', 'Find')} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') editors.current.get(activeId)?.findNext(event.shiftKey); if (event.key === 'Escape') setFindOpen(false); }} /><span className="find-count">{invalidRegex ? t('表达式无效', 'Invalid regex') : `${findResult.current} / ${findResult.total}`}</span></div><IconButton label={t('区分大小写', 'Match case')} active={findOptions.caseSensitive} onClick={() => setFindOptions(value => ({ ...value, caseSensitive: !value.caseSensitive }))}><Type /></IconButton><IconButton label={t('全字匹配', 'Whole word')} active={findOptions.wholeWord} onClick={() => setFindOptions(value => ({ ...value, wholeWord: !value.wholeWord }))}><ChevronsLeftRight /></IconButton><IconButton label={t('正则表达式', 'Regular expression')} active={findOptions.regex} onClick={() => setFindOptions(value => ({ ...value, regex: !value.regex }))}><span className="regex-symbol">.*</span></IconButton><IconButton label={t('上一个', 'Previous match')} onClick={() => editors.current.get(activeId)?.findNext(true)}><ArrowUp /></IconButton><IconButton label={t('下一个', 'Next match')} onClick={() => editors.current.get(activeId)?.findNext()}><ArrowDown /></IconButton><IconButton label={t('关闭查找', 'Close find')} onClick={() => setFindOpen(false)}><X /></IconButton></div>{replaceOpen && <div className="replace-row"><input aria-label={t('替换为', 'Replace with')} placeholder={t('替换为', 'Replace with')} value={replacement} onChange={event => setReplacement(event.target.value)} /><button className="text-command" disabled={!query || invalidRegex} onClick={() => editors.current.get(activeId)?.replace(replacement)}>{t('替换', 'Replace')}</button><button className="text-command" disabled={!query || invalidRegex} onClick={() => editors.current.get(activeId)?.replace(replacement, true)}>{t('全部替换', 'Replace all')}</button></div>}</div>}
         {active?.recovered && <div className="recovery-banner"><span>{t('已恢复未保存的文稿', 'Unsaved document recovered')}</span><button className="text-command" onClick={() => void save()}><Save size={14} />{t('保存恢复内容', 'Save recovered content')}</button></div>}
-        <div className="editor-stack" data-testid="editor-stack">{!ready && <div className="editor-loading"><LoaderCircle className="spin" /></div>}{documents.map(doc => <Editor key={doc.id} ref={handle => { if (handle) editors.current.set(doc.id, handle); else editors.current.delete(doc.id); }} document={doc} active={doc.id === activeId} settings={settings} citations={citationData[doc.id] || emptyCitationData} fontSize={settings.fontSizeMode === 'auto' ? 17 : settings.fontSize} readingWidth={settings.readingWidth} theme={dark ? 'dark' : 'light'} typewriter={typewriter} onChange={patch => change(doc.id, patch)} onImportImages={files => insertImages(doc.id, files)} onFindResult={result => { if (activeIdRef.current === doc.id) setFindResult(result); }} />)}</div>
+        <div className="editor-stack" data-testid="editor-stack">{!ready && <div className="editor-loading"><LoaderCircle className="spin" /></div>}{documents.map(doc => <Editor key={doc.id} ref={handle => { if (handle) editors.current.set(doc.id, handle); else editors.current.delete(doc.id); }} document={doc} active={doc.id === activeId} settings={settings} citations={citationData[doc.id] || emptyCitationData} fontSize={settings.fontSizeMode === 'auto' ? 17 : settings.fontSize} readingWidth={settings.readingWidth} theme={dark ? 'dark' : 'light'} typewriter={typewriter} transferState={transfer?.id === doc.id ? transfer.editorState : undefined} onTransferReady={async accepted => { await window.markedown.completeDocumentTransfer(doc.id, accepted); setTransfer(null); }} onChange={patch => change(doc.id, patch)} onImportImages={files => insertImages(doc.id, files)} onFindResult={result => { if (activeIdRef.current === doc.id) setFindResult(result); }} />)}</div>
         {!focusMode && settings.showStatusBar && <footer className="status-bar"><div><span>{analysis.words.toLocaleString()} {t('字', 'words')}</span><span className="status-secondary">{analysis.characters.toLocaleString()} {t('字符', 'characters')}</span><span className="status-secondary">{analysis.words ? Math.max(1, Math.ceil(analysis.words / settings.readingSpeed)) : 0} {t('分钟', 'min')}</span></div><div><IconButton label={t('打字机模式', 'Typewriter mode')} active={typewriter} onClick={() => setTypewriter(value => !value)}><AlignLeft size={14} /></IconButton><span>{active?.bom ? 'UTF-8 BOM' : 'UTF-8'}</span><span>{active?.lineEnding || 'LF'}</span><button className={`mode-button ${active?.mode === 'source' ? 'source' : ''}`} onClick={toggleMode} data-testid="mode-toggle"><Code2 size={13} />{active?.mode === 'source' ? t('源码', 'Source') : t('即时排版', 'Live')}</button></div></footer>}
       </main>
     </div>
