@@ -27,6 +27,12 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
+      - name: Preserve Source File Bytes
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ inputs.tag || github.ref_name }}
