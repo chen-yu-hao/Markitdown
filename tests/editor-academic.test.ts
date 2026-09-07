@@ -4,7 +4,7 @@ import { history, redo, undo } from '@codemirror/commands';
 import { BIBLIOGRAPHY_MARKER, scanCitations } from '../src/shared/citations';
 import { defaultSettings } from '../src/shared/contracts';
 import { getEquationIndex, renderMarkdown } from '../src/shared/markdown';
-import { academicInsertion, bibliographyForTypedCitation, bibliographyTypingExtension, equationLabelInsertion } from '../src/renderer/editor-academic';
+import { academicInsertion, bibliographyForTypedCitation, bibliographyTypingExtension, displayEquationInsertion, equationLabelInsertion } from '../src/renderer/editor-academic';
 import { editorCitationScan, editorEquations, editorPreferences, editorSourceMode } from '../src/renderer/editor-preferences';
 
 const stateFor = (source: string, from = source.length, to = from) => EditorState.create({ doc: source, selection: { anchor: from, head: to }, extensions: [history(), bibliographyTypingExtension(() => false, () => {})] });
@@ -15,6 +15,29 @@ const applyHistory = (state: EditorState, command: typeof undo) => {
 };
 
 describe('academic insertion and recovery of source', () => {
+  it('inserts a numbered display equation at the selection and restores the paragraph with one undo', () => {
+    const source = 'Before x^2 + y^2 after';
+    const state = stateFor(source, 7, 16);
+    const next = state.update(displayEquationInsertion(state)).state;
+    expect(next.doc.toString()).toBe('Before \n\n$$\nx^2 + y^2\n$$\n\n after');
+    expect(next.sliceDoc(next.selection.main.from, next.selection.main.to)).toBe('x^2 + y^2');
+    expect(getEquationIndex(next.doc.toString()).equations.map(equation => [equation.block, equation.number])).toEqual([[true, '1']]);
+    const restored = applyHistory(next, undo);
+    expect(restored.doc.toString()).toBe(source);
+    expect(restored.selection.eq(state.selection)).toBe(true);
+    expect(applyHistory(restored, redo).doc.toString()).toBe(next.doc.toString());
+  });
+  it('places the cursor inside an empty display equation without adding redundant paragraph gaps', () => {
+    for (const source of ['', 'Before\n\n', 'Before\n']) {
+      const state = stateFor(source);
+      const next = state.update(displayEquationInsertion(state)).state;
+      const expected = source ? 'Before\n\n$$\n\n$$\n' : '$$\n\n$$\n';
+      expect(next.doc.toString()).toBe(expected);
+      expect(next.selection.main.empty).toBe(true);
+      const typed = next.update({ changes: { from: next.selection.main.head, insert: 'E=mc^2' } }).newDoc.toString();
+      expect(getEquationIndex(typed).equations.map(equation => equation.number)).toEqual(['1']);
+    }
+  });
   it('appends a bibliography without replacing selected text and preserves the selection', () => {
     const source = 'Selected text\n\nLast paragraph';
     const state = stateFor(source, 0, 8);

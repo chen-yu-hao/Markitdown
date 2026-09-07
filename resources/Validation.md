@@ -1,8 +1,18 @@
-# Windows 0.3.2 验证记录
+# Windows 0.3.3 验证记录
 
 环境：Windows 11 x64、Node.js 24.14.0、Electron 44.2.0、Zotero 9.0.6、本机 Pandoc 2.12。日期：2026-09-07。
 
-## 本次验证（0.3.2）
+## 本次验证（0.3.3）
+
+- TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：258 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
+- 实际 Electron 公式布局检查通过：菜单插入行间公式及一次撤销/重做、默认全部编号、六种公式对齐和编号位置组合、多行公式单编号、手动编号、禁止编号、行内公式、设置持久化，以及 700×480 窗口。切换布局不修改 Markdown 源码，无渲染错误。
+- HTML、独立 SVG 无样式 HTML、PDF、PNG 检查了公式左/编号右与公式右/编号左两种布局，覆盖未保存内容、交叉引用、多行和超宽公式。已检查编辑器、设置及导出截图；短多行公式没有内层滚动条，超宽公式在 PDF/PNG 中完整缩放且编号保持正常字号。
+- 独立浏览器检查通过 54 组布局：KaTeX、SVG、MathML，三种宽度和六种对齐组合，覆盖多行、长公式和长编号。
+- 实际 Word 六种布局均打开并成功渲染 PDF；每个样例包含 5 个原生可编辑公式、3 张独立无边框公式布局表和 8 个书签。逐张检查了公式对齐、编号垂直居中、无边框及相邻公式分隔。Pandoc 的 Word、EPUB、LaTeX 布局测试通过。
+- 本次重新运行光标回归：134 组坐标定位和 17 组点击后立即输入检查全部通过，无渲染错误。18 组编辑回归通过，包括选区操作、中文组合输入事件、跨标签撤销、模式切换、查找替换及异步批量图片插入。
+- 0.3.3 打包 EXE 的公式布局全流程复验通过，常规打包检查通过：ASAR、独立数据目录、原生 Sharp 图片导入、HTML/PDF/PNG 未保存内容导出、窗口清理，以及 100%/125%/150%/200% 应用缩放。HTML 预览取证改用保持隐藏并唤醒渲染的 Electron 捕获接口，修复测试中隐藏窗口截图超时的问题。
+
+## 既有验收（0.3.2）
 
 - TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：236 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
 - `verify-editor.mjs` 的 18 组真实 Electron 编辑检查通过，包括 Shift+点击、鼠标拖选、双击选词、三击选行、非空旧选区外点击，以及既有 Unicode/Chromium IME 组合输入、跨标签撤销、模式切换、查找替换和异步批量图片插入。未出现渲染错误。
@@ -49,9 +59,11 @@ node scripts/verify-academic.mjs
 node scripts/verify-academic-live.mjs
 node scripts/verify-large-images.mjs
 node scripts/verify-caret-position.mjs
+node scripts/verify-equation-layout.mjs
 node scripts/verify-editor.mjs
 node scripts/verify-packaged.mjs
+node scripts/verify-equation-layout.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-academic.mjs release/win-unpacked/Markedown.exe
 ```
 
-测试使用独立数据目录，结果和截图保存在 `test-results`。学术界面证据为 `academic/results.json`，真实文库与导出为 `academic-live/results.json`，常规打包验证为 `packaged-results.json`。历史验证记录保存在 `validation-history`。
+测试使用独立数据目录，结果和截图保存在 `test-results`。公式布局为 `equation-layout/run-*/results.json`，本机 Word 布局为 `equation-layout-word/results.json`，学术界面为 `academic/results.json`，真实文库与导出为 `academic-live/results.json`，常规打包验证为 `packaged-results.json`。历史验证记录保存在 `validation-history`。

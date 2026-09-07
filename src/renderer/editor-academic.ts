@@ -9,6 +9,21 @@ export function bibliographySuffix(source: string): string {
   return separator + BIBLIOGRAPHY_MARKER + '\n';
 }
 
+export function displayEquationInsertion(state: EditorState): TransactionSpec {
+  const { from, to } = state.selection.main;
+  const before = state.sliceDoc(Math.max(0, from - 2), from);
+  const after = state.sliceDoc(to, Math.min(state.doc.length, to + 2));
+  const prefix = !before || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
+  const suffix = !after ? '\n' : after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n';
+  const content = state.sliceDoc(from, to);
+  const anchor = from + prefix.length + 3;
+  return {
+    changes: { from, to, insert: `${prefix}$$\n${content}\n$$${suffix}` },
+    selection: { anchor, head: anchor + content.length },
+    annotations: Transaction.userEvent.of('input.format'),
+  };
+}
+
 export function academicInsertion(state: EditorState, text: string, bibliography = false, settings?: Partial<Settings>): TransactionSpec {
   const selection = state.selection.main;
   if (bibliography && !text) {

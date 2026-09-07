@@ -2,7 +2,7 @@ import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import { defaultSettings, type Settings } from './contracts';
 import { emojiNames, smartText } from './markdown-preferences';
-import { renderMath, mathCss } from './math-renderer';
+import { renderMath, mathCss, equationLayout } from './math-renderer';
 import { installMathSyntax } from './math-syntax';
 import { buildEquationIndex, equationAnchor, equationLabelPattern, installEquationReferences, type EquationEntry, type EquationIndex } from './equation-references';
 import { ExtensionRegistry } from './extensions';
@@ -135,7 +135,7 @@ md.renderer.rules.math_inline = (tokens, index, _options, env) => {
   return `<span class="md-equation-inline" id="${equation.id}" data-equation-from="${equation.from}">${equationAliases(equation)}${html}${equation.number ? `<span class="md-equation-inline-number"> ${equationNumber(equation)}</span>` : ''}${equationDiagnostic(equation, env)}</span>`;
 };
 
-function equationAliases(equation: EquationEntry): string { return equation.duplicate ? '' : equation.labels.slice(1).map(label => `<span id="${equationAnchor(label)}"></span>`).join(''); }
+function equationAliases(equation: EquationEntry, standalone = false): string { return equation.duplicate ? '' : equation.labels.slice(1).map(label => `<span id="${equationAnchor(label)}"${standalone ? ' style="position:absolute;top:0;left:0"' : ''}></span>`).join(''); }
 function equationNumber(equation: EquationEntry): string { const number = md.utils.escapeHtml(equation.number || ''); return equation.tagStarred ? number : `(${number})`; }
 function equationDiagnostic(equation: EquationEntry | undefined, env: unknown): string {
   if (!equation?.duplicate && !equation?.numberingError) return '';
@@ -147,7 +147,10 @@ function equationDiagnostic(equation: EquationEntry | undefined, env: unknown): 
 function mathBlock(source: string, equation: EquationEntry | undefined, env: unknown): string {
   const standalone = ['copy', 'htmlPlain'].includes(((env || {}) as RenderOptions).purpose || '');
   const number = equation?.number;
-  return `<div class="math-block${number ? ' md-numbered' : ''}"${equation ? ` id="${equation.id}" data-equation-from="${equation.from}"` : ''}${standalone ? ' style="position:relative;white-space:normal;text-indent:0;text-align:center;padding:.5em 3.5em .5em 0"' : ''}>${equation ? equationAliases(equation) : ''}${mathHTML(equation?.source ?? source, true, env)}${number ? `<span class="md-equation-number"${standalone ? ' style="position:absolute;right:.5em;top:50%;transform:translateY(-50%)"' : ''}>${equationNumber(equation!)}</span>` : ''}${equationDiagnostic(equation, env)}</div>\n`;
+  const layout = equationLayout(preferences(env), Boolean(number));
+  const style = (value: string) => standalone ? ` style="${value}"` : '';
+  const diagnostic = equationDiagnostic(equation, env);
+  return `<div class="math-block${number ? ' md-numbered' : ''}" data-math-align="${layout.alignment}" data-number-position="${layout.numberPosition}"${equation ? ` id="${equation.id}" data-equation-from="${equation.from}"` : ''}${style(layout.block)}>${equation ? equationAliases(equation, standalone) : ''}<div class="md-equation-body"${style(layout.body)}><div class="md-equation-content"${style(layout.content)}>${mathHTML(equation?.source ?? source, true, env)}</div></div>${number ? `<span class="md-equation-number"${style(layout.number)}>${equationNumber(equation!)}</span>` : ''}${standalone && diagnostic ? `<div style="grid-column:1/-1;grid-row:2">${diagnostic}</div>` : diagnostic}</div>\n`;
 }
 md.renderer.rules.math_block = (tokens, index, _options, env) => mathBlock(tokens[index].content, tokens[index].meta?.equation as EquationEntry | undefined, env);
 
@@ -443,7 +446,7 @@ pre code{background:none;padding:0;white-space:inherit}table{border-collapse:col
 th,td{border:1px solid #d9dfdb;padding:8px 12px;text-align:left}th{background:#f2f4f2;font-weight:600}tr{break-inside:avoid}thead{display:table-header-group}
 img{max-width:100%;height:auto;object-fit:contain}hr{border:0;border-top:1px solid #dce2de;margin:1.8em 0}mark{background:#f9e89b;color:inherit}
 sup,sub{font-size:.75em;line-height:0}ul,ol{padding-left:1.7em}.task-list-item{list-style:none}.task-list-item input{margin-left:-1.4em;accent-color:#28755f}
-.math-block{overflow-x:auto;padding:.5em 0}.katex{font-size:1.12em}.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}.image-unavailable{color:#7f6960;font-size:.9em}
+.katex{font-size:1.12em}.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}.image-unavailable{color:#7f6960;font-size:.9em}
 .hljs-keyword,.hljs-selector-tag,.hljs-literal{color:#835099}.hljs-string,.hljs-regexp,.hljs-addition{color:#367645}.hljs-number,.hljs-symbol{color:#9c633a}
 .hljs-comment,.hljs-quote{color:#7a817e}.hljs-title,.hljs-function,.hljs-attr{color:#38678d}.hljs-built_in,.hljs-type{color:#8c5944}
 .md-code{position:relative}.md-code-wrap{white-space:pre-wrap}.md-code-nowrap{white-space:pre;overflow-x:auto}.md-code-numbered{display:flex;gap:16px}.md-code-numbered code{display:block;flex:1;min-width:0}.md-code-numbers{white-space:pre;user-select:none;text-align:right;opacity:.45;font-size:.88em}.markdown-alert{border-left:4px solid #3573bf;background:#3573bf09}.markdown-alert-title{color:#3573bf}.markdown-alert-tip{border-color:#268349}.markdown-alert-tip .markdown-alert-title{color:#268349}.markdown-alert-warning{border-color:#9e7100}.markdown-alert-warning .markdown-alert-title{color:#9e7100}.markdown-alert-caution{border-color:#c83d45}.markdown-alert-caution .markdown-alert-title{color:#c83d45}.markdown-alert-important{border-color:#8954bf}.markdown-alert-important .markdown-alert-title{color:#8954bf}.md-diagram{text-align:center;overflow:auto}.md-diagram svg{max-width:100%;height:auto}.md-diagram-error{color:#b44;font:inherit}

@@ -10,17 +10,17 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ## 下载与安装
 
-当前版本：**0.3.2**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
+当前版本：**0.3.3**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
-| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.2/Markedown-0.3.2-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
-| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.2/Markedown-0.3.2-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
-| 源码 | [完整源码 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.2/Markedown-0.3.2-Windows-Source.zip) | 包含源码、依赖锁文件、测试和中文说明 |
+| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.3/Markedown-0.3.3-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
+| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.3/Markedown-0.3.3-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
+| 源码 | [完整源码 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.3/Markedown-0.3.3-Windows-Source.zip) | 包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.2)提供更新说明、第三方依赖清单及 `SHA256SUMS.txt` 校验文件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.3)提供更新说明、第三方依赖清单及 `SHA256SUMS.txt` 校验文件。
 
 ### 更新已有版本
 
@@ -46,7 +46,9 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ### 公式编号与交叉引用
 
-为行间公式或行内公式添加标签，即可在正文引用。编号支持全文连续或按一级标题分章，也可只为带标签的公式编号。
+通过 **编辑 → 格式 → 行间公式** 插入公式，默认自动编号。行间公式默认左对齐，编号在右侧并相对公式整体垂直居中；**偏好设置 → Markdown → 数学公式** 可选择公式左对齐、居中或右对齐，以及编号在左侧或右侧。
+
+为行间公式或行内公式添加标签，即可在正文引用。编号支持全文连续或按一级标题分章，也可只为带标签的公式编号。段落中的公式可通过 **编辑 → 格式 → 行内公式** 插入。
 
 ```markdown
 能量关系见 \eqref{eq:energy}。

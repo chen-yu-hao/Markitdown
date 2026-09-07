@@ -12,7 +12,7 @@ import { emptyCitationData, type CitationRenderData } from '../shared/academic-c
 import { BIBLIOGRAPHY_MARKER, scanCitations } from '../shared/citations';
 import { headingText } from '../shared/markdown-preferences';
 import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitationScan, editorCitations, editorEquations, editorPreferences, editorSourceMode, equationIndexForCommand, preferenceExtensions } from './editor-preferences';
-import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, equationLabelInsertion } from './editor-academic';
+import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, displayEquationInsertion, equationLabelInsertion } from './editor-academic';
 import { preservePointerPosition } from './editor-pointer';
 import 'katex/dist/katex.min.css';
 import './editor.css';
@@ -437,6 +437,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     if (!view) return;
     const settings = propsRef.current.settings || defaultSettings;
     if (name === 'bibliography') { insertText('', true); return; }
+    if (name === 'math') {
+      if (view.composing || view.compositionStarted) return;
+      view.dispatch(displayEquationInsertion(view.state));
+      view.focus(); return;
+    }
     if (name === 'equationLabel') {
       if (view.composing || view.compositionStarted) return;
       view.dispatch(equationLabelInsertion(view.state, equationIndexForCommand(view.state)));
@@ -449,7 +454,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     }
     const wrapping: Record<string, [string, string?, string?]> = {
       bold: ['**'], italic: ['*'], strike: ['~~'], strikethrough: ['~~'], mark: ['=='], highlight: ['=='], code: ['`'],
-      link: ['[', '](https://)', ''], sup: ['<sup>', '</sup>'], sub: ['<sub>', '</sub>'], math: ['$', '$'],
+      link: ['[', '](https://)', ''], sup: ['<sup>', '</sup>'], sub: ['<sub>', '</sub>'], inlineMath: ['$', '$'],
       codeblock: [`\n\`\`\`${defaultFenceLanguage(settings, 'menu')}\n`, '\n```\n'],
     };
     if (wrapping[name]) { insertWrapped(view, ...wrapping[name]); return; }

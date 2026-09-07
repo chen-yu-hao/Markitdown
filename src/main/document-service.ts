@@ -375,6 +375,7 @@ export function validatedSettings(value: unknown): Settings {
     diagramTheme: ['default', 'neutral', 'dark', 'forest'], smartPunctuation: ['off', 'typing', 'render'], doubleQuoteStyle: ['curly', 'guillemet'],
     singleQuoteStyle: ['curly', 'singleGuillemet'], windowStyle: ['integrated', 'classic'], fontSizeMode: ['auto', 'custom'],
     codeLanguageTrigger: ['typed', 'menu', 'always', 'never'], mathNumbering: ['none', 'all', 'labelled'], mathNumberingStyle: ['document', 'section'], citationStyle: ['numeric', 'author-date'], mathOutput: ['svg', 'mathml'],
+    mathAlignment: ['left', 'center', 'right'], mathNumberPosition: ['left', 'right'],
     editorWhitespace: ['preserve', 'breaks', 'collapse'], exportWhitespace: ['preserve', 'breaks', 'collapse'],
   };
   for (const [key, fallback] of Object.entries(defaultSettings)) {

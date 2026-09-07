@@ -21,6 +21,7 @@ import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 import type { CitationRenderData } from '../shared/academic-contracts';
 import { BIBLIOGRAPHY_MARKER, citationCss, scanCitations } from '../shared/citations';
 import { getEquationIndex } from '../shared/markdown';
+import { mathCss } from '../shared/math-renderer';
 
 const execFileAsync = promisify(execFile);
 const RENDER_TIMEOUT = 45_000;
@@ -130,9 +131,8 @@ function academicDocument(document: DocumentSession, settings: Settings, citatio
   return scan.keys.length && !scan.bibliographies.length ? { ...document, source: `${document.source.trimEnd()}\n\n${BIBLIOGRAPHY_MARKER}\n` } : document;
 }
 
-/** Pandoc makes display math and its HTML number separate paragraphs. Word tab stops keep them on one line. */
-function attachWordEquationNumbers(bytes: Uint8Array, count: number): Uint8Array {
-  if (!count) return bytes;
+/** Keep display OMML editable and vertically center its number beside the entire formula. */
+function attachWordEquationNumbers(bytes: Uint8Array, count: number, settings: Settings): Uint8Array {
   const files = unzipSync(bytes);
   const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const M = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
@@ -140,7 +140,7 @@ function attachWordEquationNumbers(bytes: Uint8Array, count: number): Uint8Array
   if (!source) throw new Error('The Word document is missing its equation content.');
   const document = new DOMParser({ errorHandler: { fatalError: message => { throw new Error(message); } } }).parseFromString(strFromU8(source), 'application/xml');
   const nodes = (node: Document | Element, name: string, namespace = W) => Array.from(node.getElementsByTagNameNS(namespace, name));
-  const direct = (node: Element, name: string) => Array.from(node.childNodes).find((child): child is Element => child.nodeType === 1 && (child as Element).namespaceURI === W && (child as Element).localName === name);
+  const direct = (node: Element, name: string, namespace = W) => Array.from(node.childNodes).find((child): child is Element => child.nodeType === 1 && (child as Element).namespaceURI === namespace && (child as Element).localName === name);
   const create = (name: string, attributes: Record<string, string> = {}) => {
     const node = document.createElementNS(W, `w:${name}`);
     for (const [key, value] of Object.entries(attributes)) node.setAttributeNS(W, `w:${key}`, value);
@@ -148,6 +148,19 @@ function attachWordEquationNumbers(bytes: Uint8Array, count: number): Uint8Array
   };
   const body = nodes(document, 'body')[0];
   if (!body) throw new Error('The Word document is missing its body.');
+  const alignment = settings.mathAlignment === 'center' || settings.mathAlignment === 'right' ? settings.mathAlignment : 'left';
+  const numberPosition = settings.mathNumberPosition === 'left' ? 'left' : 'right';
+  for (const block of nodes(document, 'oMathPara', M)) {
+    let properties = direct(block, 'oMathParaPr', M);
+    if (!properties) { properties = document.createElementNS(M, 'm:oMathParaPr'); block.insertBefore(properties, block.firstChild); }
+    let justify = direct(properties, 'jc', M);
+    if (!justify) { justify = document.createElementNS(M, 'm:jc'); properties.appendChild(justify); }
+    justify.setAttributeNS(M, 'm:val', alignment);
+  }
+  if (!count) {
+    files['word/document.xml'] = strToU8(new XMLSerializer().serializeToString(document));
+    return zipSync(files, { level: 6 });
+  }
   const section = nodes(document, 'sectPr')[0] || body.appendChild(create('sectPr'));
   const sectionOrder = ['headerReference', 'footerReference', 'footnotePr', 'endnotePr', 'type', 'pgSz', 'pgMar', 'paperSrc', 'pgBorders', 'lnNumType', 'pgNumType', 'cols', 'formProt', 'vAlign', 'noEndnote', 'titlePg', 'textDirection', 'bidi', 'rtlGutter', 'docGrid', 'printerSettings', 'sectPrChange'];
   const pageProperty = (name: string, defaults: Record<string, string>) => {
@@ -174,28 +187,57 @@ function attachWordEquationNumbers(bytes: Uint8Array, count: number): Uint8Array
     while (formula && formula.nodeType !== 1) formula = formula.previousSibling;
     if (!label || !formula || (formula as Element).namespaceURI !== W || (formula as Element).localName !== 'p' || !nodes(formula as Element, 'oMath', M).length) throw new Error('The Word exporter could not keep an equation with its number.');
     const paragraph = formula as Element;
-    // Inline OMML shares the paragraph baseline with the right-aligned number.
-    for (const block of nodes(paragraph, 'oMathPara', M)) {
-      for (const math of Array.from(block.childNodes)) if (math.nodeType === 1 && (math as Element).localName === 'oMath') block.parentNode!.insertBefore(math, block);
-      block.parentNode!.removeChild(block);
-    }
-    let properties = direct(paragraph, 'pPr');
-    if (!properties) { properties = create('pPr'); paragraph.insertBefore(properties, paragraph.firstChild); }
-    for (const name of ['tabs', 'ind', 'jc']) { const old = direct(properties, name); if (old) properties.removeChild(old); }
-    const tabs = create('tabs');
-    tabs.appendChild(create('tab', { val: 'center', pos: String(Math.round(width / 2)) }));
-    tabs.appendChild(create('tab', { val: 'right', pos: String(Math.round(width)) }));
-    properties.appendChild(tabs); properties.appendChild(create('ind', { left: '0', right: '0', firstLine: '0' })); properties.appendChild(create('jc', { val: 'left' }));
-    const ordered = Array.from(properties.childNodes).sort((left, right) => {
-      const rank = (node: Node) => node.nodeType === 1 ? order.indexOf((node as Element).localName) : -1;
-      return rank(left) - rank(right);
+    const number = label as Element;
+    const configureParagraph = (node: Element, justify: string) => {
+      let properties = direct(node, 'pPr');
+      if (!properties) { properties = create('pPr'); node.insertBefore(properties, node.firstChild); }
+      for (const name of ['tabs', 'ind', 'jc', 'keepNext', 'keepLines', 'spacing']) { const old = direct(properties, name); if (old) properties.removeChild(old); }
+      properties.appendChild(create('keepNext', { val: '0' }));
+      properties.appendChild(create('keepLines'));
+      properties.appendChild(create('spacing', { before: '0', after: '0' }));
+      properties.appendChild(create('ind', { left: '0', right: '0', firstLine: '0' }));
+      properties.appendChild(create('jc', { val: justify }));
+      const ordered = Array.from(properties.childNodes).sort((left, right) => {
+        const rank = (child: Node) => child.nodeType === 1 ? order.indexOf((child as Element).localName) : -1;
+        return rank(left) - rank(right);
+      });
+      for (const child of ordered) properties.appendChild(child);
+    };
+    configureParagraph(paragraph, 'left');
+    configureParagraph(number, numberPosition);
+    const fontSize = Number.isFinite(settings.wordBodyFontSize) ? settings.wordBodyFontSize : 12;
+    const numberWidth = Math.min(Math.floor(width / 3), Math.max(720, Math.round(((number.textContent?.length || 0) + 2) * fontSize * 12)));
+    const widths = numberPosition === 'left' ? [numberWidth, width - numberWidth] : [width - numberWidth, numberWidth];
+    const formulaColumn = numberPosition === 'left' ? 1 : 0;
+    const numberColumn = numberPosition === 'left' ? 0 : widths.length - 1;
+    const table = create('tbl');
+    const properties = table.appendChild(create('tblPr'));
+    properties.appendChild(create('tblW', { w: String(width), type: 'dxa' }));
+    properties.appendChild(create('jc', { val: 'left' }));
+    const borders = properties.appendChild(create('tblBorders'));
+    for (const side of ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) borders.appendChild(create(side, { val: 'nil' }));
+    properties.appendChild(create('tblLayout', { type: 'fixed' }));
+    const cellMargins = properties.appendChild(create('tblCellMar'));
+    for (const side of ['top', 'left', 'bottom', 'right']) cellMargins.appendChild(create(side, { w: side === 'top' || side === 'bottom' ? '80' : '0', type: 'dxa' }));
+    properties.appendChild(create('tblLook', { val: '0000', firstRow: '0', lastRow: '0', firstColumn: '0', lastColumn: '0', noHBand: '1', noVBand: '1' }));
+    const grid = table.appendChild(create('tblGrid'));
+    for (const cellWidth of widths) grid.appendChild(create('gridCol', { w: String(cellWidth) }));
+    const row = table.appendChild(create('tr'));
+    row.appendChild(create('trPr')).appendChild(create('cantSplit'));
+    paragraph.parentNode!.insertBefore(table, paragraph);
+    widths.forEach((cellWidth, column) => {
+      const cell = row.appendChild(create('tc'));
+      const cellProperties = cell.appendChild(create('tcPr'));
+      cellProperties.appendChild(create('tcW', { w: String(cellWidth), type: 'dxa' }));
+      const cellBorders = cellProperties.appendChild(create('tcBorders'));
+      for (const side of ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']) cellBorders.appendChild(create(side, { val: 'nil' }));
+      cellProperties.appendChild(create('vAlign', { val: 'center' }));
+      cell.appendChild(column === formulaColumn ? paragraph : column === numberColumn ? number : create('p'));
     });
-    for (const child of ordered) properties.appendChild(child);
-    const tabRun = () => { const run = create('r'); run.appendChild(create('tab')); return run; };
-    paragraph.insertBefore(tabRun(), properties.nextSibling);
-    paragraph.appendChild(tabRun());
-    for (const child of Array.from(label.childNodes)) if (!(child.nodeType === 1 && (child as Element).namespaceURI === W && (child as Element).localName === 'pPr')) paragraph.appendChild(child);
-    label.parentNode!.removeChild(label);
+    // Word otherwise merges adjacent layout tables and reapplies first-row styling.
+    const separator = create('p');
+    separator.appendChild(create('pPr')).appendChild(create('spacing', { before: '0', after: '0', line: '20', lineRule: 'exact' }));
+    table.parentNode!.insertBefore(separator, table.nextSibling);
   }
   files['word/document.xml'] = strToU8(new XMLSerializer().serializeToString(document));
   return zipSync(files, { level: 6 });
@@ -236,6 +278,12 @@ async function renderDocument(html: string, format: 'pdf' | 'png', settings: Set
       await window.loadFile(input);
       stage = 'waiting for fonts and images';
       await evaluate(`(async()=>{await document.fonts.ready;await Promise.all(Array.from(document.images,image=>image.complete?Promise.resolve():new Promise(resolve=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',resolve,{once:true})})));return true})()`);
+      if (format === 'pdf') {
+        const printableWidth = settings.pageSize === 'Letter' ? '183.9mm' : '178mm';
+        await evaluate(`(()=>{const layout=document.querySelector('.export-layout');layout.style.width='${printableWidth}';layout.style.maxWidth='none';layout.style.padding='0'})()`);
+      }
+      stage = 'fitting display equations';
+      await evaluate(`(()=>{for(const body of document.querySelectorAll('.md-equation-body')){const content=body.querySelector('.md-equation-content');if(!content)continue;const available=body.clientWidth;const natural=Math.max(content.scrollWidth,content.getBoundingClientRect().width);if(available>0&&natural>available){content.style.zoom=String((available-1)/natural);content.dataset.exportMathScale=content.style.zoom}body.style.overflow='visible';body.scrollLeft=0}return true})()`);
       stage = 'measuring the document';
       const dimensions = await evaluate('({width:Math.max(1200,document.documentElement.scrollWidth),height:Math.ceil(Math.max(document.body.scrollHeight,document.documentElement.scrollHeight))})') as { width: number; height: number };
       const size = constrainedImageSize(dimensions.width, dimensions.height);
@@ -286,6 +334,49 @@ export async function findPandoc(configuredPath?: string): Promise<string | null
     } catch { /* Ignore absent or invalid installations. */ }
   }
   return null;
+}
+
+function latexEquationLayout(settings: Settings): string {
+  const alignment = settings.mathAlignment === 'center' ? 'c' : settings.mathAlignment === 'right' ? 'r' : 'l';
+  const leftNumber = settings.mathNumberPosition === 'left';
+  return `local align = '${alignment}'
+local left_number = ${leftNumber}
+function Div(block)
+  if FORMAT ~= 'latex' or not block.classes:includes('math-block') then return nil end
+  local formula, number
+  local aliases = pandoc.List()
+  pandoc.walk_block(block, {
+    Math = function(value) if value.mathtype == 'DisplayMath' and not formula then formula = value.text end end,
+    Span = function(value)
+      if value.classes:includes('md-equation-number') then number = value.content
+      elseif value.identifier ~= '' then aliases:insert(pandoc.Span({}, value.attr)) end
+    end
+  })
+  if not formula then return nil end
+  local slash = string.char(92)
+  local function raw(value) return pandoc.RawInline('latex', value) end
+  local function append(target, values) for _, value in ipairs(values) do target:insert(value) end end
+  local math = {raw(slash .. '(' .. slash .. 'displaystyle ' .. formula .. slash .. ')')}
+  local function box(width, alignment, content)
+    local justification = alignment == 'c' and 'centering' or alignment == 'r' and 'raggedleft' or 'raggedright'
+    local result = pandoc.List({raw(slash .. 'parbox[c]{' .. width .. slash .. 'linewidth}{' .. slash .. justification .. ' ')})
+    append(result, content)
+    result:insert(raw('}'))
+    return result
+  end
+  local content = pandoc.List()
+  if not number then
+    content:insert(raw(slash .. 'makebox[' .. slash .. 'linewidth][' .. align .. ']{'))
+    append(content, math)
+    content:insert(raw('}'))
+  elseif left_number then append(content, box('0.12', 'l', number)); append(content, box('0.88', align, math))
+  else append(content, box('0.88', align, math)); append(content, box('0.12', 'r', number)) end
+  content:insert(1, raw(slash .. 'par' .. slash .. 'addvspace{.5' .. slash .. 'baselineskip}' .. slash .. 'noindent'))
+  content:insert(raw(slash .. 'par' .. slash .. 'addvspace{.5' .. slash .. 'baselineskip}'))
+  block.content = {pandoc.Plain(aliases), pandoc.Plain(content)}
+  return block
+end
+`;
 }
 
 async function exportWithPandoc(document: DocumentSession, format: Exclude<ExportFormat, 'html' | 'htmlPlain' | 'pdf' | 'png'>, targetPath: string, settings: Settings, citations?: CitationRenderData): Promise<void> {
@@ -352,6 +443,16 @@ async function exportWithPandoc(document: DocumentSession, format: Exclude<Expor
     const args = [academic ? '--from=html' : '--from=gfm+tex_math_dollars-raw_html', `--to=${formatName}`, '--standalone', '--output', output, '--resource-path', resources];
     if (settings.exportOutline) args.push('--toc');
     if (format === 'docx') args.push('--no-highlight');
+    if (academic && format === 'epub') {
+      const stylesheet = path.join(directory, 'equation-layout.css');
+      await writeFile(stylesheet, `${mathCss}\n.math-block .math.display{display:inline-block;max-width:100%;margin:0;text-align:inherit}.math-block math{max-width:100%}`, 'utf8');
+      args.push('--mathml', '--css', stylesheet);
+    }
+    if (academic && format === 'tex') {
+      const filter = path.join(directory, 'equation-layout.lua');
+      await writeFile(filter, latexEquationLayout(settings), 'utf8');
+      args.push('--lua-filter', filter);
+    }
     args.push(input);
     try {
       await execFileAsync(executable, args, { windowsHide: true, timeout: 120_000, maxBuffer: 2 * 1024 * 1024, cwd: document.path ? path.dirname(document.path) : directory });
@@ -360,7 +461,7 @@ async function exportWithPandoc(document: DocumentSession, format: Exclude<Expor
       throw new Error(failure.killed ? 'Pandoc export timed out after 120 seconds.' : `Pandoc export failed: ${(failure.stderr || failure.message).trim().slice(0, 4000)}`);
     }
     const bytes = await readFile(output);
-    await atomicWrite(targetPath, format === 'docx' ? applyWordStyles(attachWordEquationNumbers(bytes, wordEquationNumbers), settings) : bytes);
+    await atomicWrite(targetPath, format === 'docx' ? applyWordStyles(attachWordEquationNumbers(bytes, wordEquationNumbers, settings), settings) : bytes);
     complete = true;
   } finally {
     if (!complete && assetDirectoryCreated) {

@@ -100,6 +100,8 @@ export interface Settings {
   legacyInlineMath: boolean;
   mathNumbering: 'none' | 'all' | 'labelled';
   mathNumberingStyle: 'document' | 'section';
+  mathAlignment: 'left' | 'center' | 'right';
+  mathNumberPosition: 'left' | 'right';
   citationStyle: 'numeric' | 'author-date';
   mathOutput: 'svg' | 'mathml';
   firstLineIndent: boolean;
@@ -148,7 +150,7 @@ export const defaultSettings: Settings = {
   codeLineNumbers: false, codeWordWrap: true, codeAutoIndent: true,
   codeIndentWidth: 4, codeAutoIndentOnTab: false, defaultCodeLanguage: '', codeLanguageTrigger: 'typed',
   latexDelimiters: true, mathCodeBlocks: true, mathPhysics: false, legacyInlineMath: false,
-  mathNumbering: 'all', mathNumberingStyle: 'document', citationStyle: 'numeric', mathOutput: 'svg', firstLineIndent: false, showLineBreaks: true,
+  mathNumbering: 'all', mathNumberingStyle: 'document', mathAlignment: 'left', mathNumberPosition: 'right', citationStyle: 'numeric', mathOutput: 'svg', firstLineIndent: false, showLineBreaks: true,
   editorWhitespace: 'preserve', exportWhitespace: 'preserve',
   imageFolder: 'assets', imageUseRelative: true, imageAutoEscape: true, imageThumbnails: true,
   exportFolder: '', revealAfterExport: false, exportTheme: true, exportPresets: defaultExportPresets,

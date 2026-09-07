@@ -62,11 +62,12 @@ export function renderMath(source: string, display: boolean, settings: Settings,
         html = visitor.visitTree(tree);
       } else {
         const tree = engine.convert(source, { display });
-        const container = adaptor.outerHTML(tree);
-        const svg = container.match(/<svg\b[\s\S]*<\/svg>/)?.[0];
+        const svg = adaptor.tags(tree, 'svg')[0];
         if (!svg) throw new Error('Formula could not be rendered');
         // All glyphs are paths; copied SVGs do not need a font or external resource.
-        html = svg.replace('<svg ', `<svg role="img" aria-label="${escape(source)}" `);
+        adaptor.setAttribute(svg, 'role', 'img');
+        adaptor.setAttribute(svg, 'aria-label', source);
+        html = adaptor.outerHTML(svg);
       }
       html = `<span class="md-math${display ? ' md-math-display' : ''}" data-latex="${escape(source)}">${html}</span>`;
     }
@@ -84,4 +85,19 @@ export function renderMath(source: string, display: boolean, settings: Settings,
   return html;
 }
 
-export const mathCss = `.md-math{display:inline-block;max-width:100%;text-indent:0;white-space:normal}.md-math>svg{max-width:100%;overflow:visible}.md-math-display{display:block;text-align:center;margin:1em 0}.math-block{position:relative;text-indent:0;white-space:normal}.math-block.md-numbered{padding-right:3.5em}.md-equation-number{position:absolute;right:.5em;top:50%;transform:translateY(-50%);font-variant-numeric:tabular-nums}.md-equation-inline{white-space:normal;text-indent:0}.md-equation-inline-number{font-size:.85em;font-variant-numeric:tabular-nums;white-space:nowrap}.md-equation-reference{font-variant-numeric:tabular-nums}.md-equation-unresolved,.md-equation-diagnostic{color:#b44;text-decoration:underline dotted}.md-equation-diagnostic{display:block;font:12px/1.5 "Segoe UI",sans-serif;text-align:left}.math-error{color:#b44}.md-line-break{font-size:.72em;opacity:.45;user-select:none;text-indent:0}`;
+export function equationLayout(settings: Settings, numbered: boolean) {
+  const alignment = settings.mathAlignment === 'center' || settings.mathAlignment === 'right' ? settings.mathAlignment : 'left';
+  const numberPosition = settings.mathNumberPosition === 'left' ? 'left' : 'right';
+  const leftNumber = numbered && numberPosition === 'left';
+  return {
+    alignment, numberPosition,
+    block: `position:relative;display:grid;grid-template-columns:${numbered ? leftNumber ? 'fit-content(35%) minmax(0,1fr)' : 'minmax(0,1fr) fit-content(35%)' : 'minmax(0,1fr)'};gap:.4em 1em;align-items:center;min-width:0;max-width:100%;padding:.5em 0;white-space:normal;text-indent:0`,
+    body: `display:flex;align-items:center;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;grid-row:1;grid-column:${leftNumber ? 2 : 1};padding:.15em 0`,
+    content: `display:flow-root;flex:none;width:max-content;max-width:none;margin:0 ${alignment === 'right' ? 0 : 'auto'} 0 ${alignment === 'left' ? 0 : 'auto'}`,
+    number: `grid-row:1;grid-column:${leftNumber ? 1 : 2};align-self:center;justify-self:${leftNumber ? 'start' : 'end'};min-width:0;max-width:12em;overflow-wrap:anywhere;white-space:normal;text-align:${numberPosition};font-variant-numeric:tabular-nums;line-height:1.4`,
+  };
+}
+
+export const equationLayoutCss = `.math-block{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:.4em 1em;align-items:center;min-width:0;max-width:100%;padding:.5em 0;text-indent:0;white-space:normal}.math-block.md-numbered{grid-template-columns:minmax(0,1fr) fit-content(35%)}.math-block.md-numbered[data-number-position=left]{grid-template-columns:fit-content(35%) minmax(0,1fr)}.math-block>[id]{position:absolute;top:0;left:0}.md-equation-body{display:flex;align-items:center;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;grid-row:1;grid-column:1;padding:.15em 0}.math-block.md-numbered[data-number-position=left]>.md-equation-body{grid-column:2}.md-equation-content{display:flow-root;flex:none;width:max-content;max-width:none;margin:0 auto 0 0}.math-block[data-math-align=center]>.md-equation-body>.md-equation-content{margin-left:auto;margin-right:auto}.math-block[data-math-align=right]>.md-equation-body>.md-equation-content{margin-left:auto;margin-right:0}.md-equation-content>.katex-display,.md-equation-content>.md-math-display{margin:0;overflow:visible}.md-equation-number{grid-row:1;grid-column:2;align-self:center;justify-self:end;min-width:0;max-width:12em;overflow-wrap:anywhere;white-space:normal;text-align:right;font-variant-numeric:tabular-nums;line-height:1.4}.math-block[data-number-position=left]>.md-equation-number{grid-column:1;justify-self:start;text-align:left}.math-block>.md-equation-diagnostic{grid-column:1/-1;grid-row:2}`;
+
+export const mathCss = `.md-math{display:inline-block;max-width:100%;text-indent:0;white-space:normal}.md-math>svg{max-width:100%;overflow:visible}.md-math-display{display:block;text-align:center;margin:1em 0}${equationLayoutCss}.md-equation-inline{white-space:normal;text-indent:0}.md-equation-inline-number{font-size:.85em;font-variant-numeric:tabular-nums;white-space:nowrap}.md-equation-reference{font-variant-numeric:tabular-nums}.md-equation-unresolved,.md-equation-diagnostic{color:#b44;text-decoration:underline dotted}.md-equation-diagnostic{display:block;font:12px/1.5 "Segoe UI",sans-serif;text-align:left}.math-error{color:#b44}.md-line-break{font-size:.72em;opacity:.45;user-select:none;text-indent:0}`;

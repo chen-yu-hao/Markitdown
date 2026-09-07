@@ -103,18 +103,23 @@ describe('academic export integrity', () => {
     const anchors = elements(body, 'hyperlink').map(node => node.getAttributeNS(W, 'anchor')).filter(Boolean);
     expect(anchors.length).toBeGreaterThanOrEqual(3);
     expect(anchors.every(anchor => bookmarks.has(anchor))).toBe(true);
-    const numberedParagraphs = elements(body, 'p').filter(node => elements(node, 'oMath', M).length && /\([12]\)/.test(node.textContent || ''));
-    expect(numberedParagraphs).toHaveLength(2);
+    const numberedTables = elements(body, 'tbl').filter(node => elements(node, 'oMath', M).length);
+    expect(numberedTables).toHaveLength(2);
     const page = elements(body, 'pgSz')[0];
     const margins = elements(body, 'pgMar')[0];
     expect(page).toBeDefined();
     expect(margins).toBeDefined();
     const availableWidth = Number(page.getAttributeNS(W, 'w')) - Number(margins.getAttributeNS(W, 'left')) - Number(margins.getAttributeNS(W, 'right'));
     expect(availableWidth).toBeGreaterThan(0);
-    for (const paragraph of numberedParagraphs) {
-      const stops = elements(paragraph, 'tab').filter(node => node.hasAttributeNS(W, 'pos'));
-      expect(stops.map(node => node.getAttributeNS(W, 'val'))).toEqual(['center', 'right']);
-      expect(stops.map(node => Number(node.getAttributeNS(W, 'pos')))).toEqual([Math.round(availableWidth / 2), availableWidth]);
+    for (const table of numberedTables) {
+      const cells = elements(table, 'tc');
+      expect(cells).toHaveLength(2);
+      expect(elements(cells[0], 'oMath', M)).toHaveLength(1);
+      expect(elements(cells[0], 'jc', M)[0]?.getAttributeNS(M, 'val')).toBe('left');
+      expect(cells[1].textContent).toMatch(/^\([12]\)$/);
+      expect(elements(cells[1], 'vAlign')[0]?.getAttributeNS(W, 'val')).toBe('center');
+      expect(elements(table, 'cantSplit')).toHaveLength(1);
+      expect(elements(table, 'gridCol').reduce((sum, node) => sum + Number(node.getAttributeNS(W, 'w')), 0)).toBe(availableWidth);
     }
     expect(paragraphs.join('\n')).not.toContain('Old content on disk');
     expect(paragraphs.join('\n')).not.toContain('[@');
@@ -144,6 +149,7 @@ describe('academic export integrity', () => {
     expect(elements(body, 'f', M)).toHaveLength(1);
     expect(elements(body, 'rad', M)).toHaveLength(1);
     expect(elements(body, 't').map(node => node.textContent).join('')).not.toContain('(1)');
+    expect(elements(body, 'jc', M).map(node => node.getAttributeNS(M, 'val'))).toEqual(['left', 'left']);
   }, 30_000);
 
   it('exports manual tags once with adjoining Word numbers and matching reference links', async context => {
@@ -157,15 +163,57 @@ describe('academic export integrity', () => {
     const paragraphs = elements(body, 'p');
     expect(paragraphs.map(item => item.textContent).join('\n')).toContain('(A), A, (S1).');
     const formulas = paragraphs.filter(item => elements(item, 'oMath', M).length);
-    expect(formulas.map(item => item.textContent)).toEqual(['x(A)', 'yS1', 'z', 'q(1)']);
+    expect(formulas.map(item => item.textContent)).toEqual(['x', 'y', 'z', 'q']);
     expect(elements(body, 'oMath', M)).toHaveLength(4);
-    for (const paragraph of [formulas[0], formulas[1], formulas[3]]) {
-      const tabs = elements(paragraph, 'tab').filter(item => item.hasAttributeNS(W, 'pos'));
-      expect(tabs.map(item => item.getAttributeNS(W, 'val'))).toEqual(['center', 'right']);
-    }
+    expect(elements(body, 'tbl').map(item => item.textContent)).toEqual(['x(A)', 'yS1', 'q(1)']);
     const anchors = new Set(elements(body, 'bookmarkStart').map(item => item.getAttributeNS(W, 'name')));
     expect(elements(body, 'hyperlink').every(item => anchors.has(item.getAttributeNS(W, 'anchor')))).toBe(true);
     await expect(buildExportHtml(document('$$x\\tag{A}\\tag{B}$$'), options, 'htmlPlain')).rejects.toThrow('Ambiguous equation numbering');
+  }, 30_000);
+
+  for (const mathAlignment of ['left', 'center', 'right'] as const) it(`keeps ${mathAlignment}-aligned multiline Word equations editable with numbers on either side`, async context => {
+    const pandocPath = await findPandoc();
+    if (!pandocPath) { context.skip(); return; }
+    const source = 'Inline $x_i$ stays inline. See \\eqref{eq:multi} and \\eqref{eq:manual}.\n\n$$\n\\begin{aligned}a &= b+c\\\\d &= e+f\\end{aligned}\\label{eq:multi}\n$$\n\n$$u=v\\tag*{S1}\\label{eq:manual}$$\n\n$$z=0\\notag$$';
+    for (const mathNumberPosition of ['left', 'right'] as const) {
+      const options = settings({ pandocPath, mathAlignment, mathNumberPosition });
+      const target = path.join(directory, `layout-${mathAlignment}-${mathNumberPosition}.docx`);
+      await exportDocument(document(source), 'docx', target, options);
+      const body = xml(unzipSync(await readFile(target))['word/document.xml']);
+      const tables = elements(body, 'tbl');
+      expect(tables).toHaveLength(2);
+      expect(elements(body, 'oMath', M)).toHaveLength(4);
+      expect(elements(body, 'oMathPara', M)).toHaveLength(3);
+      expect(elements(body, 'jc', M).map(node => node.getAttributeNS(M, 'val'))).toEqual([mathAlignment, mathAlignment, mathAlignment]);
+      expect(elements(body, 'drawing')).toHaveLength(0);
+      const inline = elements(body, 'p').find(node => node.textContent?.startsWith('Inline'))!;
+      expect(elements(inline, 'oMath', M)).toHaveLength(1);
+      expect(elements(inline, 'oMathPara', M)).toHaveLength(0);
+      expect(inline.textContent).toContain('See (1) and (S1).');
+      tables.forEach((table, index) => {
+        const cells = elements(table, 'tc');
+        const numberColumn = mathNumberPosition === 'left' ? 0 : cells.length - 1;
+        const formulaColumn = mathNumberPosition === 'left' ? 1 : 0;
+        expect(cells).toHaveLength(2);
+        expect(cells[numberColumn].textContent).toBe(index === 0 ? '(1)' : 'S1');
+        expect(elements(cells[numberColumn], 'vAlign')[0].getAttributeNS(W, 'val')).toBe('center');
+        expect(elements(cells[formulaColumn], 'oMathPara', M)).toHaveLength(1);
+        expect(elements(cells[formulaColumn], 'jc')[0].getAttributeNS(W, 'val')).toBe('left');
+        expect(elements(cells[formulaColumn], 'jc', M)[0].getAttributeNS(M, 'val')).toBe(mathAlignment);
+        expect(elements(table, 'cantSplit')).toHaveLength(1);
+        expect(elements(table, 'tblBorders')[0].childNodes.length).toBe(6);
+        expect(elements(cells[formulaColumn], 'tcBorders')[0].childNodes.length).toBe(6);
+        expect(table.nextSibling?.nodeName).toBe('w:p');
+      });
+      const multiline = elements(tables[0], 'oMath', M)[0];
+      expect(multiline.textContent).toContain('a=b+c');
+      expect(multiline.textContent).toContain('d=e+f');
+      const bookmarks = elements(body, 'bookmarkStart');
+      const ids = bookmarks.map(node => node.getAttributeNS(W, 'id'));
+      expect(new Set(ids).size).toBe(ids.length);
+      const anchors = new Set(bookmarks.map(node => node.getAttributeNS(W, 'name')));
+      expect(elements(body, 'hyperlink').every(node => anchors.has(node.getAttributeNS(W, 'anchor')))).toBe(true);
+    }
   }, 30_000);
 
   it('never fetches remote image references during academic Pandoc export', async context => {
@@ -180,6 +228,42 @@ describe('academic export integrity', () => {
       await expect(exportDocument(document(source), 'docx', path.join(directory, 'network.docx'), settings({ pandocPath }), formatCitations(source, references, settings()))).rejects.toThrow('cannot resolve a local image');
       expect(requests).toBe(0);
     } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+  }, 30_000);
+
+  it('maps equation alignment and manual numbers into standalone LaTeX while preserving reference targets', async context => {
+    const pandocPath = await findPandoc();
+    if (!pandocPath) { context.skip(); return; }
+    const source = 'See \\eqref{eq:sum} and \\eqref{eq:manual}.\n\n$$\\begin{aligned}x&=a+b\\\\y&=c+d\\end{aligned}\\label{eq:sum}$$\n\n$$q\\tag*{S1}\\label{eq:manual}$$';
+    for (const mathAlignment of ['left', 'center', 'right'] as const) for (const mathNumberPosition of ['left', 'right'] as const) {
+      const target = path.join(directory, `layout-${mathAlignment}-${mathNumberPosition}.tex`);
+      await exportDocument(document(source), 'tex', target, settings({ pandocPath, mathAlignment, mathNumberPosition }));
+      const content = await readFile(target, 'utf8');
+      expect(content).toContain('\\displaystyle');
+      expect(content).toContain(`\\parbox[c]{0.88\\linewidth}{\\${mathAlignment === 'center' ? 'centering' : mathAlignment === 'right' ? 'raggedleft' : 'raggedright'}`);
+      expect(content).toContain(`\\parbox[c]{0.12\\linewidth}{\\${mathNumberPosition === 'left' ? 'raggedright' : 'raggedleft'} S1}`);
+      expect(content).not.toContain('\\tag');
+      const targets = new Set([...content.matchAll(/\\hypertarget\{([^}]+)\}/g)].map(match => match[1]));
+      const links = [...content.matchAll(/\\hyperlink\{([^}]+)\}/g)].map(match => match[1]);
+      expect(links.length).toBeGreaterThanOrEqual(2);
+      expect(links.every(target => targets.has(target))).toBe(true);
+    }
+  }, 30_000);
+
+  it('embeds equation layout styles and semantic MathML in EPUB', async context => {
+    const pandocPath = await findPandoc();
+    if (!pandocPath) { context.skip(); return; }
+    const target = path.join(directory, 'layout.epub');
+    await exportDocument(document('See \\eqref{eq:x}.\n\n$$x=1\\label{eq:x}$$'), 'epub', target, settings({ pandocPath, mathAlignment: 'right', mathNumberPosition: 'left' }));
+    const files = Object.entries(unzipSync(await readFile(target)));
+    const styles = files.filter(([name]) => name.endsWith('.css')).map(([, content]) => strFromU8(content)).join('\n');
+    const pages = files.filter(([name]) => name.endsWith('.xhtml')).map(([, content]) => strFromU8(content)).join('\n');
+    expect(styles).toContain('.md-equation-number');
+    expect(styles).toContain('.math-block');
+    expect(pages).toMatch(/<math\b/);
+    expect(pages).toContain('md-equation-number');
+    expect(pages).toContain('data-math-align="right"');
+    expect(pages).toContain('data-number-position="left"');
+    expect(pages).toContain('(1)');
   }, 30_000);
 
   it('keeps durable image resources for text formats and removes them if export cannot finish', async context => {

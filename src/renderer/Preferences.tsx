@@ -62,14 +62,16 @@ export default function Preferences({ settings: s, zh, version, pandoc, update, 
         {row(t('自动填写默认语言','Insert default language'),select('codeLanguageTrigger',[['typed',t('输入代码围栏时','When typing a code fence')],['menu',t('使用菜单插入时','When inserting from the menu')],['always',t('输入或菜单插入时','For typing and menu insertion')],['never',t('从不','Never')]],t('默认语言触发方式','Default language trigger')))}
         <p className="pref-hint">{t('输入没有语言标记的代码围栏后按 Enter，或通过菜单新建代码块时生效；已有代码块保持原样。','Applies after Enter on a new fence without a language, or when inserting a code block from the menu. Existing code blocks retain their language.')}</p>
       </> },
-      { title:t('数学公式','Math'),keywords:'数学 公式 编号 复制 SVG MathML LaTeX physics',content:<>
+      { title:t('数学公式','Math'),keywords:'数学 公式 编号 对齐 位置 alignment number position 复制 SVG MathML LaTeX physics',content:<>
         {button('启用行内公式和公式块','Enable inline math and math blocks',() => change({ inlineMath: true, mathCodeBlocks: true, latexDelimiters: true }))}
         {check('latexDelimiters','支持 LaTeX 公式分隔符 \\(…\\) 和 \\[…\\]','Support LaTeX delimiters \\(…\\) and \\[…\\]')}
         {check('mathCodeBlocks','将 math 代码块渲染为公式','Render math code blocks as equations')}
         {check('mathPhysics','启用 physics 扩展','Enable the physics extension')}
         {check('legacyInlineMath','兼容旧版行内公式解析','Use legacy inline math parsing')}
-        {row(t('公式自动编号','Equation numbering'),select('mathNumbering',[['none',t('关闭自动编号','Automatic numbering off')],['labelled',t('仅带标签的公式','Labelled equations only')],['all',t('所有独立公式','All display equations')]],t('公式自动编号','Equation numbering')))}
+        {row(t('行间公式自动编号','Display equation numbering'),select('mathNumbering',[['none',t('关闭自动编号','Automatic numbering off')],['labelled',t('仅带标签的公式','Labelled equations only')],['all',t('所有行间公式（默认）','All display equations (default)')]],t('行间公式自动编号','Display equation numbering')))}
         {row(t('公式编号范围','Equation numbering scope'),select('mathNumberingStyle',[['document',t('全文连续编号','Continuous numbering')],['section',t('按一级标题分章编号','Number within level-one headings')]],t('公式编号范围','Equation numbering scope')))}
+        {row(t('行间公式对齐','Display equation alignment'),select('mathAlignment',[['left',t('左对齐','Left')],['center',t('居中','Center')],['right',t('右对齐','Right')]],t('行间公式对齐','Display equation alignment')))}
+        {row(t('编号位置','Number position'),select('mathNumberPosition',[['left',t('左侧','Left')],['right',t('右侧','Right')]],t('编号位置','Number position')))}
         {row(t('公式复制格式','Equation copy format'),select('mathOutput',[['svg','SVG'],['mathml','MathML']],t('公式复制格式','Equation copy format')))}
         <p className="pref-hint">{t('SVG 保留公式外观；MathML 适合支持数学公式编辑的应用。纯文本复制仍可保留 Markdown 源码。','SVG preserves appearance; MathML works with applications that support editable mathematics. Plain-text copies can still retain Markdown source.')}</p>
       </> },

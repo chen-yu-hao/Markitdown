@@ -150,7 +150,8 @@ try {
       const paragraphs = Array.from(body.getElementsByTagNameNS(W, 'p'));
       const text = paragraphs.map(item => item.textContent || '').join('\n');
       const nativeMath = body.getElementsByTagNameNS(M, 'oMath').length;
-      const numberedMath = paragraphs.filter(item => item.getElementsByTagNameNS(M, 'oMath').length && /\([1-4]\)/.test(item.textContent || '')).length;
+      const numberedMath = paragraphs.filter(item => item.getElementsByTagNameNS(M, 'oMath').length && /\([1-4]\)/.test(item.textContent || '')).length
+        + Array.from(body.getElementsByTagNameNS(W, 'tbl')).filter(item => item.getElementsByTagNameNS(M, 'oMath').length && /\([1-4]\)/.test(item.textContent || '')).length;
       const media = Object.keys(zip).filter(name => name.startsWith('word/media/'));
       assert(text.includes('CURRENT-UNSAVED-ACADEMIC-CONTENT'));
       assert(nativeMath >= 4 && numberedMath >= 4, 'Word must retain native equations and all four adjoining numbers.');
@@ -170,7 +171,7 @@ try {
   const wordPdf = path.join(run, 'academic-word.pdf');
   const word = await renderWithWord(files.docx.path, wordPdf);
   assert(word.nativeEquations >= 4 && word.inlineImages === 1, 'Installed Word must load the actual DOCX equations and image.');
-  assert(Math.abs(word.pageWidth - word.leftMargin - word.rightMargin - files.docx.availableWidth) < 0.1, 'Actual Word text width must match the equation tab stops.');
+  assert(Math.abs(word.pageWidth - word.leftMargin - word.rightMargin - files.docx.availableWidth) < 0.1, 'Actual Word text width must match the equation layout width.');
   await execFileAsync(process.env.PDFTOPPM || 'pdftoppm', ['-png', '-r', '110', wordPdf, path.join(run, 'word-page')], { windowsHide: true, timeout: 45_000, maxBuffer: 2 * 1024 * 1024 });
   files.wordPdf = { path: wordPdf, bytes: (await readFile(wordPdf)).length, ...word, pages: (await readdir(run)).filter(name => /^word-page-\d+\.png$/.test(name)).sort().map(name => path.join(run, name)) };
   assert(files.wordPdf.pages.length > 0);
