@@ -48,6 +48,15 @@ jobs:
           node-version: '24.14.0'
           cache: npm
 
+      - name: Use Canonical Windows Temp Directory
+        shell: pwsh
+        run: |
+          $ciTemp = Join-Path $env:RUNNER_TEMP markedown
+          New-Item -ItemType Directory -Path $ciTemp -Force | Out-Null
+          $ciTemp = node -e 'console.log(require("node:fs").realpathSync(process.argv[1]))' $ciTemp
+          if ($LASTEXITCODE -ne 0) { throw 'Could not resolve the CI temp directory.' }
+          @("TEMP=$ciTemp", "TMP=$ciTemp") | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - run: npm ci
       - run: npm test -- --maxWorkers=2
       - run: npm run build
