@@ -64,6 +64,8 @@ jobs:
           @("TEMP=$ciTemp", "TMP=$ciTemp") | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - run: npm ci
+      - name: Install Locked Electron Runtime
+        run: node node_modules/electron/install.js
       - run: npm test -- --maxWorkers=2
       - run: npm run build
       - run: npx electron-builder --win nsis zip --x64 --publish never

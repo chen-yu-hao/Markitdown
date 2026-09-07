@@ -74,8 +74,11 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会在目标旁生成 `markedow
 
 ```powershell
 npm ci
+node node_modules/electron/install.js
 npm run dev
 ```
+
+Electron 44 的运行时需要单独安装。每次重新执行 `npm ci` 后，运行上述 `install.js`，它会按锁定版本下载并校验 Electron；已安装时直接复用。
 
 开发命令会构建主进程、启动 Vite，并打开实际 Electron 窗口。终端显示的地址用于当前开发会话；需要 Electron 提供文件访问接口。界面代码由 Vite 更新，主进程或 preload 改动后需重新启动开发命令。
 

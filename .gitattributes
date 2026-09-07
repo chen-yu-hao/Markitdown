@@ -1,0 +1,2 @@
+# Preserve upstream bytes checked by the native license provenance manifests.
+resources/native-licenses/** -text
