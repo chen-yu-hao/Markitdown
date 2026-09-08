@@ -1,9 +1,6 @@
 name: Simplify Release Assets
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/release-assets.yml']
   workflow_dispatch:
     inputs:
       tag:
@@ -16,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ inputs.tag || 'v0.3.5' }}
+  group: release-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
@@ -28,7 +25,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RELEASE_TAG: ${{ inputs.tag || 'v0.3.5' }}
+      RELEASE_TAG: ${{ inputs.tag }}
     steps:
       - name: Keep Installer and Portable ZIP
         shell: pwsh
