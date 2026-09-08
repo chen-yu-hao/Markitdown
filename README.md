@@ -1,6 +1,6 @@
 # Markedown
 
-面向日常记录与论文写作的 Windows Markdown 编辑器。
+面向日常记录与论文写作的跨平台 Markdown 编辑器。
 
 Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出放在同一个写作环境中。文稿以本地 Markdown 文件保存，可随时切换到源码模式继续编辑。
 
@@ -10,24 +10,50 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ## 下载与安装
 
-当前版本：**0.3.9**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
+当前版本：**0.3.9**。支持 **Windows x64** 和 **Linux x64**。直接使用安装版、便携版或 Linux 包无需安装 Node.js。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
-| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.9/Markedown-0.3.9-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
-| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.9/Markedown-0.3.9-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
+| Windows 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.9/Markedown-0.3.9-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
+| Windows 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.9/Markedown-0.3.9-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
+| Linux AppImage | `Markedown-0.3.9-Linux-x64.AppImage` | 添加执行权限后运行，适合多数发行版 |
+| Linux deb | `Markedown-0.3.9-Linux-x64.deb` | 使用 `apt` 安装，适合 Ubuntu/Debian |
+| Linux tar.gz | `Markedown-0.3.9-Linux-x64.tar.gz` | 解压运行，适合 Arch 和其他发行版 |
 | 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.9.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
 
-安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
+Windows 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。Windows 便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.9)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
+Linux AppImage:
+
+```bash
+chmod +x Markedown-0.3.9-Linux-x64.AppImage
+./Markedown-0.3.9-Linux-x64.AppImage
+```
+
+Ubuntu 或 Debian:
+
+```bash
+sudo apt install ./Markedown-0.3.9-Linux-x64.deb
+```
+
+Arch 或其他发行版:
+
+```bash
+tar -xzf Markedown-0.3.9-Linux-x64.tar.gz
+./Markedown-0.3.9-Linux-x64/markedown
+```
+
+部分发行版运行 AppImage 时需要 FUSE。不能使用 FUSE 的环境可以改用 tar.gz 包，或基于 tar.gz 编写发行版自己的打包脚本。
+
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.9)提供更新说明。许可证和依赖说明随程序包与源码提供。
 
 ### 更新已有版本
 
 更新前保存文稿并退出 Markedown。
 
-- **安装版**：下载新版 EXE，安装到原目录，无需先卸载。设置与恢复数据保存在用户应用数据目录。
-- **便携版**：将新版解压到新目录，把旧版的 `data` 目录复制到新版目录中，再启动新版。另行存放的文稿和图片仍在原位置。
+- **Windows 安装版**：下载新版 EXE，安装到原目录，无需先卸载。设置与恢复数据保存在用户应用数据目录。
+- **Windows 便携版**：将新版解压到新目录，把旧版的 `data` 目录复制到新版目录中，再启动新版。另行存放的文稿和图片仍在原位置。
+- **Linux 包**：安装新版 deb，或替换 AppImage/tar.gz 解压目录。用户数据保存在 Electron 用户数据目录。
 
 目前采用手动更新，可在[最新发布页](https://github.com/chen-yu-hao/Markitdown/releases/latest)获取新版本。
 
@@ -39,6 +65,7 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 - **主题与偏好**：内建 Github、Newsprint、Night、Pixyll、Whitey 五种主题，数字使用等高字形，支持深浅色外观和可搜索的分类设置。
 - **本地图片**：粘贴、拖入或批量选择图片；默认写入文稿旁的 `assets`，大图使用缓存缩略图预览，保留原图。
 - **保存与恢复**：自动保存、异常退出恢复、外部修改冲突提示，以及 UTF-8 BOM、LF/CRLF 格式保留。
+- **跨平台包**：Windows NSIS/ZIP，Linux AppImage/deb/tar.gz。
 
 打开、保存和导出位于 **文件** 菜单，文本格式位于 **编辑 → 格式**，偏好设置位于 **编辑 → 偏好设置**（`Ctrl+,`）。
 
@@ -102,7 +129,7 @@ $$
 | Pandoc 导出 | Word（DOCX）、EPUB、LaTeX、RTF、ODT、MediaWiki、reStructuredText、Textile、OPML |
 | Pandoc 导入 | DOCX、ODT、EPUB、HTML、reStructuredText、Textile、OPML |
 
-使用扩展格式时，需安装 [Pandoc](https://pandoc.org/installing.html)。Markedown 会检查 `PATH` 和常见安装目录，也可在偏好设置中指定 `pandoc.exe`。内建导出无需 Pandoc。
+使用扩展格式时，需安装 [Pandoc](https://pandoc.org/installing.html)。Markedown 会检查 `PATH` 和常见安装目录，也可在偏好设置中指定 Pandoc 可执行文件。内建导出无需 Pandoc。
 
 **偏好设置 → 导出 → Word** 可设置中西文字体、颜色、正文和各级标题样式。Word 公式以原生可编辑数学对象导出；公式编号和参考文献列表保留导出时的结果，不是 Word 自动编号域或引文管理器记录。
 
@@ -114,8 +141,9 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会生成相邻的 `markedown-a
 
 | 数据 | 位置 |
 | --- | --- |
-| 安装版设置、恢复记录与缓存 | 通常为 `%APPDATA%\Markedown` |
-| 便携版设置、恢复记录与缓存 | `Markedown.exe` 旁的 `data` 目录 |
+| Windows 安装版设置、恢复记录与缓存 | 通常为 `%APPDATA%\Markedown` |
+| Windows 便携版设置、恢复记录与缓存 | `Markedown.exe` 旁的 `data` 目录 |
+| Linux 设置、恢复记录与缓存 | 通常为 `~/.config/Markedown`，或 `XDG_CONFIG_HOME` 指定的位置 |
 | 默认图片目录 | 文稿旁的 `assets`，可在图像设置中调整 |
 
 恢复的文稿需要先手动保存一次，才会重新启用自动写回。遇到外部修改冲突时，可重新加载、另存副本或取消。撤销图片插入会撤销文稿中的 Markdown 文本，已写入的图片文件仍保留。
@@ -147,9 +175,9 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会生成相邻的 `markedown-a
 
 ## 开发与反馈
 
-从源码运行需要 Windows x64 和 Node.js 24 LTS。在工程目录执行：
+从源码运行需要 Windows x64 或 Linux x64，以及 Node.js 24 LTS。在工程目录执行：
 
-```powershell
+```bash
 npm ci
 node node_modules/electron/install.js
 npm run dev
@@ -157,8 +185,18 @@ npm run dev
 
 每次重新执行 `npm ci` 后，需要运行上面的 Electron 安装步骤。测试、打包与发布流程见[开发与构建说明](resources/Development.md)，已完成的验证及适用范围见[验证记录](resources/Validation.md)。
 
-欢迎通过 [GitHub Issues](https://github.com/chen-yu-hao/Markitdown/issues)反馈问题或提出功能建议。报告问题时请附上应用版本、Windows 版本、复现步骤及去除个人信息的最小示例；涉及排版或点击定位时，也请注明主题和显示缩放。
+Windows 发布包：
+
+```powershell
+npm run dist:win
+```
+
+Linux 发布包：
+
+```bash
+npm run dist:linux
+```
+
+欢迎通过 [GitHub Issues](https://github.com/chen-yu-hao/Markitdown/issues)反馈问题或提出功能建议。报告问题时请附上应用版本、系统版本、复现步骤及去除个人信息的最小示例；涉及排版或点击定位时，也请注明主题和显示缩放。
 
 第三方组件、图标来源及许可证说明见[第三方与来源说明](resources/ThirdPartyNotices.md)。依赖清单与许可证文本位于程序可执行文件旁，也保存在源码的 `resources` 目录中。
-
-

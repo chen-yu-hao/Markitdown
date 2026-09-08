@@ -1,9 +1,10 @@
 {
-  "name": "markedown-windows",
+  "name": "markedown",
   "productName": "Markedown",
+  "desktopName": "com.zhuanz.markedown",
   "version": "0.3.9",
   "private": true,
-  "description": "Markedown Markdown editor for Windows",
+  "description": "Markedown Markdown editor for desktop Linux and Windows",
   "author": "Markedown contributors",
   "main": "dist/main/index.cjs",
   "scripts": {
@@ -14,8 +15,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "node scripts/smoke.mjs",
-    "pack": "npm run build && electron-builder --win dir --x64",
-    "dist": "npm run build && electron-builder --win nsis zip --x64 && node scripts/release.mjs",
+    "pack": "npm run build && electron-builder --dir --x64",
+    "pack:win": "npm run build && electron-builder --win dir --x64",
+    "pack:linux": "npm run build && electron-builder --linux dir --x64",
+    "dist": "npm run build && electron-builder --x64 && node scripts/release.mjs",
+    "dist:win": "npm run build && electron-builder --win nsis zip --x64 && node scripts/release.mjs --platform=windows",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb tar.gz --x64 && node scripts/release.mjs --platform=linux",
     "test:ui": "node scripts/verify-ui-v2.mjs"
   },
   "dependencies": {
@@ -97,6 +102,29 @@
       "deleteAppDataOnUninstall": false,
       "include": "resources/installer.nsh",
       "artifactName": "Markedown-${version}-Windows-${arch}-Setup.${ext}"
+    },
+    "linux": {
+      "icon": "resources/icons",
+      "category": "Office",
+      "executableName": "markedown",
+      "maintainer": "Markedown contributors <iawhaha@163.com>",
+      "syncDesktopName": true,
+      "synopsis": "Markdown editor",
+      "description": "Markedown Markdown editor for local documents, live preview and document export.",
+      "mimeTypes": [
+        "text/markdown",
+        "text/plain"
+      ],
+      "target": [
+        "AppImage",
+        "deb",
+        "tar.gz"
+      ],
+      "artifactName": "Markedown-${version}-Linux-x64.${ext}"
+    },
+    "deb": {
+      "packageName": "markedown",
+      "packageCategory": "editors"
     }
   }
 }

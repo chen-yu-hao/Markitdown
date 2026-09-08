@@ -5,8 +5,9 @@ import { _electron as electron } from 'playwright';
 import sharp from 'sharp';
 
 // Runs the actual packaged ASAR and native modules, with isolated settings and recovery.
-// Device-scale flags affect this application only; Windows display settings are untouched.
-const executablePath = path.resolve(process.argv[2] || 'release/win-unpacked/Markedown.exe');
+// Device-scale flags affect this application only; system display settings are untouched.
+const defaultExecutable = process.platform === 'win32' ? 'release/win-unpacked/Markedown.exe' : process.platform === 'linux' ? 'release/linux-unpacked/markedown' : 'release/Markedown.app/Contents/MacOS/Markedown';
+const executablePath = path.resolve(process.argv[2] || defaultExecutable);
 await stat(executablePath);
 const evidence = path.resolve('test-results');
 await mkdir(evidence, { recursive: true });
@@ -15,7 +16,8 @@ await mkdir(cache, { recursive: true });
 const run = await mkdtemp(path.join(cache, 'run-'));
 const fixture = path.join(run, '中文 文件.md');
 const imagePath = path.join(run, 'local image.png');
-const source = '# Markedown Windows\n\n中文输入与 Windows 显示缩放。\n\n**Bold** and ==highlighted==, H<sub>2</sub>O.\n\n| Item | Result |\n| --- | --- |\n| Packaged app | Ready |\n\n$$\nx^2 + \\frac{1}{2}\n$$\n\n```js\nconst packaged = true;\n```\n\n![Local image](local%20image.png)\n\nLast paragraph.\n';
+const platformLabel = process.platform === 'win32' ? 'Windows' : process.platform === 'linux' ? 'Linux' : process.platform;
+const source = `# Markedown ${platformLabel}\n\n中文输入与 ${platformLabel} 显示缩放。\n\n**Bold** and ==highlighted==, H<sub>2</sub>O.\n\n| Item | Result |\n| --- | --- |\n| Packaged app | Ready |\n\n$$\nx^2 + \\frac{1}{2}\n$$\n\n\`\`\`js\nconst packaged = true;\n\`\`\`\n\n![Local image](local%20image.png)\n\nLast paragraph.\n`;
 await writeFile(fixture, source);
 await sharp({ create: { width: 3000, height: 1000, channels: 3, background: '#24967b' } }).png().toFile(imagePath);
 const checks = [];

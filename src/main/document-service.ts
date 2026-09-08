@@ -386,7 +386,7 @@ export class DocumentService {
 }
 
 export function validatedSettings(value: unknown): Settings {
-  const settings: Settings = structuredClone(defaultSettings);
+  const settings: Settings = defaultSettingsForPlatform();
   if (!value || typeof value !== 'object') return settings;
   const input = value as Record<string, unknown>;
   const enums: Partial<Record<keyof Settings, readonly string[]>> = {
@@ -445,6 +445,12 @@ export function validatedSettings(value: unknown): Settings {
   }
   if (input.shortcuts && typeof input.shortcuts === 'object' && !Array.isArray(input.shortcuts)) settings.shortcuts = Object.fromEntries(Object.entries(input.shortcuts).filter(([command, accelerator]) => /^[a-zA-Z][a-zA-Z0-9]{0,40}$/.test(command) && typeof accelerator === 'string' && accelerator.length <= 80 && /^[a-zA-Z0-9+,./; '\\[\]\\-]*$/.test(accelerator)));
   if (!settings.recordHistory) { settings.recentFiles = []; settings.recentWorkspaces = []; }
+  return settings;
+}
+
+export function defaultSettingsForPlatform(): Settings {
+  const settings: Settings = structuredClone(defaultSettings);
+  if (process.platform !== 'win32') settings.defaultLineEnding = 'LF';
   return settings;
 }
 

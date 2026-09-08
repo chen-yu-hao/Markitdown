@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, FolderOpen, Minus, Plus, RotateCcw, Search, X } from 'lucide-react';
-import { defaultExportPresets, tableStyleNames, themeLabels, themeNames, type ExportFormat, type Settings, type SettingsAction } from '../shared/contracts';
+import { defaultExportPresets, tableStyleNames, themeLabels, themeNames, type ExportFormat, type RuntimePlatform, type Settings, type SettingsAction } from '../shared/contracts';
 import './preferences.css';
 import WordPreferences from './WordPreferences';
 import CitationCredits from './CitationCredits';
 import { diagramEngineAvailable } from '../shared/markdown-diagrams';
 
-interface Props { settings: Settings; zh: boolean; version: string; pandoc: string | null | undefined; update(patch: Partial<Settings>): Promise<void>; documentPrefix?: string; updateDocumentPrefix?(prefix: string): void; close(): void; error(message: string): void; disableWritingModes(): void; initialCategory?: Category; initialQuery?: string }
+interface Props { settings: Settings; zh: boolean; version: string; platform: RuntimePlatform; arch: string; pandoc: string | null | undefined; update(patch: Partial<Settings>): Promise<void>; documentPrefix?: string; updateDocumentPrefix?(prefix: string): void; close(): void; error(message: string): void; disableWritingModes(): void; initialCategory?: Category; initialQuery?: string }
 type Category = 'file' | 'editor' | 'image' | 'markdown' | 'export' | 'appearance' | 'general';
 type BooleanKey = { [K in keyof Settings]: Settings[K] extends boolean ? K : never }[keyof Settings];
 const shortcutCommands = [['new','新建','New','Ctrl+N'],['open','打开','Open','Ctrl+O'],['save','保存','Save','Ctrl+S'],['saveAs','另存为','Save as','Ctrl+Shift+S'],['find','查找','Find','Ctrl+F'],['replace','替换','Replace','Ctrl+H'],['settings','偏好设置','Preferences','Ctrl+,'],['mode','源码模式','Source mode','Ctrl+/'],['focusMode','专注模式','Focus mode','F8'],['typewriter','打字机模式','Typewriter mode','F9']];
-export default function Preferences({ settings: s, zh, version, pandoc, update, documentPrefix, updateDocumentPrefix, close, error, disableWritingModes, initialCategory = 'file', initialQuery = '' }: Props) {
+export default function Preferences({ settings: s, zh, version, platform, arch, pandoc, update, documentPrefix, updateDocumentPrefix, close, error, disableWritingModes, initialCategory = 'file', initialQuery = '' }: Props) {
   const [category, setCategory] = useState<Category>(initialCategory); const [query, setQuery] = useState(initialQuery); const [preset, setPreset] = useState('general');
   const [message, setMessage] = useState(''); const [shortcuts, setShortcuts] = useState(false); const ref = useRef<HTMLElement>(null);
   const t = (cn: string, en: string) => zh ? cn : en;
+  const platformName = platform === 'win32' ? 'Windows' : platform === 'linux' ? 'Linux' : platform === 'darwin' ? 'macOS' : platform;
+  const lineEndingOptions: Array<[Settings['defaultLineEnding'], string]> = platform === 'win32' ? [['CRLF','Windows (CRLF)'],['LF','Unix (LF)']] : [['LF','Unix (LF)'],['CRLF','Windows (CRLF)']];
   useEffect(() => { setCategory(initialCategory); setQuery(initialQuery); }, [initialCategory, initialQuery]);
   useEffect(() => { const previous = document.activeElement as HTMLElement | null; ref.current?.querySelector<HTMLInputElement>('input')?.focus(); const handler = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); } }; document.addEventListener('keydown', handler, true); return () => { document.removeEventListener('keydown', handler, true); previous?.focus(); }; }, [close]);
   const change = (patch: Partial<Settings>) => { void update(patch); };
@@ -41,7 +43,7 @@ export default function Preferences({ settings: s, zh, version, pandoc, update, 
       { title:t('自动补全','Auto completion'),content:<>{check('pairBrackets','自动配对括号和引号','Auto pair brackets and quotes')}{check('pairMarkdown','自动配对 Markdown 字符','Auto pair Markdown characters')}{check('emojiAutocomplete','Emoji 自动补全','Emoji autocomplete',t('输入 :smile 等名称时显示建议。','Type a name such as :smile to show suggestions.'))}</> },
       { title:t('即时渲染','Live rendering'),content:check('showActiveBlockSource','显示当前编辑块的 Markdown 源码','Show Markdown source in the current block') },
       { title:t('复制与剪切','Copy & cut'),content:<>{check('copyMarkdown','复制纯文本时使用 Markdown 源码','Copy Markdown source as plain text')}{check('copyWholeLine','无选区时复制或剪切整行','Copy or cut the whole line without a selection')}</> },
-      { title:t('换行符','Line endings'),hint:t('仅影响新建文件。已有文件保留原始换行格式。','Applies to new files. Existing documents retain their line endings.'),content:select('defaultLineEnding',[['CRLF','Windows (CRLF)'],['LF','Unix (LF)']],t('默认换行符','Default line endings')) },
+      { title:t('换行符','Line endings'),hint:t('仅影响新建文件。已有文件保留原始换行格式。','Applies to new files. Existing documents retain their line endings.'),content:select('defaultLineEnding',lineEndingOptions,t('默认换行符','Default line endings')) },
       { title:t('拼写检查','Spellcheck'),content:select('spellcheck',[['auto',t('自动检测语言','Automatic language')],['off',t('关闭','Off')],['en-US','English (US)'],['en-GB','English (UK)']],t('拼写检查','Spellcheck')) },
       { title:t('打字机模式','Typewriter mode'),content:<>{check('alwaysCenterCaret','始终使光标位于编辑区中部','Always center the caret')}{button('退出打字机与专注模式','Exit typewriter and focus modes',disableWritingModes)}</> },
     ],
@@ -109,9 +111,9 @@ export default function Preferences({ settings: s, zh, version, pandoc, update, 
     general: [
       { title:t('语言','Language'),content:select('language',[['system',t('系统语言','System language')],['zh-CN','简体中文'],['en','English']],t('语言','Language')) },
       { title:t('更新','Updates'),content:<p className="pref-hint">{t('安装新版 Markedown 即可升级，文稿和设置会保留。暂不支持自动更新。','Install a newer version of Markedown to upgrade. Your documents and settings are retained. Automatic updates are not supported.')}</p> },
-      { title:'Markedown',content:<><p className="pref-version">Markedown {version} · Windows x64</p>{button('打开应用数据目录','Open app data folder',()=>void action('dataFolder'))}<CitationCredits /></> },
+      { title:'Markedown',content:<><p className="pref-version">Markedown {version} · {platformName} {arch}</p>{button('打开应用数据目录','Open app data folder',()=>void action('dataFolder'))}<CitationCredits /></> },
       { title:t('快捷键','Keyboard shortcuts'),content:<>{button(shortcuts?'收起自定义快捷键':'自定义快捷键…',shortcuts?'Hide shortcuts':'Customize shortcuts…',()=>setShortcuts(!shortcuts))}{shortcuts&&<div className="shortcut-list">{shortcutCommands.map(([command,cn,en,fallback])=>row(t(cn,en),<input key={command} aria-label={t(cn,en)+t('快捷键',' shortcut')} value={s.shortcuts[command]||fallback} readOnly onKeyDown={e=>{e.preventDefault();e.stopPropagation(); if(['Control','Shift','Alt','Meta'].includes(e.key))return;if(e.key==='Backspace'||e.key==='Delete'){const next={...s.shortcuts};delete next[command];change({shortcuts:next});return;}if(!e.ctrlKey&&!e.altKey&&!/^F(?:[1-9]|1[0-2])$/.test(e.key)){setMessage(t('请使用 Ctrl、Alt 或功能键组合。','Use Ctrl, Alt or a function key.'));return;}const key=[e.ctrlKey?'Ctrl':'',e.altKey?'Alt':'',e.shiftKey?'Shift':'',e.key.length===1?e.key.toUpperCase():e.key].filter(Boolean).join('+');const used=shortcutCommands.find(([id,,,base])=>id!==command&&(s.shortcuts[id]||base).toLowerCase()===key.toLowerCase());if(used){setMessage(t('此快捷键已被使用。','This shortcut is already in use.'));return;}change({shortcuts:{...s.shortcuts,[command]:key}});}}/>))}<small>{t('点选输入框并按下组合键；Backspace 恢复默认。','Focus a field and press a shortcut; Backspace restores its default.')}</small></div>}</> },
-      { title:t('Windows 集成','Windows integration'),content:<div className="pref-buttons">{button('在资源管理器“新建”中添加 Markdown','Add Markdown to Explorer New menu',()=>void action('registerNewFile'))}{button('移除“新建 Markdown”','Remove Markdown from New menu',()=>void action('unregisterNewFile'))}</div> },
+      ...(platform === 'win32' ? [{ title:t('Windows 集成','Windows integration'),content:<div className="pref-buttons">{button('在资源管理器“新建”中添加 Markdown','Add Markdown to Explorer New menu',()=>void action('registerNewFile'))}{button('移除“新建 Markdown”','Remove Markdown from New menu',()=>void action('unregisterNewFile'))}</div> }] : []),
       { title:t('高级设置','Advanced'),content:<><div className="pref-buttons">{button('开发者工具','Developer tools',()=>void action('debug'))}{button('打开高级设置文件','Open advanced settings',()=>void action('advancedSettings'))}{button('恢复默认设置','Restore defaults',()=>void action('resetSettings'))}</div><p className="pref-hint">{t('恢复默认设置不会删除文稿。','Restoring default settings does not delete your documents.')}</p></> },
     ],
   };

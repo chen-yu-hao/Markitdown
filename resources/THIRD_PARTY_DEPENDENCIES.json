@@ -1,9 +1,9 @@
 {
   "product": "Markedown",
-  "version": "0.3.7",
-  "platform": "win32",
+  "version": "0.3.8",
+  "platform": "linux",
   "architecture": "x64",
-  "packageLockSha256": "7984347162bdbcbb886f2b99696ea1c5d3855e9722824c384e53dcc5b3d88003",
+  "packageLockSha256": "f25540a217cc37966e44dbde08e91726e47b7f4e53efe4bdc14a0e78faed0d08",
   "packages": [
     {
       "name": "@codemirror/autocomplete",
@@ -198,21 +198,16 @@
       "warnings": []
     },
     {
-      "name": "@img/sharp-win32-x64",
-      "version": "0.34.5",
-      "location": "node_modules/@img/sharp-win32-x64",
-      "license": "Apache-2.0 AND LGPL-3.0-or-later",
-      "repository": "git+https://github.com/lovell/sharp.git",
+      "name": "@img/sharp-libvips-linux-x64",
+      "version": "1.2.4",
+      "location": "node_modules/@img/sharp-libvips-linux-x64",
+      "license": "LGPL-3.0-or-later",
+      "repository": "git+https://github.com/lovell/sharp-libvips.git",
       "homepage": "https://sharp.pixelplumbing.com",
-      "licenseFiles": [
-        {
-          "path": "LICENSE",
-          "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693",
-          "bytes": 10464
-        }
-      ],
+      "licenseFiles": [],
       "warnings": [
-        "The installed package omits its declared LGPL text. Supplemental upstream legal materials are included; see their provenance for exact component coverage."
+        "No legal notice file was found in the installed package.",
+        "The declared LGPL license text is absent from the installed legal files. Native component license completeness needs upstream verification."
       ],
       "nativeComponentVersions": {
         "aom": "3.13.1",
@@ -243,8 +238,82 @@
         "webp": "1.6.0",
         "xml2": "2.15.1",
         "zlib-ng": "2.2.5"
-      },
-      "supplementalProvenance": "resources/native-licenses/provenance.json"
+      }
+    },
+    {
+      "name": "@img/sharp-libvips-linuxmusl-x64",
+      "version": "1.2.4",
+      "location": "node_modules/@img/sharp-libvips-linuxmusl-x64",
+      "license": "LGPL-3.0-or-later",
+      "repository": "git+https://github.com/lovell/sharp-libvips.git",
+      "homepage": "https://sharp.pixelplumbing.com",
+      "licenseFiles": [],
+      "warnings": [
+        "No legal notice file was found in the installed package.",
+        "The declared LGPL license text is absent from the installed legal files. Native component license completeness needs upstream verification."
+      ],
+      "nativeComponentVersions": {
+        "aom": "3.13.1",
+        "archive": "3.8.2",
+        "cairo": "1.18.4",
+        "cgif": "0.5.0",
+        "exif": "0.6.25",
+        "expat": "2.7.3",
+        "ffi": "3.5.2",
+        "fontconfig": "2.17.1",
+        "freetype": "2.14.1",
+        "fribidi": "1.0.16",
+        "glib": "2.86.1",
+        "harfbuzz": "12.1.0",
+        "heif": "1.20.2",
+        "highway": "1.3.0",
+        "imagequant": "2.4.1",
+        "lcms": "2.17",
+        "mozjpeg": "0826579",
+        "pango": "1.57.0",
+        "pixman": "0.46.4",
+        "png": "1.6.50",
+        "proxy-libintl": "0.5",
+        "rsvg": "2.61.2",
+        "spng": "0.7.4",
+        "tiff": "4.7.1",
+        "vips": "8.17.3",
+        "webp": "1.6.0",
+        "xml2": "2.15.1",
+        "zlib-ng": "2.2.5"
+      }
+    },
+    {
+      "name": "@img/sharp-linux-x64",
+      "version": "0.34.5",
+      "location": "node_modules/@img/sharp-linux-x64",
+      "license": "Apache-2.0",
+      "repository": "git+https://github.com/lovell/sharp.git",
+      "homepage": "https://sharp.pixelplumbing.com",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68",
+          "bytes": 10273
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@img/sharp-linuxmusl-x64",
+      "version": "0.34.5",
+      "location": "node_modules/@img/sharp-linuxmusl-x64",
+      "license": "Apache-2.0",
+      "repository": "git+https://github.com/lovell/sharp.git",
+      "homepage": "https://sharp.pixelplumbing.com",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68",
+          "bytes": 10273
+        }
+      ],
+      "warnings": []
     },
     {
       "name": "@lezer/common",
@@ -1265,15 +1334,7 @@
       "reason": "Optional package not installed for this platform."
     },
     {
-      "location": "node_modules/@img/sharp-libvips-linux-x64",
-      "reason": "Optional package not installed for this platform."
-    },
-    {
       "location": "node_modules/@img/sharp-libvips-linuxmusl-arm64",
-      "reason": "Optional package not installed for this platform."
-    },
-    {
-      "location": "node_modules/@img/sharp-libvips-linuxmusl-x64",
       "reason": "Optional package not installed for this platform."
     },
     {
@@ -1297,15 +1358,7 @@
       "reason": "Optional package not installed for this platform."
     },
     {
-      "location": "node_modules/@img/sharp-linux-x64",
-      "reason": "Optional package not installed for this platform."
-    },
-    {
       "location": "node_modules/@img/sharp-linuxmusl-arm64",
-      "reason": "Optional package not installed for this platform."
-    },
-    {
-      "location": "node_modules/@img/sharp-linuxmusl-x64",
       "reason": "Optional package not installed for this platform."
     },
     {
@@ -1318,6 +1371,10 @@
     },
     {
       "location": "node_modules/@img/sharp-win32-ia32",
+      "reason": "Optional package not installed for this platform."
+    },
+    {
+      "location": "node_modules/@img/sharp-win32-x64",
       "reason": "Optional package not installed for this platform."
     }
   ],
@@ -1348,21 +1405,6 @@
       "bytes": 3677
     },
     {
-      "path": "resources/native-licenses/GPL-3.0.txt",
-      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-      "bytes": 35149
-    },
-    {
-      "path": "resources/native-licenses/LGPL-3.0.txt",
-      "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
-      "bytes": 7652
-    },
-    {
-      "path": "resources/native-licenses/libvips-8.17.3-LICENSE.txt",
-      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
-      "bytes": 26530
-    },
-    {
       "path": "resources/native-licenses/mj-context-menu-0.6.1-Apache-2.0.txt",
       "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
       "bytes": 11358
@@ -1376,136 +1418,19 @@
       "path": "resources/native-licenses/mj-context-menu-0.6.1-provenance.json",
       "sha256": "f358adf4e83ee965607d4c8d5fa9a443e31fb16682b12cd3e63bc2bd887a844e",
       "bytes": 1845
-    },
-    {
-      "path": "resources/native-licenses/provenance.json",
-      "sha256": "212408c0521aa12f14741739f9c274bcfec5e55ebbaaac1e9e41dfdd66f1584d",
-      "bytes": 5949
-    },
-    {
-      "path": "resources/native-licenses/sharp-win32-x64-0.34.5-README.md",
-      "sha256": "c416cd0af88256407c36a0613f189ac4257221c7206d0324f7ef5563c66f1125",
-      "bytes": 4899
     }
   ],
   "warnings": [
-    "@img/sharp-win32-x64@0.34.5: The installed package omits its declared LGPL text. Supplemental upstream legal materials are included; see their provenance for exact component coverage.",
+    "Skipped @img/sharp-win32-x64 supplemental native evidence for win32-x64; current build platform is linux-x64.",
+    "@img/sharp-libvips-linux-x64@1.2.4: No legal notice file was found in the installed package.",
+    "@img/sharp-libvips-linux-x64@1.2.4: The declared LGPL license text is absent from the installed legal files. Native component license completeness needs upstream verification.",
+    "@img/sharp-libvips-linuxmusl-x64@1.2.4: No legal notice file was found in the installed package.",
+    "@img/sharp-libvips-linuxmusl-x64@1.2.4: The declared LGPL license text is absent from the installed legal files. Native component license completeness needs upstream verification.",
     "citeproc@2.4.63: The npm package.json declares CPAL-1.0 OR AGPL-1.0, while its LICENSE, runtime source header and pinned upstream CPAL Exhibit A explicitly offer CPAL version 1 or later OR GNU AGPL version 3 or later. This distribution uses the CPAL 1.0 option for citeproc only; no overall application license is changed.",
     "launder@1.7.1: No legal notice file was found in the installed package.",
     "mj-context-menu@0.6.1: The installed package omits legal notice files. Supplemental upstream attribution and license text are included; see resources/native-licenses/mj-context-menu-0.6.1-provenance.json for exact source and scope."
   ],
-  "nativeLicenseEvidence": {
-    "schemaVersion": 1,
-    "reviewedDate": "2026-09-06",
-    "package": "@img/sharp-win32-x64",
-    "packageVersion": "0.34.5",
-    "nativePackage": "@img/sharp-libvips-win32-x64",
-    "nativePackageVersion": "1.2.4",
-    "libvipsVersion": "8.17.3",
-    "architecture": "win32-x64",
-    "completeComponentLicenseTexts": false,
-    "scope": "Supplemental license texts and upstream attribution for the native sharp/libvips distribution. This is not a complete collection of the copyright and license notices for every statically bundled component, nor a corresponding-source bundle.",
-    "verifiedEvidence": [
-      "sharp v0.34.5 package.json pins @img/sharp-libvips-win32-x64 to 1.2.4 as a development dependency.",
-      "sharp v0.34.5 npm/from-local-build.js copies Apache-2.0 LICENSE and appends the native package third-party licensing table to the Windows package README.md.",
-      "sharp-libvips v1.2.4 build/win.sh downloads vips-dev-w64-web-8.17.3-static.zip from libvips/build-win64-mxe.",
-      "The downloaded ZIP SHA-256 matches the digest published by the GitHub release API.",
-      "The archive's bin/libvips-42.dll SHA-256 matches the installed node_modules/@img/sharp-win32-x64/lib/libvips-42.dll byte-for-byte.",
-      "The archive's versions.json has the same component names and versions as the installed sharp Windows package manifest.",
-      "The verified official Windows ZIP contains one top-level LICENSE file (LGPL 2.1). No complete per-component license collection was found in this ZIP.",
-      "The installed package README.md states that LGPLv3 usage invokes the any-later-version clause of LGPLv2 or LGPLv2.1; LGPL 3 and its incorporated GPL 3 terms are supplied from GNU's canonical text URLs."
-    ],
-    "sourceUrls": [
-      "https://raw.githubusercontent.com/lovell/sharp/v0.34.5/package.json",
-      "https://raw.githubusercontent.com/lovell/sharp/v0.34.5/npm/from-local-build.js",
-      "https://raw.githubusercontent.com/lovell/sharp-libvips/v1.2.4/build/win.sh",
-      "https://registry.npmjs.org/@img%2fsharp-libvips-win32-x64/1.2.4",
-      "https://api.github.com/repos/libvips/build-win64-mxe/releases/tags/v8.17.3"
-    ],
-    "upstreamArchive": {
-      "url": "https://github.com/libvips/build-win64-mxe/releases/download/v8.17.3/vips-dev-w64-web-8.17.3-static.zip",
-      "sha256": "657e14296b96d0b57d33cb1c568f0237ffa5c811e11f5931390ac0feea8eb74b",
-      "bytes": 9481546,
-      "verifiedDll": {
-        "archivePath": "vips-dev-8.17/bin/libvips-42.dll",
-        "installedPath": "node_modules/@img/sharp-win32-x64/lib/libvips-42.dll",
-        "sha256": "f8d356def73941668252347b825055310e99023ff77c7d3036e592d0771e1529"
-      },
-      "versionsManifest": {
-        "archivePath": "vips-dev-8.17/versions.json",
-        "sha256": "e823074bfa33ed7b1861b797dd3c60d7ef8c34cd2faa9a7d22ec32dd6d6ad8ad",
-        "versions": {
-          "aom": "3.13.1",
-          "archive": "3.8.2",
-          "cairo": "1.18.4",
-          "cgif": "0.5.0",
-          "exif": "0.6.25",
-          "expat": "2.7.3",
-          "ffi": "3.5.2",
-          "fontconfig": "2.17.1",
-          "freetype": "2.14.1",
-          "fribidi": "1.0.16",
-          "glib": "2.86.1",
-          "harfbuzz": "12.1.0",
-          "heif": "1.20.2",
-          "highway": "1.3.0",
-          "imagequant": "2.4.1",
-          "lcms": "2.17",
-          "mozjpeg": "0826579",
-          "pango": "1.57.0",
-          "pixman": "0.46.4",
-          "png": "1.6.50",
-          "proxy-libintl": "0.5",
-          "rsvg": "2.61.2",
-          "spng": "0.7.4",
-          "tiff": "4.7.1",
-          "vips": "8.17.3",
-          "webp": "1.6.0",
-          "xml2": "2.15.1",
-          "zlib-ng": "2.2.5"
-        }
-      }
-    },
-    "files": [
-      {
-        "file": "libvips-8.17.3-LICENSE.txt",
-        "sourceUrl": "https://github.com/libvips/build-win64-mxe/releases/download/v8.17.3/vips-dev-w64-web-8.17.3-static.zip",
-        "sourcePath": "vips-dev-8.17/LICENSE",
-        "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
-        "retrieval": "Extracted verbatim from the SHA-256 verified upstream archive.",
-        "role": "Original upstream libvips distribution license, LGPL 2.1."
-      },
-      {
-        "file": "LGPL-3.0.txt",
-        "sourceUrl": "https://www.gnu.org/licenses/lgpl-3.0.txt",
-        "sourcePath": "lgpl-3.0.txt",
-        "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
-        "retrieval": "Retrieved verbatim from the Free Software Foundation's GNU license text endpoint.",
-        "role": "Full LGPL version 3 text referenced by the native package declaration."
-      },
-      {
-        "file": "GPL-3.0.txt",
-        "sourceUrl": "https://www.gnu.org/licenses/gpl-3.0.txt",
-        "sourcePath": "gpl-3.0.txt",
-        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-        "retrieval": "Retrieved verbatim from the Free Software Foundation's GNU license text endpoint.",
-        "role": "Full GPL version 3 text incorporated by LGPL version 3."
-      },
-      {
-        "file": "sharp-win32-x64-0.34.5-README.md",
-        "sourceUrl": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.34.5.tgz",
-        "sourcePath": "sharp-win32-x64-0.34.5-README.md",
-        "sha256": "c416cd0af88256407c36a0613f189ac4257221c7206d0324f7ef5563c66f1125",
-        "retrieval": "Copied verbatim from the installed locked npm package; distribution tarball URL identifies its public source.",
-        "role": "Upstream attribution table and licensing statement."
-      }
-    ],
-    "missingEvidence": [
-      "Version-specific complete copyright and license texts for each component listed in the native manifest, including permissive-license attribution notices and any patent notices.",
-      "A complete corresponding-source package, build inputs and any required relinking materials for the shipped native libraries have not been collected or verified by this supplement.",
-      "The generic README table also lists libnsgif, while the verified versions.json does not; the table must not be represented as a fully reconciled bill of materials."
-    ]
-  },
+  "nativeLicenseEvidence": null,
   "supplementalPackageLicenseEvidence": [
     {
       "path": "resources/native-licenses/citeproc-2.4.63-provenance.json",

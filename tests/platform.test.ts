@@ -37,6 +37,7 @@ describe('settings and platform behaviors', () => {
     fresh.shortcuts.bold = 'Ctrl+B';
     expect(defaultSettings.exportPresets[0].name).toBe('PDF');
     expect(defaultSettings.shortcuts).toEqual({});
+    expect(fresh.defaultLineEnding).toBe(process.platform === 'win32' ? 'CRLF' : 'LF');
   });
 
   it('validates complete settings and preserves explicit false values and valid export presets', async () => {

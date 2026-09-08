@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlignLeft, ArrowDown, ArrowUp, Bold, Braces, Check, ChevronDown, ChevronRight, ChevronsLeftRight, Code2, Download, ExternalLink, FileCode2, FileImage, FilePlus2, FileText, Folder, FolderOpen, Highlighter, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, LoaderCircle, Maximize2, Minimize2, Moon, MoreHorizontal, PanelLeft, Plus, Quote, Redo2, RefreshCw, Save, Search, Settings2, Strikethrough, Sun, Type, Undo2, X } from 'lucide-react';
 import Editor, { type EditorHandle } from './Editor';
-import { defaultSettings, type AppEvent, type DirectoryEntry, type DocumentPatch, type DocumentSession, type ExportFormat, type SearchHit, type Settings } from '../shared/contracts';
+import { defaultSettings, type AppEvent, type DirectoryEntry, type DocumentPatch, type DocumentSession, type ExportFormat, type RuntimePlatform, type SearchHit, type Settings } from '../shared/contracts';
 import { analyzeMarkdown } from '../shared/markdown';
 import TopBar from './TopBar';
 import { shortcutCommand } from '../shared/shortcuts';
@@ -83,6 +83,8 @@ export default function App() {
   const t = (cn: string, en: string) => zh ? cn : en;
   const [ready, setReady] = useState(false);
   const [version, setVersion] = useState('');
+  const [platform, setPlatform] = useState<RuntimePlatform>('win32');
+  const [arch, setArch] = useState('x64');
   const [navigation, setNavigation] = useState<{ ids: string[]; index: number }>({ ids: [], index: -1 });
   const navigationRef = useRef(navigation); navigationRef.current = navigation;
   const [collapsedHeadings, setCollapsedHeadings] = useState<Set<string>>(new Set());
@@ -161,7 +163,7 @@ export default function App() {
     const unsubscribe = window.markedown.onEvent(onEvent);
     void window.markedown.bootstrap().then(initial => {
       if (!mounted.current) return;
-      applySettings(initial.settings); setVersion(initial.version); setLocale(initial.locale); setWorkspace(initial.workspace); setRecoveryErrors(initial.recoveryErrors);
+      applySettings(initial.settings); setVersion(initial.version); setPlatform(initial.platform || 'win32'); setArch(initial.arch || 'x64'); setLocale(initial.locale); setWorkspace(initial.workspace); setRecoveryErrors(initial.recoveryErrors);
       if (initial.transfer) setTransfer(initial.transfer);
       for (const doc of initial.documents) upsert(doc);
       setReady(true);
@@ -422,7 +424,7 @@ export default function App() {
     {focusMode && <div className="focus-exit"><IconButton label={t('退出专注模式', 'Exit focus mode')} onClick={() => setFocusMode(false)}><Minimize2 /></IconButton></div>}
     {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role={toast.error ? 'alert' : 'status'}><span>{toast.text}</span>{toast.path && <button className="text-command" onClick={() => void window.markedown.revealFile(toast.path!)}><FolderOpen size={15} />{t('显示文件', 'Show file')}</button>}<IconButton label={t('关闭提示', 'Dismiss')} onClick={() => setToast(null)}><X /></IconButton></div>}
     <CitationCredits startup paused={!ready || !!toast || settingsOpen || !!academicOpen || exportOpen || !!conflictDoc || recoveryErrors.length > 0} />
-    {settingsOpen && <Preferences settings={settings} zh={zh} version={version} pandoc={pandoc} update={updateSettings} documentPrefix={active?.mathNumberingPrefix ?? settings.mathNumberingPrefix} updateDocumentPrefix={value => { if (!active) return; change(active.id, { ...patchOf(active), mathNumberingPrefix: value }); }} close={closeSettings} error={showError} disableWritingModes={() => { setFocusMode(false); setTypewriter(false); }} initialCategory={settingsCategory} initialQuery={settingsQuery} />}
+    {settingsOpen && <Preferences settings={settings} zh={zh} version={version} platform={platform} arch={arch} pandoc={pandoc} update={updateSettings} documentPrefix={active?.mathNumberingPrefix ?? settings.mathNumberingPrefix} updateDocumentPrefix={value => { if (!active) return; change(active.id, { ...patchOf(active), mathNumberingPrefix: value }); }} close={closeSettings} error={showError} disableWritingModes={() => { setFocusMode(false); setTypewriter(false); }} initialCategory={settingsCategory} initialQuery={settingsQuery} />}
     {academicOpen && active && <AcademicPanel source={active.source} settings={settings} zh={zh} initialTab={academicOpen} onClose={closeAcademic} onError={showError} onInsert={(text, bibliography) => { editors.current.get(activeIdRef.current)?.insertText(text, bibliography); setAcademicOpen(null); }} />}
     {exportOpen && <Modal title={t('导出文稿', 'Export document')} onClose={closeExport}><div className="export-content"><div className="export-formats">{settings.exportPresets.map(({ format, id, name }) => <button key={id} className="export-format" disabled={!!exporting || (!['html','htmlPlain','pdf','png'].includes(format) && !pandoc)} onClick={() => void doExport(format)} title={!['html','htmlPlain','pdf','png'].includes(format) && !pandoc ? t('需要 Pandoc', 'Pandoc required') : format.toUpperCase()}>{exporting === format ? <LoaderCircle className="spin" /> : format === 'png' ? <FileImage /> : format === 'html' || format === 'tex' ? <FileCode2 /> : <FileText />}<strong>{name === 'Image' ? t('图像','Image') : name === 'HTML (without styles)' ? t('HTML（无样式）',name) : name}</strong>{format === 'png' && <span>{t('长图', 'Long image')}</span>}</button>)}</div><div className="export-options"><label><input type="checkbox" checked={settings.exportOutline} onChange={event => void updateSettings({ exportOutline: event.target.checked })} />{t('包含目录', 'Include table of contents')}</label><select aria-label={t('PDF 纸张', 'PDF paper')} value={settings.pageSize} onChange={event => void updateSettings({ pageSize: event.target.value as 'A4' | 'Letter' })}><option>A4</option><option>Letter</option></select></div>{!pandoc && <div className="pandoc-note">{t('Pandoc 未安装', 'Pandoc not installed')}<button className="text-command" onClick={() => void window.markedown.choosePandoc().then(path => { if (path) void updateSettings({ pandocPath: path }); })}><FolderOpen size={14} />{t('选择程序', 'Choose executable')}</button></div>}</div></Modal>}
     {conflictDoc && <Modal title={t('文件已在外部修改', 'File changed on disk')} onClose={dismissConflict}><div className="conflict-content"><FileText size={30} /><strong>{conflictDoc.title}</strong><p>{t('当前编辑内容尚未写回文件。', 'Your current edits have not been written to disk.')}</p><div className="modal-actions"><button className="text-command" onClick={() => void resolveConflict('reload')}>{t('重新加载', 'Reload')}</button><button className="primary-command" onClick={() => void resolveConflict('copy')}><Save size={15} />{t('另存副本', 'Save a copy')}</button><button className="text-command" onClick={dismissConflict}>{t('取消', 'Cancel')}</button></div></div></Modal>}
