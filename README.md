@@ -10,17 +10,17 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ## 下载与安装
 
-当前版本：**0.3.4**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
+当前版本：**0.3.5**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
-| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.4/Markedown-0.3.4-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
-| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.4/Markedown-0.3.4-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
-| 源码 | [完整源码 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.4/Markedown-0.3.4-Windows-Source.zip) | 包含源码、依赖锁文件、测试和中文说明 |
+| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.5/Markedown-0.3.5-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
+| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.5/Markedown-0.3.5-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
+| 源码 | [完整源码 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.5/Markedown-0.3.5-Windows-Source.zip) | 包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.4)提供更新说明、第三方依赖清单及 `SHA256SUMS.txt` 校验文件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.5)提供更新说明、第三方依赖清单及 `SHA256SUMS.txt` 校验文件。
 
 ### 更新已有版本
 
@@ -34,7 +34,7 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 ## 主要功能
 
 - **编辑与排版**：即时排版和源码模式；标题、列表、任务列表、表格、代码高亮、删除线、高亮、上下标及 LaTeX 公式。
-- **文稿与工作区**：多标签、多窗口、独立撤销记录、文件夹浏览、大纲定位、全文搜索及查找替换。
+- **文稿与工作区**：多标签、多窗口、独立撤销记录、侧栏文件单击打开、文件夹浏览、大纲定位、全文搜索及查找替换。
 - **专注写作**：专注模式、打字机模式、字数统计、阅读宽度与字体设置、自定义快捷键。
 - **主题与偏好**：内建 Github、Newsprint、Night、Pixyll、Whitey 五种主题，支持深浅色外观和可搜索的分类设置。
 - **本地图片**：粘贴、拖入或批量选择图片；默认写入文稿旁的 `assets`，大图使用缓存缩略图预览，保留原图。
@@ -51,6 +51,8 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 通过 **编辑 → 格式 → 行间公式** 插入公式，默认自动编号。行间公式默认左对齐，编号在右侧并相对公式整体垂直居中；**偏好设置 → Markdown → 数学公式** 可选择公式左对齐、居中或右对齐，以及编号在左侧或右侧。
 
 为行间公式或行内公式添加标签，即可在正文引用。编号支持全文连续或按一级标题分章，也可只为带标签的公式编号。段落中的公式可通过 **编辑 → 格式 → 行内公式** 插入。
+
+顶层正文段落仅包含一个 `$…$` 或 `\(…\)` 时，默认按行间公式排版并遵循当前编号设置；可在同一设置分组关闭 **独占段落的行内公式按行间公式处理**。正文夹排、标题、列表、引用和表格中的行内公式保持原样，Markdown 源码不改写。
 
 ```markdown
 能量关系见 \eqref{eq:energy}。

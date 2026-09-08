@@ -67,7 +67,7 @@ export function installMathSyntax(md: ReturnType<typeof MarkdownIt>) {
     token.meta = { equationSource: { from: state.bMarks[startLine], to: state.eMarks[nextLine - 1], source: token.content, trailingLabel, display: true, block: true } };
     state.line = nextLine;
     return true;
-  });
+  }, { alt: ['paragraph', 'reference', 'blockquote', 'list'] });
 }
 
 const sourceParser = new MarkdownIt({ html: true });

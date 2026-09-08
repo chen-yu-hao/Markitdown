@@ -54,10 +54,12 @@ function FileTree({ root, refresh, selected, onOpen, onError }: { root: string; 
   useEffect(() => { setEntries({}); setExpanded(new Set([root])); setLoading(true); void load(root).finally(() => setLoading(false)); }, [root, refresh, load]);
   useEffect(() => setSelection(selected), [selected]);
   const rows = (directory: string, depth: number): ReactNode => (entries[directory] || []).map(entry => <div key={entry.path}>
-    <button className={`tree-row ${selection === entry.path ? 'selected' : ''}`} style={{ paddingLeft: 14 + depth * 16 }} title={entry.path} onClick={() => {
+    <button type="button" className={`tree-row ${selection === entry.path ? 'selected' : ''}`} style={{ paddingLeft: 14 + depth * 16 }} title={entry.path} onClick={event => {
+      if (event.detail > 1) return;
       setSelection(entry.path);
       if (entry.directory) { setExpanded(previous => { const next = new Set(previous); next.has(entry.path) ? next.delete(entry.path) : next.add(entry.path); return next; }); if (!entries[entry.path]) void load(entry.path); }
-    }} onDoubleClick={() => { if (!entry.directory) onOpen(entry.path); }} onKeyDown={event => { if (event.key === 'Enter' && !entry.directory) onOpen(entry.path); }}>
+      else onOpen(entry.path);
+    }}>
       {entry.directory ? expanded.has(entry.path) ? <ChevronDown size={13} /> : <ChevronRight size={13} /> : <span className="tree-indent" />}
       {entry.directory ? <Folder size={15} className="folder-icon" /> : <FileText size={15} />}<span>{entry.name}</span>
     </button>{entry.directory && expanded.has(entry.path) && rows(entry.path, depth + 1)}
@@ -224,12 +226,14 @@ export default function App() {
   }, [replaceDocs, showError]);
   async function newDocument() { try { upsert(await window.markedown.newDocument(), true); } catch (error) { showError(String(error)); } }
   async function openFiles(paths?: string[], offset?: number) {
-    const result = await window.markedown.openFiles(paths);
-    if (result.status === 'ok') {
-      result.value.forEach(doc => upsert(doc, true));
-      const id = result.value.at(-1)?.id;
-      if (id && offset !== undefined) requestAnimationFrame(() => editors.current.get(id)?.scrollTo(offset));
-    } else if (result.status === 'error') showError(result.message);
+    try {
+      const result = await window.markedown.openFiles(paths);
+      if (result.status === 'ok') {
+        result.value.forEach(doc => upsert(doc, true));
+        const id = result.value.at(-1)?.id;
+        if (id && offset !== undefined) requestAnimationFrame(() => editors.current.get(id)?.scrollTo(offset));
+      } else if (result.status === 'error') showError(result.message);
+    } catch (error) { showError(String(error)); }
   }
   async function save(id = activeIdRef.current, saveAs = false) {
     const doc = docsRef.current.find(item => item.id === id); if (!doc) return false;

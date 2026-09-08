@@ -130,6 +130,7 @@ const mathFence = (info: string) => mathFencePattern.exec(info.trim());
 installMathSyntax(md);
 md.renderer.rules.math_inline = (tokens, index, _options, env) => {
   const equation = tokens[index].meta?.equation as EquationEntry | undefined;
+  if (equation?.block) return mathBlock(tokens[index].content, equation, env);
   const html = mathHTML(equation?.source ?? tokens[index].content, Boolean(tokens[index].meta?.display), env);
   if (!equation?.label && !equation?.number && !equation?.numberingError) return html;
   return `<span class="md-equation-inline" id="${equation.id}" data-equation-from="${equation.from}">${equationAliases(equation)}${html}${equation.number ? `<span class="md-equation-inline-number"> ${equationNumber(equation)}</span>` : ''}${equationDiagnostic(equation, env)}</span>`;
@@ -241,15 +242,17 @@ md.renderer.rules.text = (tokens, index, _options, env) => {
 };
 
 const whitespace = (environment: unknown) => { const env = (environment || {}) as RenderOptions; return (!env.purpose || env.purpose === 'editor') ? preferences(env).editorWhitespace : preferences(env).exportWhitespace; };
+const mathParagraph = (token: ReturnType<typeof md.parse>[number] | undefined) => token?.type === 'inline' && token.children?.some(child => child.type === 'math_inline' && (child.meta?.equation as EquationEntry | undefined)?.block);
 md.renderer.rules.softbreak = (_tokens, _index, _options, env) => whitespace(env) === 'breaks' ? '<br>\n' : '\n';
 md.renderer.rules.hardbreak = (_tokens, _index, _options, env) => whitespace(env) === 'preserve' ? '<br>' : '<br>\n';
 md.renderer.rules.paragraph_open = (tokens, index, options, env, renderer) => {
+  if (mathParagraph(tokens[index + 1])) return '';
   if (tokens[index].hidden) return whitespace(env) === 'preserve' ? '<span style="white-space:pre-wrap">' : '';
   const settings = preferences(env);
   const styles = [whitespace(env) === 'preserve' ? 'white-space:pre-wrap' : '', settings.firstLineIndent ? 'text-indent:2em' : ''].filter(Boolean);
   return `<p${styles.length ? ` style="${styles.join(';')}"` : ''}>`;
 };
-md.renderer.rules.paragraph_close = (tokens, index, _options, env) => tokens[index].hidden ? whitespace(env) === 'preserve' ? '</span>' : '' : '</p>\n';
+md.renderer.rules.paragraph_close = (tokens, index, _options, env) => mathParagraph(tokens[index - 1]) ? '' : tokens[index].hidden ? whitespace(env) === 'preserve' ? '</span>' : '' : '</p>\n';
 for (const name of ['th_open', 'td_open', 'heading_open']) {
   md.renderer.rules[name] = (tokens, index, options, env, renderer) => {
     if (whitespace(env) === 'preserve') tokens[index].attrSet('style', `${tokens[index].attrGet('style') || ''};white-space:pre-wrap`);

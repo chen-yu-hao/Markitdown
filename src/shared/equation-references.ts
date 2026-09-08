@@ -165,10 +165,14 @@ export function buildEquationIndex(tokens: Token[], source: string, settings: Se
   };
   let containerStart = 0, containerEnd = source.length;
   const hasTargets = (token: Token): boolean => Boolean(token.meta?.equationSource || token.meta?.equationReference || token.children?.some(hasTargets));
-  for (const token of tokens) {
+  for (const [index, token] of tokens.entries()) {
     if (token.type === 'heading_open' && token.tag === 'h1') { section++; sectionCount = 0; }
     if (token.map) { containerStart = offsets[token.map[0]] ?? 0; containerEnd = offsets[token.map[1]] ?? source.length; }
     if (token.type === 'inline') {
+      // Imported manuscripts often use inline delimiters for an entire body paragraph.
+      const children = token.children?.filter(child => child.type !== 'text' || child.content.trim());
+      const standalone = settings.mathStandaloneParagraphs && token.level === 1 && tokens[index - 1]?.type === 'paragraph_open' && tokens[index + 1]?.type === 'paragraph_close' && children?.length === 1 && children[0].type === 'math_inline' ? children[0] : undefined;
+      if (standalone?.meta?.equationSource) standalone.meta.equationSource = { ...standalone.meta.equationSource, display: true, block: true };
       const start = Math.max(containerStart, Math.min(cursor, containerEnd));
       if (!hasTargets(token)) { const found = source.indexOf(token.content, start); cursor = found >= 0 && found + token.content.length <= containerEnd ? found + token.content.length : containerEnd; continue; }
       const positions = inlinePositions(source, token.content, start, containerEnd);

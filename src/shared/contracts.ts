@@ -98,6 +98,7 @@ export interface Settings {
   mathCodeBlocks: boolean;
   mathPhysics: boolean;
   legacyInlineMath: boolean;
+  mathStandaloneParagraphs: boolean;
   mathNumbering: 'none' | 'all' | 'labelled';
   mathNumberingStyle: 'document' | 'section';
   mathAlignment: 'left' | 'center' | 'right';
@@ -149,7 +150,7 @@ export const defaultSettings: Settings = {
   diagrams: true, diagramTheme: 'default', smartPunctuation: 'off', smartQuotes: false, doubleQuoteStyle: 'curly', singleQuoteStyle: 'curly', smartDashes: false, unicodePunctuation: false,
   codeLineNumbers: false, codeWordWrap: true, codeAutoIndent: true,
   codeIndentWidth: 4, codeAutoIndentOnTab: false, defaultCodeLanguage: '', codeLanguageTrigger: 'typed',
-  latexDelimiters: true, mathCodeBlocks: true, mathPhysics: false, legacyInlineMath: false,
+  latexDelimiters: true, mathCodeBlocks: true, mathPhysics: false, legacyInlineMath: false, mathStandaloneParagraphs: true,
   mathNumbering: 'all', mathNumberingStyle: 'document', mathAlignment: 'left', mathNumberPosition: 'right', citationStyle: 'numeric', mathOutput: 'svg', firstLineIndent: false, showLineBreaks: true,
   editorWhitespace: 'preserve', exportWhitespace: 'preserve',
   imageFolder: 'assets', imageUseRelative: true, imageAutoEscape: true, imageThumbnails: true,

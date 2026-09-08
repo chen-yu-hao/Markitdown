@@ -61,7 +61,7 @@ w=4
   });
 
   it('uses section counters and stable label anchors after inserting preceding equations', () => {
-    const source = '$$a\\label{eq:front}$$\n\n# First\n\n$$b\\label{eq:b}$$\n\n## Detail\n\n$c\\label{eq:c}$\n\n# Second\n\n$$d\\label{eq:d}$$';
+    const source = '$$a\\label{eq:front}$$\n\n# First\n\n$$b\\label{eq:b}$$\n\n## Detail\n\nInline $c\\label{eq:c}$.\n\n# Second\n\n$$d\\label{eq:d}$$';
     const settings = { mathNumbering: 'all', mathNumberingStyle: 'section' } as const;
     const index = getEquationIndex(source, settings);
     expect(index.equations.map(equation => equation.number)).toEqual(['0.1', '1.1', '1.2', '2.1']);

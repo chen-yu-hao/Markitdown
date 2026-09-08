@@ -1,8 +1,20 @@
-# Windows 0.3.4 验证记录
+# Windows 0.3.5 验证记录
 
-环境：Windows 11 x64、Node.js 24.14.0、Electron 44.2.0、Zotero 9.0.6、本机 Pandoc 2.12。日期：2026-09-07。
+环境：Windows 11 x64、Node.js 24.14.0、Electron 44.2.0、Zotero 9.0.6、本机 Pandoc 2.12。日期：2026-09-08。
 
-## 本次验证（0.3.4）
+## 本次验证（0.3.5）
+
+- TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：310 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
+- 实际 Electron 侧栏检查的 6 组流程通过：单击打开中文和空格路径、再次单击激活未保存标签、双击去重、Enter/空格打开、子目录展开、关闭后重开、跨窗口文件去重，以及文件被删除后的错误提示。无渲染错误。
+- 独立段落公式测试覆盖 `$...$`、`\(...\)`、正文与标题/列表/引用/表格的边界、编号模式、标签与引用、CRLF 源码位置、编辑器片段绑定、设置默认值和关闭后的持久化。
+- 公式块边界测试覆盖无需前置空行的单行/多行 `$$...$$`、`\[...\]`、相邻公式块、引用和列表，以及未闭合、转义、代码块和禁用 LaTeX 分隔符的情况。
+- 新增 5 项实际 Pandoc 导出测试通过：Word 原生行间/行内公式、编号表格、交叉引用、EPUB MathML 与 LaTeX 布局；关闭段落公式兼容或自动编号时，独立设置均生效。原 Markdown 内容保持不变。
+- 实际 Electron 公式专项通过，覆盖四种独立公式（含两个空格缩进）、正文/标题/列表/引用/表格边界、开关关闭和开启、模式切换后的撤销/重做，以及深色主题和 700 DIP 窗口。已检查编辑器、HTML、PDF 和长图截图，编号无重叠；PDF 文本包含四个连续编号及未保存内容。
+- 0.3.5 打包 EXE 的公式专项复验通过。对用户原稿的本地副本完成只读复验，截图中的公式显示编号，原稿和副本的 SHA-256 均未改变。私有文稿与截图不包含在仓库及发布附件中。
+- 18 组实际 Electron 编辑器回归通过，包含中文组合输入事件、Unicode、跨标签撤销、模式切换、查找替换、异步批量图片插入、选区及点击定位。无渲染错误。
+- 0.3.5 打包 EXE 的侧栏 6 组流程复验通过；常规打包检查通过，覆盖实际 ASAR、隔离数据目录、原生 Sharp 图片导入、本地缩略图、包含当前未保存内容的 HTML/PDF/PNG 导出、导出窗口清理，以及 100%/125%/150%/200% 应用显示缩放。桌面和紧凑窗口无空白、横向溢出或渲染错误。
+
+## 既有验收（0.3.4）
 
 - TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：268 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
 - 新增 10 项文稿迁移单元测试通过。实际 Electron 主进程的 16 组迁移检查和既有 8 组主进程回归通过，覆盖成功确认、失败回滚、超时、窗口关闭、失效归属回收、恢复保护、保存互斥及窗口位置约束。
@@ -73,10 +85,17 @@ node scripts/verify-equation-layout.mjs
 node scripts/verify-editor.mjs
 node scripts/verify-document-transfer.mjs
 node scripts/verify-document-tabs.mjs
+node scripts/verify-file-tree.mjs
+node scripts/verify-workspace-equations.mjs
+node scripts/verify-workspace-equations.mjs --inspect-pdf
 node scripts/verify-packaged.mjs
+node scripts/verify-file-tree.mjs release/win-unpacked/Markedown.exe
+node scripts/verify-workspace-equations.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-document-tabs.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-equation-layout.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-academic.mjs release/win-unpacked/Markedown.exe
 ```
 
 测试使用独立数据目录，结果和截图保存在 `test-results`。标签操作为 `document-tabs/run-*/results.json`，公式布局为 `equation-layout/run-*/results.json`，本机 Word 布局为 `equation-layout-word/results.json`，学术界面为 `academic/results.json`，真实文库与导出为 `academic-live/results.json`，常规打包验证为 `packaged-results.json`。历史验证记录保存在 `validation-history`。
+
+侧栏单击验证为 `file-tree/run-*/results.json`，独立段落公式为 `workspace-equations/run-*/results.json`。`verify-workspace-equations.mjs` 默认验证实际导出、HTML 几何和 PNG 像素；`--inspect-pdf` 额外提取 PDF 文本并渲染逐页图片，需要 `pdftoppm` 及 `PDFTOTEXT` 或包含 `pypdf` 的 Python。附加检查未请求时会在结果中明确记录。

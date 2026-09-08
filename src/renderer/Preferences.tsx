@@ -68,6 +68,7 @@ export default function Preferences({ settings: s, zh, version, pandoc, update, 
         {check('mathCodeBlocks','将 math 代码块渲染为公式','Render math code blocks as equations')}
         {check('mathPhysics','启用 physics 扩展','Enable the physics extension')}
         {check('legacyInlineMath','兼容旧版行内公式解析','Use legacy inline math parsing')}
+        {check('mathStandaloneParagraphs','独占段落的行内公式按行间公式处理','Treat standalone body-paragraph math as display equations')}
         {row(t('行间公式自动编号','Display equation numbering'),select('mathNumbering',[['none',t('关闭自动编号','Automatic numbering off')],['labelled',t('仅带标签的公式','Labelled equations only')],['all',t('所有行间公式（默认）','All display equations (default)')]],t('行间公式自动编号','Display equation numbering')))}
         {row(t('公式编号范围','Equation numbering scope'),select('mathNumberingStyle',[['document',t('全文连续编号','Continuous numbering')],['section',t('按一级标题分章编号','Number within level-one headings')]],t('公式编号范围','Equation numbering scope')))}
         {row(t('行间公式对齐','Display equation alignment'),select('mathAlignment',[['left',t('左对齐','Left')],['center',t('居中','Center')],['right',t('右对齐','Right')]],t('行间公式对齐','Display equation alignment')))}
