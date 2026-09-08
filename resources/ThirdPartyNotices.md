@@ -43,7 +43,7 @@ npm run notices
 npm run dist
 ```
 
-`prebuild` 会自动运行许可证生成步骤，`dist` 在打包后调用 `scripts/release.mjs`。如仅需重新整理现有构建产物，可直接运行该脚本。许可证、依赖清单与本说明随安装版和便携版提供，位于程序可执行文件旁；GitHub 的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.5.zip) 中也保留了 `resources` 目录下的对应文件。这些说明不再作为单独的 Release 附件。
+`prebuild` 会自动运行许可证生成步骤，`dist` 在打包后调用 `scripts/release.mjs`。如仅需重新整理现有构建产物，可直接运行该脚本。许可证、依赖清单与本说明随安装版和便携版提供，位于程序可执行文件旁；GitHub 的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.6.zip) 中也保留了 `resources` 目录下的对应文件。这些说明不再作为单独的 Release 附件。
 
 本地 `release/` 目录仍会生成说明文件副本，并将其纳入本地 `SHA256SUMS.txt`，用于交付归档与校验。生成依赖清单时保留未声明许可证的条目，标记为待核实，不自动赋予 MIT 或其他默认许可证。
 

@@ -92,6 +92,16 @@ function navigateAcademicReference(view: EditorView, target: Element): boolean {
   return true;
 }
 
+function isScrollableWidgetSurface(target: EventTarget | null): boolean {
+  // Native scrollbars target the scroll container; formula/code content targets its descendants.
+  if (!(target instanceof HTMLElement)) return false;
+  const horizontal = target.scrollWidth > target.clientWidth;
+  const vertical = target.scrollHeight > target.clientHeight;
+  if (!horizontal && !vertical) return false;
+  const style = getComputedStyle(target);
+  return (horizontal && /^(auto|scroll)$/.test(style.overflowX)) || (vertical && /^(auto|scroll)$/.test(style.overflowY));
+}
+
 class RenderedWidget extends WidgetType {
   constructor(readonly source: string, readonly from: number, readonly block: boolean, readonly resolveImage: (destination: string) => string, readonly settings: Settings, readonly equations: EquationIndex, readonly citations: CitationRenderData, readonly virtual = false) { super(); }
   eq(other: RenderedWidget) { return this.source === other.source && this.from === other.from && this.block === other.block && this.resolveImage === other.resolveImage && this.settings === other.settings && this.equations === other.equations && this.citations === other.citations && this.virtual === other.virtual; }
@@ -106,6 +116,7 @@ class RenderedWidget extends WidgetType {
     }
     if (!this.block && dom.firstElementChild?.tagName === 'P' && dom.children.length === 1) dom.firstElementChild.replaceWith(...dom.firstElementChild.childNodes);
     dom.addEventListener('mousedown', event => {
+      if (isScrollableWidgetSurface(event.target)) return;
       event.preventDefault();
       if (navigateAcademicReference(view, event.target as Element)) return;
       const link = (event.target as Element).closest<HTMLAnchorElement>('a');
@@ -114,7 +125,7 @@ class RenderedWidget extends WidgetType {
       view.dispatch({ selection: { anchor: Math.min(this.from, view.state.doc.length) }, effects: EditorView.scrollIntoView(Math.min(this.from, view.state.doc.length), { y: 'nearest' }) });
       view.focus();
     });
-    dom.addEventListener('click', event => event.preventDefault());
+    dom.addEventListener('click', event => { if (!isScrollableWidgetSurface(event.target)) event.preventDefault(); });
     for (const img of dom.querySelectorAll('img')) {
       img.addEventListener('load', () => view.requestMeasure());
       img.addEventListener('error', () => { img.classList.add('md-image-error'); view.requestMeasure(); });

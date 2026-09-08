@@ -439,13 +439,13 @@ export function getEquationIndex(source: string, settings: Partial<Settings> = {
 export const exportCss = `
 ${mathCss}
 ${citationCss}
-:root{color-scheme:light;font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#252927;background:#fff}
+:root{color-scheme:light;font-variant-numeric:lining-nums;font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#252927;background:#fff}
 *{box-sizing:border-box}body{margin:0;padding:44px 52px;font-size:16px;line-height:1.8;overflow-wrap:anywhere}
 main{max-width:850px;margin:0 auto}h1,h2,h3,h4,h5,h6{font-weight:650;line-height:1.4;margin:1.5em 0 .6em;break-after:avoid;letter-spacing:0}
 h1{font-size:2em}h2{font-size:1.55em}h3{font-size:1.25em}h4,h5,h6{font-size:1.05em}p{margin:.8em 0}a{color:#1b735e;text-decoration:underline}
 blockquote{margin:1em 0;border-left:3px solid #82a89c;padding:0 1em;color:#59625f}code,pre{font-family:Consolas,"Cascadia Mono",monospace}
 code{background:#f0f2f1;padding:.13em .3em;border-radius:3px;font-size:.88em}pre{background:#f4f5f4;padding:16px;border:1px solid #e1e6e3;border-radius:6px;overflow:auto;white-space:pre-wrap;break-inside:avoid}
-pre code{background:none;padding:0;white-space:inherit}table{border-collapse:collapse;width:100%;margin:1em 0;font-variant-numeric:tabular-nums}
+pre code{background:none;padding:0;white-space:inherit}table{border-collapse:collapse;width:100%;margin:1em 0;font-variant-numeric:lining-nums tabular-nums}
 th,td{border:1px solid #d9dfdb;padding:8px 12px;text-align:left}th{background:#f2f4f2;font-weight:600}tr{break-inside:avoid}thead{display:table-header-group}
 img{max-width:100%;height:auto;object-fit:contain}hr{border:0;border-top:1px solid #dce2de;margin:1.8em 0}mark{background:#f9e89b;color:inherit}
 sup,sub{font-size:.75em;line-height:0}ul,ol{padding-left:1.7em}.task-list-item{list-style:none}.task-list-item input{margin-left:-1.4em;accent-color:#28755f}

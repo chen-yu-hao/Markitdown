@@ -71,6 +71,12 @@ jobs:
       - run: npx electron-builder --win nsis zip --x64 --publish never
       - run: node scripts/verify-packaged.mjs
       - run: node scripts/verify-equation-layout.mjs release/win-unpacked/Markedown.exe
+      - name: Verify Packaged Equation Scrolling
+        timeout-minutes: 5
+        run: node scripts/verify-equation-scroll.mjs release/win-unpacked/Markedown.exe
+      - name: Verify Packaged Theme Numbers
+        timeout-minutes: 5
+        run: node scripts/verify-theme-numbers.mjs release/win-unpacked/Markedown.exe
       - name: Verify Packaged Document Tabs
         timeout-minutes: 10
         run: node scripts/verify-document-tabs.mjs release/win-unpacked/Markedown.exe

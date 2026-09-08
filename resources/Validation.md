@@ -1,8 +1,20 @@
-# Windows 0.3.5 验证记录
+# Windows 0.3.6 验证记录
 
 环境：Windows 11 x64、Node.js 24.14.0、Electron 44.2.0、Zotero 9.0.6、本机 Pandoc 2.12。日期：2026-09-08。
 
-## 本次验证（0.3.5）
+## 本次验证（0.3.6）
+
+- TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：310 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
+- 在 0.3.5 实际打包程序中复现原生公式滚动条点击故障：可信鼠标事件命中 `.md-equation-body`，选区跳到公式起点，渲染块消失并展开源码。验证使用独立目录中的公开公式样例。
+- 0.3.6 实际 Electron 公式滚动专项的 17 组检查通过，覆盖 1280/700 DIP 窗口、浅色/深色主题、100%/125%/150%/200% 应用缩放、左右编号及无编号公式。原生轨道点击、滑块拖动和横向滚轮均保持 Markdown、选区、未保存状态及编号位置；点击公式内容后可编辑并完成撤销/重做。已检查两种窗口下的拖动后截图，无渲染错误。
+- 额外请求 Chromium 覆盖式滚动条后，实际观察到零占位的滚动区域；17 组横向滚轮、内容点击及编辑撤销检查通过。未对不可确认位置的覆盖式原生轨道和滑块作拖动验证，不将这部分计入原生滑块验收。
+- 18 组实际 Electron 编辑器回归通过，覆盖中文组合输入事件、Unicode、跨标签撤销、模式切换、查找替换、异步批量图片和选区操作；134 组光标坐标定位与 17 组点击后立即输入检查通过，无渲染错误。
+- 0.3.6 打包 EXE 的全部 17 组公式滚动流程复验通过，新增滑块右拖后反向回拉的方向检查；默认测试必须实际覆盖原生滚动条。常规打包检查通过，包含隔离目录启动、原生图片导入、本地缩略图、未保存内容的 HTML/PDF/PNG 导出及 100%/125%/150%/200% 应用缩放。
+- 数字排版诊断确认本机 Georgia 5.59 的四种字形均支持 `lining-nums`。64px Georgia 数字的实际墨迹上缘差异从 11px 降为 1px，下缘差异从 12px 降为 1px，仅余正常曲线补偿；CDP 确认未替换字体。
+- 最终 0.3.6 打包 EXE 的五主题数字检查通过：正文、标题、表格、行间和行内编号、交叉引用均使用等高数字；放大生产样式后测得 Georgia 上下边缘差异各 1px，含上下标的 KaTeX 内容裁片逐像素一致。切换主题及导出后 Markdown 和未保存状态不变。Newsprint 的实际 HTML 计算样式、PDF 页图和长图已检查，编号与正文数字对齐，无文字遮挡；PDF/PNG 未进行数字逐像素断言。
+- 最终数字修复构建再次通过常规打包验证，包括实际 ASAR、原生图片导入、本地缩略图、未保存内容 HTML/PDF/PNG 导出、导出窗口清理及四档显示缩放，无渲染错误。
+
+## 既有验收（0.3.5）
 
 - TypeScript 检查与生产构建通过。`npm test -- --maxWorkers=2`：310 项通过，1 项真实文件符号链接测试因 Windows 创建权限跳过。
 - 实际 Electron 侧栏检查的 6 组流程通过：单击打开中文和空格路径、再次单击激活未保存标签、双击去重、Enter/空格打开、子目录展开、关闭后重开、跨窗口文件去重，以及文件被删除后的错误提示。无渲染错误。
@@ -82,6 +94,8 @@ node scripts/verify-academic-live.mjs
 node scripts/verify-large-images.mjs
 node scripts/verify-caret-position.mjs
 node scripts/verify-equation-layout.mjs
+node scripts/verify-equation-scroll.mjs
+node scripts/verify-theme-numbers.mjs
 node scripts/verify-editor.mjs
 node scripts/verify-document-transfer.mjs
 node scripts/verify-document-tabs.mjs
@@ -93,9 +107,15 @@ node scripts/verify-file-tree.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-workspace-equations.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-document-tabs.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-equation-layout.mjs release/win-unpacked/Markedown.exe
+node scripts/verify-equation-scroll.mjs release/win-unpacked/Markedown.exe
+node scripts/verify-theme-numbers.mjs release/win-unpacked/Markedown.exe
 node scripts/verify-academic.mjs release/win-unpacked/Markedown.exe
 ```
 
 测试使用独立数据目录，结果和截图保存在 `test-results`。标签操作为 `document-tabs/run-*/results.json`，公式布局为 `equation-layout/run-*/results.json`，本机 Word 布局为 `equation-layout-word/results.json`，学术界面为 `academic/results.json`，真实文库与导出为 `academic-live/results.json`，常规打包验证为 `packaged-results.json`。历史验证记录保存在 `validation-history`。
 
 侧栏单击验证为 `file-tree/run-*/results.json`，独立段落公式为 `workspace-equations/run-*/results.json`。`verify-workspace-equations.mjs` 默认验证实际导出、HTML 几何和 PNG 像素；`--inspect-pdf` 额外提取 PDF 文本并渲染逐页图片，需要 `pdftoppm` 及 `PDFTOTEXT` 或包含 `pypdf` 的 Python。附加检查未请求时会在结果中明确记录。
+
+公式滚动验证为 `equation-scroll/run-*/results.json`，记录真实鼠标事件、滚动位置、选区及源码变化，并保存截图。`--overlay` 可请求 Chromium 覆盖式滚动条配置；脚本按实际测量记录是否观察到该配置，不将启动参数视为已验证。
+
+主题数字验证为 `theme-numbers/run-*/results.json`，记录五主题生产样式、Georgia 数字墨迹、KaTeX 上下标内容比较和 HTML/PDF/PNG 导出。默认不依赖 PDF 工具，仅检查 PDF 文件头；本次另用 `pdftoppm` 渲染页图作本地目视检查。
