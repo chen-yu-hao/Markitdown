@@ -90,6 +90,7 @@ jobs:
         run: |
           $manifest = Get-Content package.json -Raw | ConvertFrom-Json
           $records = Get-Content release/SHA256SUMS.txt
+          $downloads = @("Markedown-$($manifest.version)-Windows-x64-Setup.exe", "Markedown-$($manifest.version)-Windows-x64.zip")
           $assets = @()
           foreach ($record in $records) {
             $parts = $record -split '  ', 2
@@ -97,9 +98,11 @@ jobs:
             if ((Get-FileHash -LiteralPath $filename -Algorithm SHA256).Hash.ToLowerInvariant() -ne $parts[0]) {
               throw "Checksum mismatch: $filename"
             }
-            $assets += $filename
+            if ($parts[1] -cin $downloads) { $assets += $filename }
           }
-          $assets += 'release/SHA256SUMS.txt'
+          if ($assets.Count -ne $downloads.Count -or @($assets | Select-Object -Unique).Count -ne $downloads.Count) {
+            throw 'The verified installer and portable ZIP are required.'
+          }
           $notes = Get-Content "resources/Release-$($manifest.version).md" -Raw
           $base = "https://github.com/$env:GH_REPO/blob/$env:RELEASE_TAG"
           $notes = $notes.Replace('(Validation.md)', "($base/resources/Validation.md)").Replace('(../README.md)', "($base/README.md)")
@@ -117,6 +120,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Release asset upload failed.' }
           $published = gh release view $env:RELEASE_TAG --json assets | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Could not verify uploaded assets.' }
+          if ($published.assets.Count -ne $downloads.Count) { throw 'Only the installer and portable ZIP may be uploaded. GitHub provides source archives automatically.' }
           foreach ($filename in $assets) {
             $file = Get-Item -LiteralPath $filename
             $remote = @($published.assets | Where-Object name -eq $file.Name)

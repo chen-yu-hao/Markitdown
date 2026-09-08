@@ -9,7 +9,7 @@
 - 首次安装需要访问 npm、Electron 下载服务和 electron-builder 的打包工具下载服务。
 - Pandoc 仅用于扩展格式的导入、导出和相关集成验证。
 
-可下载发布页的完整源码 ZIP，或克隆仓库：
+可下载 GitHub 按版本标签生成的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.5.zip)，或克隆仓库：
 
 ```powershell
 git clone https://github.com/chen-yu-hao/Markitdown.git
@@ -52,7 +52,9 @@ node scripts/verify-packaged.mjs
 
 `dist` 执行生产构建，生成 NSIS 安装程序和便携 ZIP，并整理源码、许可证与校验文件。`verify-packaged.mjs` 在隔离数据目录中启动 `release/win-unpacked/Markedown.exe`，验证图片导入、HTML/PDF/PNG 导出及多档应用缩放。
 
-| 交付文件 | 内容 |
+以下文件保存在本地 `release/` 目录，用于交付归档与校验：
+
+| 本地产物 | 内容 |
 | --- | --- |
 | `Markedown-<版本>-Windows-x64-Setup.exe` | 未签名 NSIS 安装程序 |
 | `Markedown-<版本>-Windows-x64.zip` | 含 `portable.json` 的便携程序 |
@@ -79,7 +81,9 @@ node scripts/release.mjs
 
 仓库的 [Windows Release 工作流](https://github.com/chen-yu-hao/Markitdown/blob/main/.github/workflows/release.yml)支持推送 `v*` 标签触发，也支持手动指定已有标签。标签必须与 `package.json` 中的版本一致。
 
-工作流检出指定标签，安装锁定依赖与 Electron，完成测试、构建、打包及实际程序验证，再生成附件。全部文件上传并核对大小后，草稿才会公开为最新版本；已公开的同名版本不会被工作流覆盖。
+工作流检出指定标签，安装锁定依赖与 Electron，完成测试、构建、打包及实际程序验证后，只上传 `Markedown-<版本>-Windows-x64-Setup.exe` 与 `Markedown-<版本>-Windows-x64.zip`。核对这两个附件后，草稿才会公开为最新版本；已公开的同名版本不会被工作流覆盖。
+
+发布页的 Source code（zip / tar.gz）由 GitHub 按标签自动生成。许可证、依赖清单与第三方说明保留在程序可执行文件旁和源码的 `resources` 目录中，不再单独上传为 Release 附件。`scripts/release.mjs` 仍生成上表中的全部本地产物；其中自建源码 ZIP、说明副本和 `SHA256SUMS.txt` 留在本地 `release/` 目录，用于归档与校验。
 
 Windows 检出时必须保留 `resources/native-licenses` 的原始字节，许可证来源校验会核对 SHA-256。仓库使用 `.gitattributes` 保护这些文件；工作流也在检出前关闭自动换行转换，以支持较早标签。不要通过修改预期摘要来绕过来源校验。
 

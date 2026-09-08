@@ -1,0 +1,68 @@
+name: Simplify Release Assets
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/release-assets.yml']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag to simplify
+        required: true
+        default: v0.3.5
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || 'v0.3.5' }}
+  cancel-in-progress: false
+
+jobs:
+  simplify:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ inputs.tag || 'v0.3.5' }}
+    steps:
+      - name: Keep Installer and Portable ZIP
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag.' }
+          $version = $env:RELEASE_TAG.Substring(1)
+          $release = gh api "repos/$env:GH_REPO/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not read the release.' }
+          if ($release.tag_name -cne $env:RELEASE_TAG -or $release.draft -or $release.immutable) { throw 'Expected a mutable published release.' }
+          $keep = @("Markedown-$version-Windows-x64-Setup.exe", "Markedown-$version-Windows-x64.zip")
+          $remove = @("Markedown-$version-Windows-Source.zip", 'README.zh-CN.md', 'SHA256SUMS.txt', 'THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md')
+          $assets = @(gh api --paginate --slurp "repos/$env:GH_REPO/releases/$($release.id)/assets" | ConvertFrom-Json | ForEach-Object { $_ })
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list release assets.' }
+          $assets = @($assets | ForEach-Object { $_ })
+          foreach ($name in $keep) {
+            $asset = @($assets | Where-Object name -CEQ $name)
+            if ($asset.Count -ne 1 -or $asset[0].size -le 0 -or $asset[0].state -ne 'uploaded') { throw "Required download is missing: $name" }
+          }
+          foreach ($asset in $assets) {
+            if ($asset.name -cnotin $keep -and $asset.name -cnotin $remove) { throw "Unexpected asset: $($asset.name)" }
+          }
+          foreach ($asset in $assets) {
+            if ($asset.name -cin $remove) {
+              gh api --method DELETE "repos/$env:GH_REPO/releases/assets/$($asset.id)"
+              if ($LASTEXITCODE -ne 0) { throw "Could not remove $($asset.name)" }
+              Write-Output "Removed $($asset.name)"
+            }
+          }
+          $remaining = @(gh api --paginate --slurp "repos/$env:GH_REPO/releases/$($release.id)/assets" | ConvertFrom-Json | ForEach-Object { $_ })
+          if ($LASTEXITCODE -ne 0) { throw 'Could not verify release assets.' }
+          $remaining = @($remaining | ForEach-Object { $_ })
+          if ($remaining.Count -ne $keep.Count) { throw 'Unexpected remaining asset count.' }
+          foreach ($before in @($assets | Where-Object { $_.name -cin $keep })) {
+            $after = @($remaining | Where-Object name -CEQ $before.name)
+            if ($after.Count -ne 1 -or $after[0].id -ne $before.id -or $after[0].size -ne $before.size -or $after[0].digest -ne $before.digest) { throw "Download changed: $($before.name)" }
+          }
+          Write-Output 'Only the installer and portable ZIP remain; GitHub supplies Source code archives.'

@@ -16,11 +16,11 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 | --- | --- | --- |
 | 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.5/Markedown-0.3.5-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
 | 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.5/Markedown-0.3.5-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
-| 源码 | [完整源码 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.5/Markedown-0.3.5-Windows-Source.zip) | 包含源码、依赖锁文件、测试和中文说明 |
+| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.5.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.5)提供更新说明、第三方依赖清单及 `SHA256SUMS.txt` 校验文件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.5)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
 
 ### 更新已有版本
 
@@ -155,4 +155,4 @@ npm run dev
 
 欢迎通过 [GitHub Issues](https://github.com/chen-yu-hao/Markitdown/issues)反馈问题或提出功能建议。报告问题时请附上应用版本、Windows 版本、复现步骤及去除个人信息的最小示例；涉及排版或点击定位时，也请注明主题和显示缩放。
 
-第三方组件、图标来源及许可证说明见[第三方与来源说明](resources/ThirdPartyNotices.md)，依赖清单与许可证文本随发行包提供。
+第三方组件、图标来源及许可证说明见[第三方与来源说明](resources/ThirdPartyNotices.md)。依赖清单与许可证文本位于程序可执行文件旁，也保存在源码的 `resources` 目录中。

@@ -43,7 +43,9 @@ npm run notices
 npm run dist
 ```
 
-`prebuild` 会自动运行许可证生成步骤，`dist` 在打包后调用 `scripts/release.mjs`。如仅需重新整理现有构建产物，可直接运行该脚本。说明文件会出现在程序可执行文件旁、源码包和发布目录中，发布目录的副本纳入 `SHA256SUMS.txt`。生成清单时保留未声明许可证的条目，标记为待核实，不自动赋予 MIT 或其他默认许可证。
+`prebuild` 会自动运行许可证生成步骤，`dist` 在打包后调用 `scripts/release.mjs`。如仅需重新整理现有构建产物，可直接运行该脚本。许可证、依赖清单与本说明随安装版和便携版提供，位于程序可执行文件旁；GitHub 的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.5.zip) 中也保留了 `resources` 目录下的对应文件。这些说明不再作为单独的 Release 附件。
+
+本地 `release/` 目录仍会生成说明文件副本，并将其纳入本地 `SHA256SUMS.txt`，用于交付归档与校验。生成依赖清单时保留未声明许可证的条目，标记为待核实，不自动赋予 MIT 或其他默认许可证。
 
 当前锁定的 `@img/sharp-win32-x64@0.34.5` 声明 `Apache-2.0 AND LGPL-3.0-or-later`，但其已安装 `LICENSE` 仅包含 Apache-2.0。`resources/native-licenses` 补充了官方 libvips 8.17.3 Windows 发行包中的 LGPL-2.1 正文、GNU 官方 LGPL-3/GPL-3 正文，以及已安装 sharp 包的原始署名表。官方发行包中的 DLL 与本地 DLL 逐字节一致，28 个原生组件版本也匹配；来源、摘要和验证范围保存在 `provenance.json`，并纳入自动生成的许可证与依赖清单。
 
