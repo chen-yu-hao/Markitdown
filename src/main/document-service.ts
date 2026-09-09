@@ -390,6 +390,10 @@ export function validatedSettings(value: unknown): Settings {
   const ranges: Partial<Record<keyof Settings, [number, number]>> = { fontSize: [12, 32], readingWidth: [480, 1400], indentWidth: [1, 8], zoom: [50, 200], readingSpeed: [50, 1000] };
   for (const [key, bounds] of Object.entries(ranges)) if (typeof input[key] === 'number' && Number.isFinite(input[key])) (settings as unknown as Record<string, unknown>)[key] = Math.min(bounds[1], Math.max(bounds[0], Math.round(input[key])));
   for (const key of ['pandocPath', 'imageFolder', 'exportFolder'] as const) if (typeof input[key] === 'string' && !/[\x00-\x1f]/.test(input[key])) settings[key] = input[key].trim();
+  // Equation number prefixes are plain text inserted before generated numbers
+  // (for example "S" produces S1, S2). Keep them short and free of controls so
+  // they are safe in HTML, PDF and citation anchors.
+  if (typeof input.mathNumberingPrefix === 'string' && input.mathNumberingPrefix.length <= 24 && !/[\x00-\x1f\x7f]/.test(input.mathNumberingPrefix)) settings.mathNumberingPrefix = input.mathNumberingPrefix.trim();
   if (!settings.imageFolder) settings.imageFolder = 'assets';
   if (typeof input.codeIndentWidth === 'number' && Number.isFinite(input.codeIndentWidth)) settings.codeIndentWidth = Math.min(8, Math.max(1, Math.round(input.codeIndentWidth)));
   if (typeof input.defaultCodeLanguage === 'string' && /^[a-zA-Z0-9_+#.-]{0,40}$/.test(input.defaultCodeLanguage.trim())) settings.defaultCodeLanguage = input.defaultCodeLanguage.trim();

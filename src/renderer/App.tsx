@@ -96,6 +96,8 @@ export default function App() {
   const effectiveTheme = settings.separateDarkTheme && systemDark ? settings.darkTheme : settings.theme;
   const dark = effectiveTheme === 'night';
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsCategory, setSettingsCategory] = useState<'file' | 'editor' | 'image' | 'markdown' | 'export' | 'appearance' | 'general'>('file');
+  const [settingsQuery, setSettingsQuery] = useState('');
   const [academicOpen, setAcademicOpen] = useState<'citations' | 'equations' | null>(null);
   const [citationData, setCitationData] = useState<Record<string, CitationRenderData>>({});
   const [referenceRefresh, setReferenceRefresh] = useState(0);
@@ -317,7 +319,7 @@ export default function App() {
     if (tabBusyRef.current) return;
     if (name.startsWith('savePrevious:')) { void save(name.slice(13)); return; }
     if (name.startsWith('openRecent:')) { void openFiles([name.slice(11)]); return; }
-    if ((settingsOpen || academicOpen) && !['settings', 'about', 'zoomIn', 'zoomOut', 'zoomReset'].includes(name)) return;
+    if ((settingsOpen || academicOpen) && !['settings', 'equationNumberingSettings', 'about', 'zoomIn', 'zoomOut', 'zoomReset'].includes(name)) return;
     const editor = editors.current.get(activeIdRef.current);
     switch (name) {
       case 'cut': case 'copy': case 'paste': editor?.focus(); void window.markedown.editCommand(name).catch(error => showError(String(error))); break;
@@ -339,7 +341,8 @@ export default function App() {
       case 'citations': setAcademicOpen('citations'); break;
       case 'equationReferences': setAcademicOpen('equations'); break;
       case 'refreshReferences': setReferenceRefresh(value => value + 1); break;
-      case 'settings': setSettingsOpen(true); break;
+      case 'settings': setSettingsCategory('file'); setSettingsQuery(''); setSettingsOpen(true); break;
+      case 'equationNumberingSettings': setSettingsCategory('markdown'); setSettingsQuery(t('数学公式', 'Math')); setAcademicOpen(null); setSettingsOpen(true); break;
       case 'find': setFindOpen(true); break;
       case 'replace': setFindOpen(true); setReplaceOpen(true); break;
       case 'mode': toggleMode(); break;
@@ -419,7 +422,7 @@ export default function App() {
     {focusMode && <div className="focus-exit"><IconButton label={t('退出专注模式', 'Exit focus mode')} onClick={() => setFocusMode(false)}><Minimize2 /></IconButton></div>}
     {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role={toast.error ? 'alert' : 'status'}><span>{toast.text}</span>{toast.path && <button className="text-command" onClick={() => void window.markedown.revealFile(toast.path!)}><FolderOpen size={15} />{t('显示文件', 'Show file')}</button>}<IconButton label={t('关闭提示', 'Dismiss')} onClick={() => setToast(null)}><X /></IconButton></div>}
     <CitationCredits startup paused={!ready || !!toast || settingsOpen || !!academicOpen || exportOpen || !!conflictDoc || recoveryErrors.length > 0} />
-    {settingsOpen && <Preferences settings={settings} zh={zh} version={version} pandoc={pandoc} update={updateSettings} close={closeSettings} error={showError} disableWritingModes={() => { setFocusMode(false); setTypewriter(false); }} />}
+    {settingsOpen && <Preferences settings={settings} zh={zh} version={version} pandoc={pandoc} update={updateSettings} close={closeSettings} error={showError} disableWritingModes={() => { setFocusMode(false); setTypewriter(false); }} initialCategory={settingsCategory} initialQuery={settingsQuery} />}
     {academicOpen && active && <AcademicPanel source={active.source} settings={settings} zh={zh} initialTab={academicOpen} onClose={closeAcademic} onError={showError} onInsert={(text, bibliography) => { editors.current.get(activeIdRef.current)?.insertText(text, bibliography); setAcademicOpen(null); }} />}
     {exportOpen && <Modal title={t('导出文稿', 'Export document')} onClose={closeExport}><div className="export-content"><div className="export-formats">{settings.exportPresets.map(({ format, id, name }) => <button key={id} className="export-format" disabled={!!exporting || (!['html','htmlPlain','pdf','png'].includes(format) && !pandoc)} onClick={() => void doExport(format)} title={!['html','htmlPlain','pdf','png'].includes(format) && !pandoc ? t('需要 Pandoc', 'Pandoc required') : format.toUpperCase()}>{exporting === format ? <LoaderCircle className="spin" /> : format === 'png' ? <FileImage /> : format === 'html' || format === 'tex' ? <FileCode2 /> : <FileText />}<strong>{name === 'Image' ? t('图像','Image') : name === 'HTML (without styles)' ? t('HTML（无样式）',name) : name}</strong>{format === 'png' && <span>{t('长图', 'Long image')}</span>}</button>)}</div><div className="export-options"><label><input type="checkbox" checked={settings.exportOutline} onChange={event => void updateSettings({ exportOutline: event.target.checked })} />{t('包含目录', 'Include table of contents')}</label><select aria-label={t('PDF 纸张', 'PDF paper')} value={settings.pageSize} onChange={event => void updateSettings({ pageSize: event.target.value as 'A4' | 'Letter' })}><option>A4</option><option>Letter</option></select></div>{!pandoc && <div className="pandoc-note">{t('Pandoc 未安装', 'Pandoc not installed')}<button className="text-command" onClick={() => void window.markedown.choosePandoc().then(path => { if (path) void updateSettings({ pandocPath: path }); })}><FolderOpen size={14} />{t('选择程序', 'Choose executable')}</button></div>}</div></Modal>}
     {conflictDoc && <Modal title={t('文件已在外部修改', 'File changed on disk')} onClose={dismissConflict}><div className="conflict-content"><FileText size={30} /><strong>{conflictDoc.title}</strong><p>{t('当前编辑内容尚未写回文件。', 'Your current edits have not been written to disk.')}</p><div className="modal-actions"><button className="text-command" onClick={() => void resolveConflict('reload')}>{t('重新加载', 'Reload')}</button><button className="primary-command" onClick={() => void resolveConflict('copy')}><Save size={15} />{t('另存副本', 'Save a copy')}</button><button className="text-command" onClick={dismissConflict}>{t('取消', 'Cancel')}</button></div></div></Modal>}

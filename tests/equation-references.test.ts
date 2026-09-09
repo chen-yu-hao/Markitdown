@@ -60,6 +60,18 @@ w=4
     expect(getEquationIndex(source, { mathNumbering: 'all' }).equations.map(equation => equation.number)).toEqual(['1', '2', '3']);
   });
 
+  it('applies a document prefix to generated numbers while preserving explicit tags', () => {
+    const source = String.raw`$$a$$
+
+$$b\tag{S9}$$
+
+$$c\label{eq:c}$$`;
+    const index = getEquationIndex(source, { mathNumbering: 'all', mathNumberingPrefix: 'S' });
+    expect(index.equations.map(equation => equation.number)).toEqual(['S1', 'S9', 'S2']);
+    expect(renderMarkdown(source, { settings: { mathNumbering: 'all', mathNumberingPrefix: 'S' } })).toContain('>(S1)</span>');
+    expect(renderMarkdown(source, { settings: { mathNumbering: 'all', mathNumberingPrefix: 'S' } })).toContain('>(S9)</span>');
+  });
+
   it('uses section counters and stable label anchors after inserting preceding equations', () => {
     const source = '$$a\\label{eq:front}$$\n\n# First\n\n$$b\\label{eq:b}$$\n\n## Detail\n\nInline $c\\label{eq:c}$.\n\n# Second\n\n$$d\\label{eq:d}$$';
     const settings = { mathNumbering: 'all', mathNumberingStyle: 'section' } as const;
