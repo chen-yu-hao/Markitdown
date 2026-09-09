@@ -46,6 +46,12 @@ export interface EditorProps {
 }
 
 const sourceLimit = 5 * 1024 * 1024;
+// Rendering a Markdown table creates one DOM node per cell.  Very large
+// tables otherwise monopolize the renderer during scrolling (the browser must
+// repeatedly lay out the entire table even when only a few rows are visible).
+// Keep those tables in source form in live mode; the existing 1 MiB/5 MiB
+// document guards follow the same graceful-degradation principle.
+const liveTableLimit = 512 * 1024;
 const externalChange = Annotation.define<boolean>();
 const formatChange = Transaction.userEvent.of('input.format');
 const liveMode = Facet.define<boolean, boolean>({ combine: values => values[0] ?? true });
@@ -110,6 +116,18 @@ class RenderedWidget extends WidgetType {
     dom.className = `md-rendered ${this.block ? 'md-rendered-block' : 'md-rendered-inline'}`;
     dom.setAttribute('contenteditable', 'false');
     dom.innerHTML = renderMarkdown(this.source, { imageURL: this.resolveImage, settings: this.settings, purpose: 'editor', equationIndex: this.equations, citations: this.citations, sourceOffset: this.from }).trim();
+    // A large table is a single CodeMirror block widget.  Letting thousands of
+    // rows participate in the editor's page scroll forces Chromium to lay out
+    // and paint the whole table on every wheel event, which can make scrolling
+    // stall.  Keep normal tables unchanged and give large ones an independent
+    // scroll surface so the editor only has to paint the visible rows.
+    for (const table of dom.querySelectorAll<HTMLTableElement>('table')) {
+      if (table.rows.length <= 80) continue;
+      const scrollSurface = document.createElement('div');
+      scrollSurface.className = 'md-table-scroll';
+      table.replaceWith(scrollSurface);
+      scrollSurface.appendChild(table);
+    }
     for (const reference of dom.querySelectorAll<HTMLElement>('.md-equation-reference[data-equation-label]')) {
       const equation = this.equations.equations.find(equation => equation.labels.includes(reference.dataset.equationLabel || ''));
       if (equation) reference.title = `${equation.label || ''}${equation.number ? ' (' + equation.number + ')' : ''}\n${equation.source}`;
@@ -206,7 +224,13 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
       if (protectedRanges.some(range => start >= range.from && end <= range.to)) return false;
       if (equations.some(equation => start >= equation.from && end <= equation.to)) return false;
       if (name === 'FencedCode' || name === 'CodeBlock' || name === 'Table' || name === 'HorizontalRule') {
-        if (!active) render(start, end, true);
+        // A large table is intentionally left as Markdown source while in
+        // live mode.  This prevents Chromium from laying out tens of
+        // thousands of cells on every viewport update and keeps the editor
+        // scrollable; users can still edit/export the exact source normally.
+        if (name === 'Table' && end - start > liveTableLimit) {
+          protectedRanges.push({ from: start, to: end });
+        } else if (!active) render(start, end, true);
         else {
           protectedRanges.push({ from: start, to: end });
           if (name === 'FencedCode' || name === 'CodeBlock') {
