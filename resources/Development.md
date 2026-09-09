@@ -9,7 +9,7 @@
 - 首次安装需要访问 npm、Electron 下载服务和 electron-builder 的打包工具下载服务。
 - Pandoc 仅用于扩展格式的导入、导出和相关集成验证。
 
-可下载 GitHub 按版本标签生成的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.8.zip)，或克隆仓库：
+可下载 GitHub 按版本标签生成的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.9.zip)，或克隆仓库：
 
 ```bash
 git clone https://github.com/chen-yu-hao/Markitdown.git
