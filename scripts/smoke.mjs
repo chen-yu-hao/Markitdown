@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile, readFile, copyFile, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { _electron as electron } from 'playwright';
 
@@ -12,7 +12,9 @@ const alpha = path.join(workspace, 'alpha.md');
 const beta = path.join(workspace, 'beta.md');
 const nested = path.join(workspace, 'notes', 'nested.md');
 const fixtureImage = path.join(workspace, 'assets', 'icon.png');
-await copyFile('resources/icon.png',fixtureImage);
+// Keep the smoke fixture self-contained; release checkouts do not require a
+// source image asset to be present under resources/.
+await writeFile(fixtureImage, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lZkAAAAASUVORK5CYII=', 'base64'));
 const source = '# Markedown Windows\n\n## \u7814\u7a76\u7b14\u8bb0\n\nMarkdown keeps **important ideas**, *emphasis*, ==highlights== and H<sub>2</sub>O together.\n\nneedle needle\n\n| Document | Status |\n| --- | --- |\n| Windows edition | Ready |\n\n```javascript\nconst windows = true;\n```\n\n$$\nx^2 + y^2 = 1\n$$\n\n![Markedown](assets/icon.png)\n\n## Next section\n\nA final paragraph.\n';
 await writeFile(alpha,Buffer.concat([Buffer.from([0xef,0xbb,0xbf]),Buffer.from(source.replaceAll('\n','\r\n'))]));
 await writeFile(beta,'# Second document\n\nIndependent editing history.\n');
@@ -88,6 +90,23 @@ try {
   await page.getByTestId('mode-toggle').filter({hasText:'Source'}).waitFor();
   await page.getByTestId('mode-toggle').click();
   assert((await currentDocument()).source===edited,'Mode roundtrip changed source.');
+  // Live tables are presentation-only. Editing table content or structure is
+  // intentionally available from source mode, so common table gestures must
+  // leave the Markdown source and DOM unchanged.
+  const renderedTable=page.locator('.md-rendered table:visible').first();
+  await renderedTable.waitFor();
+  const tableBefore=(await currentDocument()).source;
+  const tableCell=renderedTable.locator('th,td').first();
+  await tableCell.dblclick();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('F2');
+  await page.keyboard.press('Tab');
+  await tableCell.click({button:'right'});
+  await page.waitForTimeout(100);
+  assert(await page.locator('.md-table-cell-editor').count()===0,'Live table opened a cell editor.');
+  assert(await page.locator('.md-table-context-menu').count()===0,'Live table opened an editing context menu.');
+  assert((await currentDocument()).source===tableBefore,'Live table interaction changed Markdown source.');
+  checks.push('live tables remain read-only while source mode handles edits');
   await page.evaluate(()=>window.markedown.updateSettings({theme:'night'}));
   await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
   assert((await currentDocument()).source===edited,'Theme change altered source.');

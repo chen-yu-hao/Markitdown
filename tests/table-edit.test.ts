@@ -11,7 +11,7 @@ import {
 const applyEdit = (source: string, edit: { from: number; to: number; insert: string } | null) =>
   edit ? source.slice(0, edit.from) + edit.insert + source.slice(edit.to) : source;
 
-describe('Markdown table cell editing', () => {
+describe('Markdown table source range helpers', () => {
   it('maps header and body cells to trimmed source ranges', () => {
     const source = '| Name | Value |\r\n| --- | ---: |\r\n| One | 1 |';
     const table = tableCellSourceRange(source, 0, 0, 1);
@@ -33,7 +33,9 @@ describe('Markdown table cell editing', () => {
   });
 });
 
-describe('Markdown table row and column operations', () => {
+// These source transforms are retained as an extension-facing API. The built-in
+// live renderer is read-only; users edit table structure in source mode.
+describe('Markdown table source transforms (extension API)', () => {
   const source = '| Name | Value |\n| --- | ---: |\n| One | 1 |\n| Two | 2 |';
 
   it('inserts rows around body rows while retaining the header delimiter', () => {

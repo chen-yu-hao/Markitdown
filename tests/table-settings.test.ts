@@ -42,8 +42,8 @@ describe('Markdown table preferences', () => {
   });
 });
 
-describe('Markdown table cell source ranges', () => {
-  it('maps header and body cells to editable source spans', () => {
+describe('Markdown table source ranges (extension API)', () => {
+  it('maps header and body cells to source spans', () => {
     const source = '| Name | Value |\n| :--- | ---: |\n| Alice | 42 |';
     expect(tableCellSourceRange(source, 0, 0, 0)).toMatchObject({ value: 'Name' });
     expect(tableCellSourceRange(source, 0, 0, 1)).toMatchObject({ value: 'Value' });
