@@ -255,8 +255,11 @@ export default function App() {
     replaceDocs(remaining);
     setCitationData(previous => Object.fromEntries(Object.entries(previous).filter(([id]) => !removed.has(id))));
     setConflicts(items => items.filter(id => !removed.has(id)));
-    if (removed.has(activeIdRef.current)) select(remaining[Math.min(index, remaining.length - 1)]?.id || '');
-    if (!remaining.length) await newDocument();
+    if (removed.has(activeIdRef.current)) {
+      const nextId = remaining[Math.min(index, remaining.length - 1)]?.id;
+      if (nextId) select(nextId);
+      else { activeIdRef.current = ''; setActiveId(''); }
+    }
   }
   async function closeDocument(id: string, others = false) {
     if (tabBusyRef.current) return;
