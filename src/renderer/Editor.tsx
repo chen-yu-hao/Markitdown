@@ -14,6 +14,7 @@ import { headingText } from '../shared/markdown-preferences';
 import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitationScan, editorCitations, editorEquations, editorPreferences, editorSourceMode, equationIndexForCommand, preferenceExtensions } from './editor-preferences';
 import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, displayEquationInsertion, equationLabelInsertion } from './editor-academic';
 import { preservePointerPosition } from './editor-pointer';
+import { tableCellSourceRange } from './table-edit';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 
@@ -110,6 +111,50 @@ class RenderedWidget extends WidgetType {
     dom.className = `md-rendered ${this.block ? 'md-rendered-block' : 'md-rendered-inline'}`;
     dom.setAttribute('contenteditable', 'false');
     dom.innerHTML = renderMarkdown(this.source, { imageURL: this.resolveImage, settings: this.settings, purpose: 'editor', equationIndex: this.equations, citations: this.citations, sourceOffset: this.from }).trim();
+    if (this.block && dom.querySelector('table')) {
+      dom.querySelectorAll<HTMLTableRowElement>('tr').forEach((row, rowIndex) => row.querySelectorAll<HTMLTableCellElement>('th,td').forEach((cell, columnIndex) => {
+        cell.dataset.mdTableRow = String(rowIndex);
+        cell.dataset.mdTableColumn = String(columnIndex);
+        cell.tabIndex = 0;
+        cell.setAttribute('aria-label', `Table cell ${rowIndex + 1}, ${columnIndex + 1}`);
+      }));
+      const beginCellEdit = (cell: HTMLTableCellElement) => {
+        const row = Number(cell.dataset.mdTableRow);
+        const column = Number(cell.dataset.mdTableColumn);
+        const range = tableCellSourceRange(this.source, this.from, row, column);
+        if (!range) return;
+        const input = document.createElement('input');
+        input.className = 'md-table-cell-editor';
+        input.type = 'text';
+        input.value = range.value;
+        input.setAttribute('aria-label', 'Edit table cell');
+        const rect = cell.getBoundingClientRect();
+        input.style.left = `${Math.max(0, rect.left)}px`;
+        input.style.top = `${Math.max(0, rect.top)}px`;
+        input.style.width = `${Math.max(48, rect.width)}px`;
+        input.style.height = `${Math.max(26, rect.height)}px`;
+        document.body.appendChild(input);
+        let finished = false;
+        const finish = (commit: boolean) => {
+          if (finished) return;
+          finished = true;
+          input.remove();
+          if (commit && input.value !== range.value) view.dispatch({ changes: { from: range.from, to: range.to, insert: input.value }, annotations: formatChange });
+          view.focus();
+        };
+        input.addEventListener('keydown', event => {
+          if (event.key === 'Enter') { event.preventDefault(); finish(true); }
+          else if (event.key === 'Escape') { event.preventDefault(); finish(false); }
+        });
+        input.addEventListener('blur', () => finish(true));
+        input.focus();
+        input.select();
+      };
+      dom.querySelectorAll<HTMLTableCellElement>('th,td').forEach(cell => {
+        cell.addEventListener('dblclick', event => { event.preventDefault(); event.stopPropagation(); beginCellEdit(cell); });
+        cell.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); beginCellEdit(cell); } });
+      });
+    }
     for (const reference of dom.querySelectorAll<HTMLElement>('.md-equation-reference[data-equation-label]')) {
       const equation = this.equations.equations.find(equation => equation.labels.includes(reference.dataset.equationLabel || ''));
       if (equation) reference.title = `${equation.label || ''}${equation.number ? ' (' + equation.number + ')' : ''}\n${equation.source}`;
@@ -117,6 +162,7 @@ class RenderedWidget extends WidgetType {
     if (!this.block && dom.firstElementChild?.tagName === 'P' && dom.children.length === 1) dom.firstElementChild.replaceWith(...dom.firstElementChild.childNodes);
     dom.addEventListener('mousedown', event => {
       if (isScrollableWidgetSurface(event.target)) return;
+      if ((event.target as Element).closest?.('[data-md-table-row]')) { event.stopPropagation(); return; }
       event.preventDefault();
       if (navigateAcademicReference(view, event.target as Element)) return;
       const link = (event.target as Element).closest<HTMLAnchorElement>('a');
@@ -125,7 +171,7 @@ class RenderedWidget extends WidgetType {
       view.dispatch({ selection: { anchor: Math.min(this.from, view.state.doc.length) }, effects: EditorView.scrollIntoView(Math.min(this.from, view.state.doc.length), { y: 'nearest' }) });
       view.focus();
     });
-    dom.addEventListener('click', event => { if (!isScrollableWidgetSurface(event.target)) event.preventDefault(); });
+    dom.addEventListener('click', event => { if ((event.target as Element).closest?.('[data-md-table-row]')) { event.stopPropagation(); return; } if (!isScrollableWidgetSurface(event.target)) event.preventDefault(); });
     for (const img of dom.querySelectorAll('img')) {
       img.addEventListener('load', () => view.requestMeasure());
       img.addEventListener('error', () => { img.classList.add('md-image-error'); view.requestMeasure(); });
@@ -737,7 +783,8 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     return () => cancelAnimationFrame(frame);
   }, [props.active]);
 
-  return <div ref={host} className={`markedown-editor ${props.document.mode === 'source' ? 'editor-source' : 'editor-live'} ${props.typewriter ? 'editor-typewriter' : ''}`} data-theme={props.theme} data-document-id={props.document.id} style={{ '--editor-font-size': `${props.fontSize}px`, '--editor-width': `${props.readingWidth}px`, '--editor-code-indent': (props.settings || defaultSettings).codeIndentWidth, display: props.active ? undefined : 'none' } as React.CSSProperties} />;
+  const tableStyle = (props.settings || defaultSettings).tableStyle;
+  return <div ref={host} className={`markedown-editor ${props.document.mode === 'source' ? 'editor-source' : 'editor-live'} ${props.typewriter ? 'editor-typewriter' : ''}`} data-theme={props.theme} data-table-style={tableStyle} data-document-id={props.document.id} style={{ '--editor-font-size': `${props.fontSize}px`, '--editor-width': `${props.readingWidth}px`, '--editor-code-indent': (props.settings || defaultSettings).codeIndentWidth, display: props.active ? undefined : 'none' } as React.CSSProperties} />;
 });
 
 export default Editor;

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, readdir, realpath, rename, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import { defaultSettings, themeNames, type DocumentPatch, type DocumentSession, type FileRevision, type LineEnding, type Result, type Settings } from '../shared/contracts';
+import { defaultSettings, themeNames, tableStyleNames, type DocumentPatch, type DocumentSession, type FileRevision, type LineEnding, type Result, type Settings } from '../shared/contracts';
 import { canonicalPath } from './workspace-service';
 
 const BOM = Buffer.from([0xef, 0xbb, 0xbf]);
@@ -375,7 +375,7 @@ export function validatedSettings(value: unknown): Settings {
     diagramTheme: ['default', 'neutral', 'dark', 'forest'], smartPunctuation: ['off', 'typing', 'render'], doubleQuoteStyle: ['curly', 'guillemet'],
     singleQuoteStyle: ['curly', 'singleGuillemet'], windowStyle: ['integrated', 'classic'], fontSizeMode: ['auto', 'custom'],
     codeLanguageTrigger: ['typed', 'menu', 'always', 'never'], mathNumbering: ['none', 'all', 'labelled'], mathNumberingStyle: ['document', 'section'], citationStyle: ['numeric', 'author-date'], mathOutput: ['svg', 'mathml'],
-    mathAlignment: ['left', 'center', 'right'], mathNumberPosition: ['left', 'right'],
+    mathAlignment: ['left', 'center', 'right'], mathNumberPosition: ['left', 'right'], tableStyle: tableStyleNames,
     editorWhitespace: ['preserve', 'breaks', 'collapse'], exportWhitespace: ['preserve', 'breaks', 'collapse'],
   };
   for (const [key, fallback] of Object.entries(defaultSettings)) {

@@ -41,6 +41,24 @@ try {
   const initial = await page.evaluate(() => ({ source: window.editorTest.docs[0].source, tables: document.querySelectorAll('.md-rendered table').length, math: document.querySelectorAll('.md-rendered .katex').length, images: document.querySelectorAll('.md-rendered img').length }));
   assert(initial.source === initialSource, 'Rendering changed the source.');
   assert(initial.tables === 1 && initial.math >= 1 && initial.images === 1, 'A live Markdown widget is missing.');
+  assert(await page.locator('.markedown-editor[data-table-style="three-line"] table').count() === 1, 'Scientific three-line table style is not the default.');
+  const tableCell = page.locator('.markedown-editor[data-document-id="first"] table tbody td').first();
+  await tableCell.dblclick();
+  await page.locator('.md-table-cell-editor').waitFor();
+  await page.locator('.md-table-cell-editor').fill('edited');
+  await page.locator('.md-table-cell-editor').press('Enter');
+  await page.waitForFunction(() => window.editorTest.docs[0].source.includes('| edited |'));
+  const unchanged = await page.evaluate(() => window.editorTest.docs[0].source);
+  await page.locator('.markedown-editor[data-document-id="first"] table tbody td').nth(1).press('Enter');
+  await page.locator('.md-table-cell-editor').waitFor();
+  await page.locator('.md-table-cell-editor').fill('cancelled');
+  await page.locator('.md-table-cell-editor').press('Escape');
+  await page.waitForTimeout(50);
+  assert(await page.evaluate(() => window.editorTest.docs[0].source) === unchanged, 'Escape did not cancel table cell editing.');
+  await page.evaluate(() => window.editorTest.controls().command('undo'));
+  await page.waitForFunction(source => window.editorTest.docs[0].source === source, initialSource);
+  await page.evaluate(() => window.editorTest.setSettings({ tableStyle: 'grid' }));
+  await page.waitForFunction(() => document.querySelector('.markedown-editor[data-table-style="grid"]'));
   const inlineHeight = await page.locator('.cm-line').filter({ hasText: 'Text with' }).first().evaluate(element => element.getBoundingClientRect().height);
   assert(inlineHeight < 40, 'Inline widgets introduced extra line breaks.');
   await page.screenshot({ path: path.join(directory, 'live-desktop.png') });
@@ -173,7 +191,7 @@ try {
   assert(outsideCursor && Math.abs(outsideCursor.y + outsideCursor.height / 2 - outsidePoint.y) <= 2, 'Clicking outside an existing selection moved the caret away from the clicked visual row.');
   assert(await page.evaluate(() => window.editorTest.docs[0].source) === pointerSource, 'Mouse selection changed the Markdown source.');
   assert(errors.length === 0, 'Renderer errors: ' + errors.join('\n'));
-  console.log(JSON.stringify({ directory, checks: ['live widgets', 'source integrity', 'Unicode insertion', 'independent tab undo', 'mode history preservation', 'find/replace', 'tracked async image insertion', 'single image batch undo', 'Chromium Chinese IME composition', 'preference reconfiguration preserves source and history', 'native spellcheck attributes', 'smart typing punctuation', 'narrow viewport', 'Shift+click range selection', 'mouse drag selection', 'double-click word selection', 'triple-click line selection', 'click outside prior selection preserves source and visual caret'], errors }));
+  console.log(JSON.stringify({ directory, checks: ['live widgets', 'source integrity', 'scientific three-line table default', 'table cell double-click edit and Enter commit', 'table cell Enter edit and Escape cancel', 'table style switch', 'Unicode insertion', 'independent tab undo', 'mode history preservation', 'find/replace', 'tracked async image insertion', 'single image batch undo', 'Chromium Chinese IME composition', 'preference reconfiguration preserves source and history', 'native spellcheck attributes', 'smart typing punctuation', 'narrow viewport', 'Shift+click range selection', 'mouse drag selection', 'double-click word selection', 'triple-click line selection', 'click outside prior selection preserves source and visual caret'], errors }));
 } finally {
   await application.close();
 }

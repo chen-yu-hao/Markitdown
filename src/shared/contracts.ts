@@ -31,6 +31,8 @@ export type Result<T> = { status: 'ok'; value: T } | { status: 'cancelled' } | {
 export type ThemeName = 'github' | 'newsprint' | 'night' | 'pixyll' | 'whitey';
 export const themeNames: ThemeName[] = ['github', 'newsprint', 'night', 'pixyll', 'whitey'];
 export const themeLabels: Record<ThemeName, string> = { github: 'Github', newsprint: 'Newsprint', night: 'Night', pixyll: 'Pixyll', whitey: 'Whitey' };
+export type TableStyle = 'three-line' | 'grid' | 'minimal';
+export const tableStyleNames: TableStyle[] = ['three-line', 'grid', 'minimal'];
 export interface Settings {
   theme: ThemeName;
   separateDarkTheme: boolean;
@@ -105,6 +107,7 @@ export interface Settings {
   mathNumberPosition: 'left' | 'right';
   citationStyle: 'numeric' | 'author-date';
   mathOutput: 'svg' | 'mathml';
+  tableStyle: TableStyle;
   firstLineIndent: boolean;
   showLineBreaks: boolean;
   editorWhitespace: 'preserve' | 'breaks' | 'collapse';
@@ -151,7 +154,7 @@ export const defaultSettings: Settings = {
   codeLineNumbers: false, codeWordWrap: true, codeAutoIndent: true,
   codeIndentWidth: 4, codeAutoIndentOnTab: false, defaultCodeLanguage: '', codeLanguageTrigger: 'typed',
   latexDelimiters: true, mathCodeBlocks: true, mathPhysics: false, legacyInlineMath: false, mathStandaloneParagraphs: true,
-  mathNumbering: 'all', mathNumberingStyle: 'document', mathAlignment: 'left', mathNumberPosition: 'right', citationStyle: 'numeric', mathOutput: 'svg', firstLineIndent: false, showLineBreaks: true,
+  mathNumbering: 'all', mathNumberingStyle: 'document', mathAlignment: 'left', mathNumberPosition: 'right', citationStyle: 'numeric', mathOutput: 'svg', tableStyle: 'three-line', firstLineIndent: false, showLineBreaks: true,
   editorWhitespace: 'preserve', exportWhitespace: 'preserve',
   imageFolder: 'assets', imageUseRelative: true, imageAutoEscape: true, imageThumbnails: true,
   exportFolder: '', revealAfterExport: false, exportTheme: true, exportPresets: defaultExportPresets,
