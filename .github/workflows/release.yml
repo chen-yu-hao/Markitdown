@@ -117,7 +117,10 @@ jobs:
 
           $existing = gh release view $env:RELEASE_TAG --json isDraft 2>$null
           if ($LASTEXITCODE -eq 0) {
-            if (-not ($existing | ConvertFrom-Json).isDraft) { throw 'This release is already published.' }
+            # Re-running a tag build must be able to refresh an already-published
+            # release. Asset names are versioned and --clobber below replaces the
+            # previous binaries after all verification steps have passed.
+            $isDraft = ($existing | ConvertFrom-Json).isDraft
           } else {
             gh release create $env:RELEASE_TAG --verify-tag --draft --title "Markedown $($manifest.version) for Windows" --notes-file $notesPath
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release.' }
