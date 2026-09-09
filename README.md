@@ -10,17 +10,17 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ## 下载与安装
 
-当前版本：**0.3.6**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
+当前版本：**0.3.7**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
-| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.6/Markedown-0.3.6-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
-| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.6/Markedown-0.3.6-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
-| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.6.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
+| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.7/Markedown-0.3.7-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
+| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.7/Markedown-0.3.7-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
+| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.7.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.6)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.7)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
 
 ### 更新已有版本
 

@@ -1,5 +1,5 @@
-Markedown 0.3.6 - Third-party license texts
-Generated from package-lock.json SHA-256: 091578063cc7b4cc1254bddd0041304b2ce4d7fd1e46429cd1cc6f4949cc4f76
+Markedown 0.3.7 - Third-party license texts
+Generated from package-lock.json SHA-256: 7984347162bdbcbb886f2b99696ea1c5d3855e9722824c384e53dcc5b3d88003
 Build platform: win32-x64
 Includes installed production npm dependencies and the Electron runtime package.
 Optional packages absent from this platform are listed in THIRD_PARTY_DEPENDENCIES.json.

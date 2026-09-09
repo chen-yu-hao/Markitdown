@@ -39,8 +39,10 @@ for (const scale of [1, 1.25, 1.5, 2]) {
     assert(runtime.packaged && runtime.appPath.endsWith('app.asar'), 'Verification did not launch the packaged ASAR.');
     assert.equal(path.resolve(runtime.userData), path.resolve(environment.MARKEDOWN_DATA_DIR), 'Packaged verification is not isolated.');
     await page.locator('.cm-content:visible').click();
+    await page.locator('.cm-content:visible').focus();
     await page.keyboard.press('Control+End');
     await page.keyboard.insertText('\nUNSAVED-PACKAGED-EXPORT');
+    await page.waitForFunction(() => window.markedown.bootstrap().then(data => data.documents.some(document => document.path === undefined || document.source.includes('UNSAVED-PACKAGED-EXPORT'))));
     await page.keyboard.press('Control+Home');
     await page.waitForFunction(() => [...document.querySelectorAll('.md-rendered img')].some(img => img.complete && img.naturalWidth === 2048));
     const dpr = await page.evaluate(() => devicePixelRatio);
