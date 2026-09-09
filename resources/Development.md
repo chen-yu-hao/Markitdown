@@ -4,14 +4,14 @@
 
 ## 环境准备
 
-- Windows x64。
+- Windows x64 或 Linux x64。发布包应在目标平台原生构建。
 - Node.js 24 LTS 和 npm。Windows 发布工作流使用 Node.js `24.14.0`。
 - 首次安装需要访问 npm、Electron 下载服务和 electron-builder 的打包工具下载服务。
 - Pandoc 仅用于扩展格式的导入、导出和相关集成验证。
 
-可下载 GitHub 按版本标签生成的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.7.zip)，或克隆仓库：
+可下载 GitHub 按版本标签生成的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.8.zip)，或克隆仓库：
 
-```powershell
+```bash
 git clone https://github.com/chen-yu-hao/Markitdown.git
 cd Markitdown
 npm ci
@@ -25,7 +25,7 @@ npm run dev
 
 ## 检查与测试
 
-```powershell
+```bash
 npm run typecheck
 npm test -- --maxWorkers=2
 npm run build
@@ -37,20 +37,44 @@ npm run test:ui
 
 UI 验证使用独立数据目录，结果和截图写入 `test-results`。部分集成检查需要 Pandoc、Zotero、Word 或额外工具，应按验证记录准备对应环境；跳过的检查不代表已通过。
 
+## Linux 打包
+
+在 Ubuntu、Arch 或其他 Linux x64 环境中执行：
+
+```bash
+npm run pack:linux
+```
+
+解包程序位于 `release/linux-unpacked/markedown`。生成可分发产物：
+
+```bash
+npm run dist:linux
+```
+
+输出包括：
+
+| 本地产物 | 用途 |
+| --- | --- |
+| `Markedown-<版本>-Linux-x64.AppImage` | 适合多数 Linux 发行版的单文件包 |
+| `Markedown-<版本>-Linux-x64.deb` | Ubuntu/Debian 安装包 |
+| `Markedown-<版本>-Linux-x64.tar.gz` | Arch 及其他发行版的解压运行包 |
+
+Linux 构建使用当前平台安装的原生 npm 依赖。不要在 Windows 上生成 Linux 的许可证清单或直接复用 Windows 的 `sharp` 原生包；切换平台后应重新执行 `npm ci` 和 `npm run notices`。AppImage 在部分系统需要 FUSE，无法使用 FUSE 时可使用 tar.gz。
+
 ## Windows 打包
 
 ```powershell
-npm run pack
+npm run pack:win
 ```
 
 生成 `release/win-unpacked`，可直接检查解包后的程序。生成完整发行包使用：
 
 ```powershell
-npm run dist
+npm run dist:win
 node scripts/verify-packaged.mjs
 ```
 
-`dist` 执行生产构建，生成 NSIS 安装程序和便携 ZIP，并整理源码、许可证与校验文件。`verify-packaged.mjs` 在隔离数据目录中启动 `release/win-unpacked/Markedown.exe`，验证图片导入、HTML/PDF/PNG 导出及多档应用缩放。
+`dist:win` 执行生产构建，生成 NSIS 安装程序和便携 ZIP，并整理源码、许可证与校验文件。`verify-packaged.mjs` 在隔离数据目录中启动 `release/win-unpacked/Markedown.exe`，验证图片导入、HTML/PDF/PNG 导出及多档应用缩放。
 
 以下文件保存在本地 `release/` 目录，用于交付归档与校验：
 
@@ -71,15 +95,15 @@ node scripts/verify-packaged.mjs
 
 ```powershell
 npm run notices
-node scripts/release.mjs --check
-node scripts/release.mjs
+node scripts/release.mjs --check --platform=windows
+node scripts/release.mjs --platform=windows
 ```
 
 `--check` 只检查源码输入和工具解析，不生成归档。不带参数时要求安装程序与便携 ZIP 已存在，会重新生成源码包、说明副本与校验文件。
 
 ## GitHub 发布
 
-仓库的 [Windows Release 工作流](https://github.com/chen-yu-hao/Markitdown/blob/main/.github/workflows/release.yml)支持推送 `v*` 标签触发，也支持手动指定已有标签。标签必须与 `package.json` 中的版本一致。
+仓库的 [Windows Release 工作流](https://github.com/chen-yu-hao/Markitdown/blob/main/.github/workflows/release.yml)支持推送 `v*` 标签触发，也支持手动指定已有标签。标签必须与 `package.json` 中的版本一致。Linux 产物目前通过 Linux x64 环境执行 `npm run dist:linux` 构建，发布前应在 Ubuntu/Debian 和 Arch 或其他目标发行版分别检查。
 
 工作流检出指定标签，安装锁定依赖与 Electron，完成测试、构建、打包及实际程序验证后，只上传 `Markedown-<版本>-Windows-x64-Setup.exe` 与 `Markedown-<版本>-Windows-x64.zip`。核对这两个附件后，草稿才会公开为最新版本；已公开的同名版本不会被工作流覆盖。
 
@@ -97,7 +121,7 @@ Windows 检出时必须保留 `resources/native-licenses` 的原始字节，许�
 .\Markedown.exe "C:\文稿\研究笔记.md"
 ```
 
-安装版数据通常位于 `%APPDATA%\Markedown`；便携版位于程序旁的 `data`。`MARKEDOWN_DATA_DIR` 可为开发或验证指定独立目录，恢复记录可能包含完整未保存文稿。
+Windows 安装版数据通常位于 `%APPDATA%\Markedown`；Linux 通常位于 `~/.config/Markedown`，或 `XDG_CONFIG_HOME` 指定的位置；Windows 便携版位于程序旁的 `data`。`MARKEDOWN_DATA_DIR` 可为开发或验证指定独立目录，恢复记录可能包含完整未保存文稿。
 
 工作区扫描使用系统 Windows PowerShell 读取隐藏与重解析点属性。受权限限制的子目录会跳过；PowerShell 被系统策略禁用时会报告扫描失败。搜索跳过符号链接和目录联接，避免循环遍历。
 
