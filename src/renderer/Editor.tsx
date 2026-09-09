@@ -14,7 +14,7 @@ import { headingText } from '../shared/markdown-preferences';
 import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitationScan, editorCitations, editorEquations, editorPreferences, editorSourceMode, equationIndexForCommand, preferenceExtensions } from './editor-preferences';
 import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, displayEquationInsertion, equationLabelInsertion } from './editor-academic';
 import { preservePointerPosition } from './editor-pointer';
-import { tableCellSourceRange } from './table-edit';
+import { deleteTableColumn, deleteTableRow, insertTableColumn, insertTableRow, replaceTableCell, tableCellSourceRange } from './table-edit';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 
@@ -112,12 +112,86 @@ class RenderedWidget extends WidgetType {
     dom.setAttribute('contenteditable', 'false');
     dom.innerHTML = renderMarkdown(this.source, { imageURL: this.resolveImage, settings: this.settings, purpose: 'editor', equationIndex: this.equations, citations: this.citations, sourceOffset: this.from }).trim();
     if (this.block && dom.querySelector('table')) {
+      const table = dom.querySelector<HTMLTableElement>('table')!;
+      table.dataset.mdTableFrom = String(this.from);
+      let selectedRow = -1;
+      let selectedColumn = -1;
+      let selectedCell: HTMLTableCellElement | null = null;
+      let contextMenu: HTMLDivElement | null = null;
+      let dismissMenu: ((event: MouseEvent) => void) | null = null;
+      const closeMenu = () => {
+        contextMenu?.remove();
+        contextMenu = null;
+        if (dismissMenu) document.removeEventListener('mousedown', dismissMenu);
+        dismissMenu = null;
+      };
+      const paintSelection = () => {
+        table.querySelectorAll<HTMLTableRowElement>('tr').forEach((row, ri) => {
+          const rowSelected = !selectedCell && ri === selectedRow;
+          row.classList.toggle('md-table-row-selected', rowSelected);
+          row.setAttribute('aria-selected', String(rowSelected));
+          row.querySelectorAll<HTMLTableCellElement>('th,td').forEach((cell, ci) => {
+            const selected = selectedCell ? cell === selectedCell : rowSelected || ci === selectedColumn;
+            cell.classList.toggle('md-table-selected', selected);
+            cell.classList.toggle('md-table-row-selected', rowSelected);
+            cell.classList.toggle('md-table-column-selected', !selectedCell && ci === selectedColumn);
+            cell.classList.toggle('md-table-cell-selected', selectedCell === cell);
+            cell.setAttribute('aria-selected', String(selected));
+          });
+        });
+      };
+      const applyTableEdit = (edit: { from: number; to: number; insert: string } | null) => {
+        if (!edit) return;
+        closeMenu();
+        view.dispatch({ changes: { from: edit.from, to: edit.to, insert: edit.insert }, annotations: formatChange });
+        view.focus();
+      };
+      const showMenu = (cell: HTMLTableCellElement, event: MouseEvent) => {
+        closeMenu();
+        selectedCell = cell; selectedRow = -1; selectedColumn = -1; paintSelection();
+        contextMenu = document.createElement('div');
+        contextMenu.className = 'md-table-context-menu';
+        contextMenu.setAttribute('role', 'menu');
+        const skin = getComputedStyle(dom.closest('.markedown-editor') || dom);
+        contextMenu.style.setProperty('--editor-surface', skin.getPropertyValue('--editor-code') || '#fff');
+        contextMenu.style.setProperty('--editor-ink', skin.getPropertyValue('--editor-ink') || '#222');
+        contextMenu.style.setProperty('--editor-line', skin.getPropertyValue('--editor-line') || '#d9dfdb');
+        contextMenu.style.setProperty('--editor-accent', skin.getPropertyValue('--editor-accent') || '#29735d');
+        const add = (label: string, action: () => void, disabled = false) => {
+          const item = document.createElement('button'); item.type = 'button'; item.className = 'md-table-context-item'; item.textContent = label; item.disabled = disabled;
+          item.addEventListener('click', action); contextMenu!.appendChild(item);
+        };
+        const row = Number(cell.dataset.mdTableRow), column = Number(cell.dataset.mdTableColumn);
+        add('选择整行', () => { selectedRow = row; selectedColumn = -1; selectedCell = null; paintSelection(); closeMenu(); });
+        add('选择整列', () => { selectedColumn = column; selectedRow = -1; selectedCell = null; paintSelection(); closeMenu(); });
+        add('在上方插入行', () => applyTableEdit(insertTableRow(this.source, this.from, row, 'before')));
+        add('在下方插入行', () => applyTableEdit(insertTableRow(this.source, this.from, row, 'after')));
+        add('删除行', () => applyTableEdit(deleteTableRow(this.source, this.from, row)));
+        add('在左侧插入列', () => applyTableEdit(insertTableColumn(this.source, this.from, column)));
+        add('在右侧插入列', () => applyTableEdit(insertTableColumn(this.source, this.from, column + 1)));
+        add('删除列', () => applyTableEdit(deleteTableColumn(this.source, this.from, column)));
+        const rect = cell.getBoundingClientRect();
+        const menuWidth = 220;
+        const menuHeight = 300;
+        const x = event.clientX || rect.left;
+        const y = event.clientY || rect.bottom;
+        contextMenu.style.left = `${Math.max(8, Math.min(Math.max(8, window.innerWidth - menuWidth), x))}px`;
+        contextMenu.style.top = `${Math.max(8, Math.min(Math.max(8, window.innerHeight - menuHeight), y))}px`;
+        document.body.appendChild(contextMenu);
+        dismissMenu = event => {
+          if ((event.target as Element | null)?.closest?.('.md-table-context-menu')) return;
+          closeMenu();
+        };
+        setTimeout(() => dismissMenu && document.addEventListener('mousedown', dismissMenu), 0);
+      };
       dom.querySelectorAll<HTMLTableRowElement>('tr').forEach((row, rowIndex) => row.querySelectorAll<HTMLTableCellElement>('th,td').forEach((cell, columnIndex) => {
         cell.dataset.mdTableRow = String(rowIndex);
         cell.dataset.mdTableColumn = String(columnIndex);
         cell.tabIndex = 0;
         cell.setAttribute('aria-label', `Table cell ${rowIndex + 1}, ${columnIndex + 1}`);
+        cell.title = '单击选择，双击或按 Enter 编辑；右键打开表格操作';
       }));
+      const cells = Array.from(table.querySelectorAll<HTMLTableCellElement>('th,td'));
       const beginCellEdit = (cell: HTMLTableCellElement) => {
         const row = Number(cell.dataset.mdTableRow);
         const column = Number(cell.dataset.mdTableColumn);
@@ -133,17 +207,34 @@ class RenderedWidget extends WidgetType {
         input.style.top = `${Math.max(0, rect.top)}px`;
         input.style.width = `${Math.max(48, rect.width)}px`;
         input.style.height = `${Math.max(26, rect.height)}px`;
+        const skin = getComputedStyle(dom.closest('.markedown-editor') || dom);
+        input.style.backgroundColor = skin.getPropertyValue('--editor-code') || '#fff';
+        input.style.color = skin.getPropertyValue('--editor-ink') || '#222';
+        input.style.borderColor = skin.getPropertyValue('--editor-accent') || '#29735d';
         document.body.appendChild(input);
         let finished = false;
         const finish = (commit: boolean) => {
           if (finished) return;
           finished = true;
           input.remove();
-          if (commit && input.value !== range.value) view.dispatch({ changes: { from: range.from, to: range.to, insert: input.value }, annotations: formatChange });
+          if (commit && input.value !== range.value) {
+            const edit = replaceTableCell(this.source, this.from, row, column, input.value);
+            if (edit) view.dispatch({ changes: { from: edit.from, to: edit.to, insert: edit.insert }, annotations: formatChange });
+          }
           view.focus();
         };
         input.addEventListener('keydown', event => {
-          if (event.key === 'Enter') { event.preventDefault(); finish(true); }
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            finish(true);
+            setTimeout(() => view.dom.querySelector<HTMLTableCellElement>(`table[data-md-table-from="${this.from}"] [data-md-table-row="${row + 1}"][data-md-table-column="${column}"]`)?.focus(), 0);
+          } else if (event.key === 'Tab') {
+            event.preventDefault();
+            finish(true);
+            const index = cells.indexOf(cell);
+            const next = cells[index + (event.shiftKey ? -1 : 1)];
+            if (next) setTimeout(() => view.dom.querySelector<HTMLTableCellElement>(`table[data-md-table-from="${this.from}"] [data-md-table-row="${next.dataset.mdTableRow}"][data-md-table-column="${next.dataset.mdTableColumn}"]`)?.focus(), 0);
+          }
           else if (event.key === 'Escape') { event.preventDefault(); finish(false); }
         });
         input.addEventListener('blur', () => finish(true));
@@ -151,8 +242,26 @@ class RenderedWidget extends WidgetType {
         input.select();
       };
       dom.querySelectorAll<HTMLTableCellElement>('th,td').forEach(cell => {
+        cell.addEventListener('mousedown', event => {
+          if (event.button !== 0) return;
+          const row = Number(cell.dataset.mdTableRow);
+          const column = Number(cell.dataset.mdTableColumn);
+          if (event.shiftKey) { selectedRow = row; selectedColumn = -1; selectedCell = null; }
+          else if (event.altKey) { selectedRow = -1; selectedColumn = column; selectedCell = null; }
+          else { selectedRow = -1; selectedColumn = -1; selectedCell = cell; }
+          paintSelection();
+          event.stopPropagation();
+        });
+        cell.addEventListener('contextmenu', event => { event.preventDefault(); event.stopPropagation(); showMenu(cell, event); });
         cell.addEventListener('dblclick', event => { event.preventDefault(); event.stopPropagation(); beginCellEdit(cell); });
-        cell.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); beginCellEdit(cell); } });
+        cell.addEventListener('keydown', event => {
+          if ((event.key === 'Enter' || event.key === 'F2') && !event.isComposing) { event.preventDefault(); beginCellEdit(cell); return; }
+          if (event.key !== 'Tab') return;
+          event.preventDefault();
+          const index = cells.indexOf(cell);
+          const next = cells[index + (event.shiftKey ? -1 : 1)];
+          next?.focus();
+        });
       });
     }
     for (const reference of dom.querySelectorAll<HTMLElement>('.md-equation-reference[data-equation-label]')) {
