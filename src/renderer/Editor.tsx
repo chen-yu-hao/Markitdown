@@ -572,7 +572,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     const current = propsRef.current;
     const source = view.state.doc.toString();
     const mode = new TextEncoder().encode(source).length > sourceLimit ? 'source' : current.document.mode;
-    current.onChange({ source, mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current });
+    current.onChange({ source, mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current, mathNumberingPrefix: current.document.mathNumberingPrefix });
   }
 
   function applyExternal(view: EditorView, document: DocumentSession) {
@@ -692,7 +692,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
       const editorState = view.state.toJSON({ history: historyField });
       const source = view.state.doc.toString();
       const current = propsRef.current;
-      const patch: DocumentPatch = { source, mode: current.document.mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current };
+      const patch: DocumentPatch = { source, mode: current.document.mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current, mathNumberingPrefix: current.document.mathNumberingPrefix };
       lockTransfer(true);
       return { patch, editorState };
     },

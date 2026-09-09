@@ -79,6 +79,20 @@ describe('document files', () => {
     expect(doc).toMatchObject({ bom: false, lineEnding: 'LF' });
   });
 
+  it('persists equation number prefix independently for each Markdown document', async () => {
+    const firstPath = await textFile('manuscript.md', '$$x$$');
+    const secondPath = await textFile('supplement.md', '$$y$$');
+    const store = await service();
+    const first = await store.open(firstPath);
+    const second = await store.open(secondPath);
+    update(store, first, first.source, { mathNumberingPrefix: 'S' });
+    update(store, second, second.source, { mathNumberingPrefix: 'A' });
+    await store.flushRecovery();
+    const restored = await service();
+    expect((await restored.open(firstPath)).mathNumberingPrefix).toBe('S');
+    expect((await restored.open(secondPath)).mathNumberingPrefix).toBe('A');
+  });
+
   it('rejects malformed UTF-8 and binary data', async () => {
     const store = await service();
     await expect(store.open(await textFile('bad.txt', Buffer.from([0xc3, 0x28])))).rejects.toThrow();

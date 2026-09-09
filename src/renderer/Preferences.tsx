@@ -6,11 +6,11 @@ import WordPreferences from './WordPreferences';
 import CitationCredits from './CitationCredits';
 import { diagramEngineAvailable } from '../shared/markdown-diagrams';
 
-interface Props { settings: Settings; zh: boolean; version: string; pandoc: string | null | undefined; update(patch: Partial<Settings>): Promise<void>; close(): void; error(message: string): void; disableWritingModes(): void; initialCategory?: Category; initialQuery?: string }
+interface Props { settings: Settings; zh: boolean; version: string; pandoc: string | null | undefined; update(patch: Partial<Settings>): Promise<void>; documentPrefix?: string; updateDocumentPrefix?(prefix: string): void; close(): void; error(message: string): void; disableWritingModes(): void; initialCategory?: Category; initialQuery?: string }
 type Category = 'file' | 'editor' | 'image' | 'markdown' | 'export' | 'appearance' | 'general';
 type BooleanKey = { [K in keyof Settings]: Settings[K] extends boolean ? K : never }[keyof Settings];
 const shortcutCommands = [['new','新建','New','Ctrl+N'],['open','打开','Open','Ctrl+O'],['save','保存','Save','Ctrl+S'],['saveAs','另存为','Save as','Ctrl+Shift+S'],['find','查找','Find','Ctrl+F'],['replace','替换','Replace','Ctrl+H'],['settings','偏好设置','Preferences','Ctrl+,'],['mode','源码模式','Source mode','Ctrl+/'],['focusMode','专注模式','Focus mode','F8'],['typewriter','打字机模式','Typewriter mode','F9']];
-export default function Preferences({ settings: s, zh, version, pandoc, update, close, error, disableWritingModes, initialCategory = 'file', initialQuery = '' }: Props) {
+export default function Preferences({ settings: s, zh, version, pandoc, update, documentPrefix, updateDocumentPrefix, close, error, disableWritingModes, initialCategory = 'file', initialQuery = '' }: Props) {
   const [category, setCategory] = useState<Category>(initialCategory); const [query, setQuery] = useState(initialQuery); const [preset, setPreset] = useState('general');
   const [message, setMessage] = useState(''); const [shortcuts, setShortcuts] = useState(false); const ref = useRef<HTMLElement>(null);
   const t = (cn: string, en: string) => zh ? cn : en;
@@ -72,7 +72,7 @@ export default function Preferences({ settings: s, zh, version, pandoc, update, 
         {check('mathStandaloneParagraphs','独占段落的行内公式按行间公式处理','Treat standalone body-paragraph math as display equations')}
         {row(t('行间公式自动编号','Display equation numbering'),select('mathNumbering',[['none',t('关闭自动编号','Automatic numbering off')],['labelled',t('仅带标签的公式','Labelled equations only')],['all',t('所有行间公式（默认）','All display equations (default)')]],t('行间公式自动编号','Display equation numbering')))}
         {row(t('公式编号范围','Equation numbering scope'),select('mathNumberingStyle',[['document',t('全文连续编号','Continuous numbering')],['section',t('按一级标题分章编号','Number within level-one headings')]],t('公式编号范围','Equation numbering scope')))}
-        {row(t('文档编号形式','Document numbering format'),text('mathNumberingPrefix',t('编号前缀','Number prefix'),t('留空为 1、2…；输入 S 为 S1、S2…','Leave empty for 1, 2…; enter S for S1, S2…')))}
+        {row(t('文档编号形式','Document numbering format'), updateDocumentPrefix ? <CommitInput label={t('编号前缀','Number prefix')} value={documentPrefix || ''} placeholder={t('留空为 1、2…；输入 S 为 S1、S2…','Leave empty for 1, 2…; enter S for S1, S2…')} commit={updateDocumentPrefix} /> : text('mathNumberingPrefix',t('编号前缀','Number prefix'),t('留空为 1、2…；输入 S 为 S1、S2…','Leave empty for 1, 2…; enter S for S1, S2…')))}
         <p className="pref-hint">{t('自动生成的公式编号会加此前缀，适合补充材料使用 S1、S2 等形式；手动 \\tag{…} 编号保持不变。','Automatically generated equation numbers receive this prefix, suitable for supplementary material such as S1, S2; manual \\tag{…} numbers are unchanged.')}</p>
         {row(t('行间公式对齐','Display equation alignment'),select('mathAlignment',[['left',t('左对齐','Left')],['center',t('居中','Center')],['right',t('右对齐','Right')]],t('行间公式对齐','Display equation alignment')))}
         {row(t('编号位置','Number position'),select('mathNumberPosition',[['left',t('左侧','Left')],['right',t('右侧','Right')]],t('编号位置','Number position')))}

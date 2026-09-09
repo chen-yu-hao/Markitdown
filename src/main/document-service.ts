@@ -65,6 +65,7 @@ async function revisionAt(filename: string): Promise<FileRevision | null> {
 }
 
 const sameRevision = (a: FileRevision | null, b: FileRevision | null) => a?.hash === b?.hash && a?.size === b?.size;
+const preferenceKey = (filename: string) => process.platform === 'win32' ? path.resolve(filename).toLowerCase() : path.resolve(filename);
 
 export async function atomicWrite(filename: string, bytes: Uint8Array, validate?: () => Promise<void>): Promise<void> {
   const temporary = path.join(path.dirname(filename), `.${path.basename(filename)}.${randomUUID()}.tmp`);
@@ -94,11 +95,11 @@ function validateRecovery(value: unknown): DocumentSession {
   const record = value as Record<string, unknown>;
   if (record.version !== 1 || !record.document || typeof record.document !== 'object') throw new Error('Unsupported recovery record.');
   const doc = record.document as DocumentSession;
-  if (typeof doc.id !== 'string' || !/^[a-f\d-]{36}$/i.test(doc.id) || typeof doc.source !== 'string' || typeof doc.savedSource !== 'string' || typeof doc.title !== 'string' || (doc.path !== null && (typeof doc.path !== 'string' || !path.isAbsolute(doc.path))) || !['LF', 'CRLF'].includes(doc.lineEnding) || typeof doc.bom !== 'boolean') throw new Error('Invalid recovery document.');
+  if (typeof doc.id !== 'string' || !/^[a-f\d-]{36}$/i.test(doc.id) || typeof doc.source !== 'string' || typeof doc.savedSource !== 'string' || typeof doc.title !== 'string' || (doc.path !== null && (typeof doc.path !== 'string' || !path.isAbsolute(doc.path))) || !['LF', 'CRLF'].includes(doc.lineEnding) || typeof doc.bom !== 'boolean' || (doc.mathNumberingPrefix !== undefined && (typeof doc.mathNumberingPrefix !== 'string' || doc.mathNumberingPrefix.length > 24 || /[\x00-\x1f\x7f]/.test(doc.mathNumberingPrefix)))) throw new Error('Invalid recovery document.');
   if (doc.revision !== null && (!doc.revision || typeof doc.revision.hash !== 'string' || !/^[a-f\d]{64}$/i.test(doc.revision.hash) || !Number.isFinite(doc.revision.size) || !Number.isFinite(doc.revision.mtimeMs))) throw new Error('Invalid recovery revision.');
   const clamp = (position: unknown) => typeof position === 'number' && Number.isFinite(position) ? Math.max(0, Math.min(doc.source.length, Math.trunc(position))) : 0;
   return {
-    ...doc, dirty: true, recovered: true,
+    ...doc, mathNumberingPrefix: typeof doc.mathNumberingPrefix === 'string' ? doc.mathNumberingPrefix.trim() : defaultSettings.mathNumberingPrefix, dirty: true, recovered: true,
     mode: Buffer.byteLength(doc.source) > sourceRequirement || doc.mode === 'source' ? 'source' : 'live',
     selection: { anchor: clamp(doc.selection?.anchor), head: clamp(doc.selection?.head) },
     scrollTop: Number.isFinite(doc.scrollTop) ? Math.max(0, doc.scrollTop) : 0,
@@ -110,6 +111,8 @@ export class DocumentService {
   readonly docs = new Map<string, DocumentSession>();
   readonly recoveryErrors: string[] = [];
   private readonly recoveryDirectory: string;
+  private readonly documentPreferencesPath: string;
+  private readonly documentNumberingPrefixes = new Map<string, string>();
   private recoveryTimer?: ReturnType<typeof setTimeout>;
   private recoveryQueue: Promise<void> = Promise.resolve();
   private readonly saveQueues = new Map<string, Promise<unknown>>();
@@ -118,10 +121,19 @@ export class DocumentService {
   private readonly invalidRecoveryFiles = new Set<string>();
   private readonly ignoredExternalRevisions = new Map<string, FileRevision | null>();
 
-  constructor(readonly dataDir: string) { this.recoveryDirectory = path.join(dataDir, 'recovery'); }
+  constructor(readonly dataDir: string) {
+    this.recoveryDirectory = path.join(dataDir, 'recovery');
+    this.documentPreferencesPath = path.join(dataDir, 'document-preferences.json');
+  }
 
   async initialize(): Promise<{ recoveryErrors: string[] }> {
     await mkdir(this.recoveryDirectory, { recursive: true });
+    try {
+      const stored = JSON.parse(await readFile(this.documentPreferencesPath, 'utf8')) as unknown;
+      if (stored && typeof stored === 'object' && !Array.isArray(stored)) for (const [key, value] of Object.entries(stored as Record<string, unknown>)) {
+        if (path.isAbsolute(key) && typeof value === 'string' && value.length <= 24 && !/[\x00-\x1f\x7f]/.test(value)) this.documentNumberingPrefixes.set(preferenceKey(key), value.trim());
+      }
+    } catch (error) { if (!missing(error) && !(error instanceof SyntaxError)) throw error; }
     for (const filename of await readdir(this.recoveryDirectory)) {
       if (!filename.endsWith('.json')) continue;
       try {
@@ -141,17 +153,18 @@ export class DocumentService {
     return { recoveryErrors: [...this.recoveryErrors] };
   }
 
-  create(options: Pick<Settings, 'defaultLineEnding'> = defaultSettings): DocumentSession {
+  create(options: { defaultLineEnding: Settings['defaultLineEnding']; mathNumberingPrefix?: string } = defaultSettings): DocumentSession {
     const doc: DocumentSession = {
       id: randomUUID(), path: null, title: 'Untitled', source: '', savedSource: '', dirty: false, recovered: false,
       bom: false, lineEnding: options.defaultLineEnding, revision: null, mode: 'live', selection: { anchor: 0, head: 0 }, scrollTop: 0, editVersion: 0,
+      mathNumberingPrefix: options.mathNumberingPrefix ?? defaultSettings.mathNumberingPrefix,
     };
     this.docs.set(doc.id, doc);
     this.scheduleRecovery();
     return clone(doc);
   }
 
-  async open(filename: string): Promise<DocumentSession> {
+  async open(filename: string, options: Partial<Pick<Settings, 'mathNumberingPrefix'>> = defaultSettings): Promise<DocumentSession> {
     const absolute = await physicalPath(filename);
     const identity = await canonicalPath(absolute);
     const pending = this.pendingDestinations.get(identity);
@@ -163,6 +176,7 @@ export class DocumentService {
       id: randomUUID(), path: absolute, title: path.basename(absolute), ...contents, savedSource: contents.source,
       dirty: false, recovered: false, mode: Buffer.byteLength(contents.source) > sourceRecommendation ? 'source' : 'live',
       selection: { anchor: 0, head: 0 }, scrollTop: 0, editVersion: 0,
+      mathNumberingPrefix: this.documentNumberingPrefixes.get(preferenceKey(absolute)) ?? options.mathNumberingPrefix ?? defaultSettings.mathNumberingPrefix,
     };
     // Concurrent open requests can finish reading the same file together.
     const pendingAfterRead = this.pendingDestinations.get(identity);
@@ -181,6 +195,7 @@ export class DocumentService {
     const { source, mode, selection, scrollTop, editVersion } = patch;
     if (typeof source !== 'string' || !['live', 'source'].includes(mode) || !Number.isSafeInteger(editVersion) || editVersion < 0 || typeof scrollTop !== 'number' || !Number.isFinite(scrollTop) || !selection || typeof selection !== 'object' || !Number.isSafeInteger(selection.anchor) || !Number.isSafeInteger(selection.head)) throw new Error('Invalid document update.');
     if (editVersion < doc.editVersion) return;
+    if (patch.mathNumberingPrefix !== undefined && (typeof patch.mathNumberingPrefix !== 'string' || patch.mathNumberingPrefix.length > 24 || /[\x00-\x1f\x7f]/.test(patch.mathNumberingPrefix))) throw new Error('Invalid document equation number prefix.');
     const normalized = source.replace(/\r\n?/g, '\n');
     const clamp = (value: number) => Math.max(0, Math.min(normalized.length, value));
     Object.assign(doc, {
@@ -190,6 +205,10 @@ export class DocumentService {
       scrollTop: Math.max(0, scrollTop), editVersion,
       dirty: doc.recovered || normalized !== doc.savedSource,
     });
+    if (patch.mathNumberingPrefix !== undefined) {
+      doc.mathNumberingPrefix = patch.mathNumberingPrefix.trim();
+      if (doc.path) this.documentNumberingPrefixes.set(preferenceKey(doc.path), doc.mathNumberingPrefix);
+    }
     this.scheduleRecovery();
   }
 
@@ -231,6 +250,7 @@ export class DocumentService {
       doc.savedSource = snapshot.source;
       doc.dirty = doc.source !== snapshot.source;
       if (!automatic) doc.recovered = false;
+      this.documentNumberingPrefixes.set(preferenceKey(destination), doc.mathNumberingPrefix || '');
       this.ignoredExternalRevisions.delete(id);
       this.scheduleRecovery();
       return { status: 'ok', value: clone(doc) };
@@ -357,6 +377,8 @@ export class DocumentService {
       for (const filename of await readdir(this.recoveryDirectory)) {
         if (/^[a-f\d-]{36}\.json$/i.test(filename) && !retained.has(filename.slice(0, -5)) && !this.invalidRecoveryFiles.has(filename)) await unlink(path.join(this.recoveryDirectory, filename));
       }
+      const preferences = Object.fromEntries(this.documentNumberingPrefixes);
+      await atomicWrite(this.documentPreferencesPath, Buffer.from(JSON.stringify(preferences, null, 2), 'utf8'));
     });
     this.recoveryQueue = operation;
     return operation;

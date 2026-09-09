@@ -19,6 +19,8 @@ export interface DocumentSession {
   selection: Selection;
   scrollTop: number;
   editVersion: number;
+  /** Prefix for automatically generated equation numbers, scoped to this document. */
+  mathNumberingPrefix?: string;
 }
 export interface DocumentPatch {
   source: string;
@@ -26,6 +28,8 @@ export interface DocumentPatch {
   selection: Selection;
   scrollTop: number;
   editVersion: number;
+  /** Optional per-document equation number prefix. */
+  mathNumberingPrefix?: string;
 }
 export type Result<T> = { status: 'ok'; value: T } | { status: 'cancelled' } | { status: 'conflict'; message: string } | { status: 'error'; message: string };
 export type ThemeName = 'github' | 'newsprint' | 'night' | 'pixyll' | 'whitey';

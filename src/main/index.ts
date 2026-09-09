@@ -269,7 +269,7 @@ async function openPaths(win: BrowserWindow, paths: string[]): Promise<DocumentS
   let succeeded = 0;
   for (const filename of paths) {
     try {
-      const doc = await service.open(filename);
+      const doc = await service.open(filename, settings);
       const transfer = transfers.get(doc.id);
       if (transfer) {
         const source = windows.get(transfer.sourceWindow);
@@ -508,7 +508,7 @@ function installIPC() {
       own(win, id); applyPatch(id, patch);
       if (!validExportFormat(format)) throw new Error('Unsupported export format.');
       const doc = structuredClone(service.docs.get(id)!);
-      const exportSettings = { ...structuredClone(settings), theme: resolvedTheme(settings, nativeTheme.shouldUseDarkColors) };
+      const exportSettings = { ...structuredClone(settings), mathNumberingPrefix: doc.mathNumberingPrefix ?? settings.mathNumberingPrefix, theme: resolvedTheme(settings, nativeTheme.shouldUseDarkColors) };
       const extension = exportExtensions[format];
       const suggested = path.join(exportSettings.exportFolder || (doc.path ? path.dirname(doc.path) : app.getPath('documents')), path.parse(doc.title).name + `.${extension}`);
       const destination = await dialog.showSaveDialog(win, { title: tr('导出文稿', 'Export document'), defaultPath: suggested, filters: [{ name: format.toUpperCase(), extensions: [extension] }] });
