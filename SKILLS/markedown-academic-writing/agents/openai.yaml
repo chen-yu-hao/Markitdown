@@ -1,0 +1,4 @@
+interface:
+  display_name: "Markedown Academic Writing"
+  short_description: "Insert verified Zotero citations into Markedown papers"
+  default_prompt: "Use $markedown-academic-writing to add or audit references in a Markedown manuscript, checking Zotero first."
