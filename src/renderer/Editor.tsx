@@ -311,13 +311,20 @@ const liveDecorations = StateField.define<LiveState>({
 
 const viewportTracker = ViewPlugin.fromClass(class {
   pending = false;
+  frame = 0;
   destroyed = false;
   constructor(readonly view: EditorView) { this.schedule(); }
   update(update: ViewUpdate) { if (update.viewportChanged || update.docChanged) this.schedule(); }
   schedule() {
     if (this.pending) return;
     this.pending = true;
-    queueMicrotask(() => {
+    // Rebuilding live decorations can involve parsing and rendering a complete
+    // table widget.  A microtask here runs once for every wheel event and can
+    // repeatedly invalidate CodeMirror's measurement pass while the user is
+    // scrolling.  Coalesce viewport changes to one update per animation frame
+    // so scrolling remains compositor driven and decoration work happens after
+    // the current layout has settled.
+    this.frame = requestAnimationFrame(() => {
       this.pending = false;
       if (this.destroyed) return;
       const { from, to } = this.view.viewport;
@@ -326,7 +333,7 @@ const viewportTracker = ViewPlugin.fromClass(class {
       if (range.from !== previous.from || range.to !== previous.to) this.view.dispatch({ effects: viewportEffect.of(range) });
     });
   }
-  destroy() { this.destroyed = true; }
+  destroy() { this.destroyed = true; if (this.frame) cancelAnimationFrame(this.frame); }
 });
 
 const searchDecorations = ViewPlugin.fromClass(class {
