@@ -382,7 +382,7 @@ end
 async function exportWithPandoc(document: DocumentSession, format: Exclude<ExportFormat, 'html' | 'htmlPlain' | 'pdf' | 'png'>, targetPath: string, settings: Settings, citations?: CitationRenderData): Promise<void> {
   document = academicDocument(document, settings, citations);
   const executable = await findPandoc(settings.pandocPath);
-  if (!executable) throw new Error('Pandoc was not found. Install Pandoc or select pandoc.exe in Settings.');
+  if (!executable) throw new Error('Pandoc was not found. Install Pandoc or select the Pandoc executable in Settings.');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'markedown-pandoc-'));
   const input = path.join(directory, 'document.md');
   const output = path.join(directory, `document.${format}`);
@@ -547,7 +547,7 @@ export async function importDocumentToMarkdown(filename: string, targetMarkdownP
   const localInput = await resolveImage(null, pathToFileURL(path.resolve(filename)).href);
   if (!localInput) throw new Error('Choose an existing local document no larger than 64 MiB.');
   const executable = await findPandoc(settings.pandocPath);
-  if (!executable) throw new Error('Pandoc was not found. Install Pandoc or select pandoc.exe in Settings.');
+  if (!executable) throw new Error('Pandoc was not found. Install Pandoc or select the Pandoc executable in Settings.');
   const [{ stdout: formats }, { stdout: help }] = await Promise.all([
     execFileAsync(executable, ['--list-input-formats'], { windowsHide: true, timeout: 5000, maxBuffer: 64 * 1024 }),
     execFileAsync(executable, ['--help'], { windowsHide: true, timeout: 5000, maxBuffer: 256 * 1024 }),

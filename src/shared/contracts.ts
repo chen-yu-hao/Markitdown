@@ -172,7 +172,8 @@ export const defaultSettings: Settings = {
 export interface DirectoryEntry { name: string; path: string; directory: boolean }
 export interface SearchHit { path: string; line: number; column: number; offset: number; preview: string }
 export interface SearchResults { hits: SearchHit[]; truncated: boolean; cancelled: boolean }
-export interface Bootstrap { documents: DocumentSession[]; settings: Settings; workspace: string | null; recoveryErrors: string[]; locale: string; version: string; transfer?: { id: string; editorState: unknown } }
+export type RuntimePlatform = 'aix' | 'android' | 'darwin' | 'freebsd' | 'haiku' | 'linux' | 'openbsd' | 'sunos' | 'win32' | 'cygwin' | 'netbsd';
+export interface Bootstrap { documents: DocumentSession[]; settings: Settings; workspace: string | null; recoveryErrors: string[]; locale: string; version: string; platform: RuntimePlatform; arch: string; transfer?: { id: string; editorState: unknown } }
 export type AppEvent =
   | { type: 'document'; document: DocumentSession; activate?: boolean }
   | { type: 'external'; id: string; deleted: boolean }

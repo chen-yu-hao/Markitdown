@@ -77,13 +77,26 @@ async function sourceArchive(executable, destination, files, root, stem) {
   }
 }
 
-export async function release({ checkOnly = false, root = projectRoot } = {}) {
+function releasePlatform(value = process.platform) {
+  if (value === 'win32' || value === 'windows' || value === 'win') return { id: 'windows', label: 'Windows' };
+  if (value === 'linux') return { id: 'linux', label: 'Linux' };
+  throw new Error(`Unsupported release platform: ${value}`);
+}
+
+function artifactNames(product, version, platform) {
+  const stem = `${product}-${version}-${platform.label}`;
+  return platform.id === 'windows'
+    ? { installer: `${stem}-x64-Setup.exe`, portable: `${stem}-x64.zip`, source: `${stem}-Source.zip` }
+    : { appImage: `${stem}-x64.AppImage`, deb: `${stem}-x64.deb`, tarball: `${stem}-x64.tar.gz`, source: `${stem}-Source.zip` };
+}
+
+export async function release({ checkOnly = false, root = projectRoot, platform = process.platform } = {}) {
+  const target = releasePlatform(platform);
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   if (!/^\d+\.\d+\.\d+(?:-[a-z\d.-]+)?$/i.test(manifest.version)) throw new Error('Invalid release version.');
   const output = path.resolve(root, manifest.build?.directories?.output ?? 'release');
   const product = 'Markedown';
-  const stem = `${product}-${manifest.version}-Windows`;
-  const names = { installer: `${stem}-x64-Setup.exe`, portable: `${stem}-x64.zip`, source: `${stem}-Source.zip` };
+  const names = artifactNames(product, manifest.version, target);
   const files = await collectSourceFiles(root);
   const notices = ['THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md'];
   for (const filename of notices) if (!(await stat(path.join(root, 'resources', filename))).isFile()) throw new Error(`Missing ${filename}. Run npm run notices.`);
@@ -93,12 +106,17 @@ export async function release({ checkOnly = false, root = projectRoot } = {}) {
     console.log(`Expected outputs: ${Object.values(names).join(', ')}, SHA256SUMS.txt`);
     return { files: files.length, names };
   }
-  for (const filename of [names.installer, names.portable]) if (!(await stat(path.join(output, filename))).isFile()) throw new Error(`Missing ${filename}. Run npm run dist to build the Windows packages first.`);
+  const required = target.id === 'windows' ? [names.installer, names.portable] : [names.appImage, names.deb, names.tarball];
+  for (const filename of required) if (!(await stat(path.join(output, filename))).isFile()) throw new Error(`Missing ${filename}. Run npm run dist:${target.id === 'windows' ? 'win' : 'linux'} to build the ${target.label} packages first.`);
   const executable = await getPath7za();
-  const marker = JSON.parse(await run(executable, ['e', '-so', path.join(output, names.portable), 'portable.json'], output, true));
-  if (marker.portable !== true || marker.version !== manifest.version) throw new Error('The ZIP is missing the current portable marker. Rebuild with the afterPack hook.');
-  await run(executable, ['t', '-bd', path.join(output, names.portable)], output);
-  await sourceArchive(executable, path.join(output, names.source), files, root, `${stem}-Source`);
+  if (target.id === 'windows') {
+    const marker = JSON.parse(await run(executable, ['e', '-so', path.join(output, names.portable), 'portable.json'], output, true));
+    if (marker.portable !== true || marker.version !== manifest.version) throw new Error('The ZIP is missing the current portable marker. Rebuild with the afterPack hook.');
+    await run(executable, ['t', '-bd', path.join(output, names.portable)], output);
+  } else {
+    await run(executable, ['t', '-bd', path.join(output, names.tarball)], output);
+  }
+  await sourceArchive(executable, path.join(output, names.source), files, root, `${product}-${manifest.version}-${target.label}-Source`);
   for (const filename of notices) await copyFile(path.join(root, 'resources', filename), path.join(output, filename));
   await copyFile(path.join(root, 'README.md'), path.join(output, 'README.zh-CN.md'));
   const deliverables = [...Object.values(names), ...notices, 'README.zh-CN.md'].sort();
@@ -112,7 +130,12 @@ export async function release({ checkOnly = false, root = projectRoot } = {}) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const unknown = process.argv.slice(2).filter(argument => argument !== '--check');
+  let platform;
+  const unknown = process.argv.slice(2).filter(argument => {
+    if (argument === '--check') return false;
+    if (argument.startsWith('--platform=')) { platform = argument.slice('--platform='.length); return false; }
+    return true;
+  });
   if (unknown.length) throw new Error(`Unknown release arguments: ${unknown.join(', ')}`);
-  await release({ checkOnly: process.argv.includes('--check') });
+  await release({ checkOnly: process.argv.includes('--check'), platform });
 }

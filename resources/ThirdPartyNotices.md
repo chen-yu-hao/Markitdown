@@ -1,15 +1,16 @@
-# Markedown Windows 第三方与来源说明
+# Markedown 第三方与来源说明
 
 ## 用户提供的原始工程和素材
 
-Windows 版本以用户提供的 `Markedown-authored-source-0.1.6-2026-09-06.zip` 为行为和素材来源。对照资料保存在 `reference/macos/Markedown`。原工程 README 声明界面与图标为原创；本工程沿用 Markedown 名称与其中的图标，不为原归档添加新的授权条款。
+当前 Electron 版本以用户提供的 `Markedown-authored-source-0.1.6-2026-09-06.zip` 为行为和素材来源。对照资料保存在 `reference/macos/Markedown`。原工程 README 声明界面与图标为原创；本工程沿用 Markedown 名称与其中的图标，不为原归档添加新的授权条款。
 
 - `resources/icon.png` 与原工程 `Resources/Assets.xcassets/AppIcon.appiconset/markedown-icon-256.png` 内容一致，SHA-256 为 `2958645e18020083f8ec0f64aa65481373bef53ebd6ab7fddb1e84ef75497f4b`。
 - `resources/icon.ico` 封装原工程的 16、32、64、128、256 像素 PNG，供 Windows 在不同显示尺寸下使用。
+- `resources/icons/256x256.png` 复用同一 256 像素 PNG，供 Linux 桌面包使用。
 - `resources/FeatureTour.md` 与原工程 `Samples/FeatureTour.md` 内容一致，SHA-256 为 `9c7676202343445162b5ae3b931eb6ffeb21450c1548f5fcde09843079271f86`。
-- 原版的 Swift 依赖声明保留在 `reference/macos/Markedown/Resources/ThirdPartyNotices.md` 和 `Vendor/PROVENANCE.md`。这些 Swift 依赖不参与 Windows 编译；作者源码归档中的 `Vendor` 仅含来源记录，不能将其描述为完整的第三方依赖源码包。
+- 原版的 Swift 依赖声明保留在 `reference/macos/Markedown/Resources/ThirdPartyNotices.md` 和 `Vendor/PROVENANCE.md`。这些 Swift 依赖不参与 Electron 编译；作者源码归档中的 `Vendor` 仅含来源记录，不能将其描述为完整的第三方依赖源码包。
 
-## Windows 直接运行依赖
+## 直接运行依赖
 
 下表来自当前已安装包的 `package.json`。它是索引，不替代各包完整的版权、许可证及 NOTICE 文本；精确版本以 `package-lock.json` 和发布时生成的依赖清单为准。
 
@@ -28,26 +29,28 @@ Windows 版本以用户提供的 `Markedown-authored-source-0.1.6-2026-09-06.zip
 | lucide-react | ISC；同时保留包内相关图标来源说明 |
 | DOMPurify | MPL-2.0 OR Apache-2.0 |
 | sharp | Apache-2.0；预编译 libvips 及其组件按各自许可证分发 |
-| `@img/sharp-win32-x64` | Apache-2.0 AND LGPL-3.0-or-later |
+| `@img/sharp-*` 平台原生包 | Apache-2.0 AND LGPL-3.0-or-later，实际包名随构建平台变化 |
 
 Electron 分发目录随附 `LICENSE` 和 `LICENSES.chromium.html`。electron-builder 可能将 Electron 的许可证重命名为 `LICENSE.electron.txt`。交付时保留这些随运行时分发的文件，以及 `sharp` / `@img` 中的许可证和第三方说明。
 
-Pandoc 是用户另行安装的可选外部程序，不包含在本项目的 Windows 运行时中。
+Pandoc 是用户另行安装的可选外部程序，不包含在本项目运行时中。
 
 ## 依赖清单与发布
 
 首先执行 `npm ci`，再运行 `npm run notices`。`scripts/notices.mjs` 从锁文件及实际安装的生产依赖读取包名、版本、许可证声明、仓库信息，并收集包内 `LICENSE*`、`LICENCE*`、`COPYING*`、`NOTICE*` 等原始文件；Electron 虽列在开发依赖中，其运行时许可证也纳入收集。它生成 `resources/THIRD_PARTY_LICENSES.txt` 与 `resources/THIRD_PARTY_DEPENDENCIES.json`，不会覆盖本页。不能根据本页表格推断全部间接依赖的许可证。
 
-```powershell
+```bash
 npm run notices
-npm run dist
+npm run dist:win
 ```
 
-`prebuild` 会自动运行许可证生成步骤，`dist` 在打包后调用 `scripts/release.mjs`。如仅需重新整理现有构建产物，可直接运行该脚本。许可证、依赖清单与本说明随安装版和便携版提供，位于程序可执行文件旁；GitHub 的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.7.zip) 中也保留了 `resources` 目录下的对应文件。这些说明不再作为单独的 Release 附件。
+`prebuild` 会自动运行许可证生成步骤，`dist:win` 或 `dist:linux` 在打包后调用 `scripts/release.mjs`。如仅需重新整理现有构建产物，可直接运行该脚本。许可证、依赖清单与本说明随程序包提供，位于程序可执行文件旁；GitHub 的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.10.zip) 中也保留了 `resources` 目录下的对应文件。这些说明不再作为单独的 Release 附件。
 
 本地 `release/` 目录仍会生成说明文件副本，并将其纳入本地 `SHA256SUMS.txt`，用于交付归档与校验。生成依赖清单时保留未声明许可证的条目，标记为待核实，不自动赋予 MIT 或其他默认许可证。
 
-当前锁定的 `@img/sharp-win32-x64@0.34.5` 声明 `Apache-2.0 AND LGPL-3.0-or-later`，但其已安装 `LICENSE` 仅包含 Apache-2.0。`resources/native-licenses` 补充了官方 libvips 8.17.3 Windows 发行包中的 LGPL-2.1 正文、GNU 官方 LGPL-3/GPL-3 正文，以及已安装 sharp 包的原始署名表。官方发行包中的 DLL 与本地 DLL 逐字节一致，28 个原生组件版本也匹配；来源、摘要和验证范围保存在 `provenance.json`，并纳入自动生成的许可证与依赖清单。
+Windows 构建当前锁定的 `@img/sharp-win32-x64@0.34.5` 声明 `Apache-2.0 AND LGPL-3.0-or-later`，但其已安装 `LICENSE` 仅包含 Apache-2.0。`resources/native-licenses` 补充了官方 libvips 8.17.3 Windows 发行包中的 LGPL-2.1 正文、GNU 官方 LGPL-3/GPL-3 正文，以及已安装 sharp 包的原始署名表。官方发行包中的 DLL 与本地 DLL 逐字节一致，28 个原生组件版本也匹配；来源、摘要和验证范围保存在 `provenance.json`，并纳入自动生成的许可证与依赖清单。
+
+Linux 构建应在 Linux 环境重新执行 `npm ci` 和 `npm run notices`，使自动生成的 `THIRD_PARTY_LICENSES.txt` 与 `THIRD_PARTY_DEPENDENCIES.json` 记录当前安装的 Linux 原生包，例如 `@img/sharp-linux-x64` 及对应 libvips 包。不得把 Windows 生成的依赖清单直接复用为 Linux 发布清单。
 
 这些补充材料仍不是每个静态链接组件的完整版权、许可证和对应源码集合，`provenance.json` 明确标记 `completeComponentLicenseTexts: false` 并列出缺项。不得把通用 GPL/LGPL 正文视为所有组件的完整归属声明。生成器会核对补充文件摘要、sharp 包版本及对应 DLL 摘要，依赖更新后需要重新核实来源。Electron 的完整 Chromium HTML 通知另随运行时保留，不重复塞入纯文本汇总。
 

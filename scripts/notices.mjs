@@ -35,7 +35,7 @@ export async function generateNotices(root = projectRoot) {
   const installed = [];
   const omitted = [];
   const warnings = [];
-  const supplements = [];
+  let supplements = [];
   const supplementDirectory = path.join(root, 'resources', 'native-licenses');
   async function readSupplements(relative = '') {
     for (const entry of await readdir(path.join(supplementDirectory, relative), { withFileTypes: true })) {
@@ -52,13 +52,20 @@ export async function generateNotices(root = projectRoot) {
   supplements.sort((a, b) => a.path.localeCompare(b.path, 'en'));
   const provenanceText = supplements.find(file => file.path === 'resources/native-licenses/provenance.json')?.text;
   const nativeProvenance = provenanceText ? JSON.parse(provenanceText) : null;
-  if (nativeProvenance) {
-    if (nativeProvenance.schemaVersion !== 1 || !Array.isArray(nativeProvenance.files)) throw new Error('Unsupported native license provenance format.');
-    for (const evidence of nativeProvenance.files) {
+  if (nativeProvenance && (nativeProvenance.schemaVersion !== 1 || !Array.isArray(nativeProvenance.files))) throw new Error('Unsupported native license provenance format.');
+  const nativePlatform = `${process.platform}-${process.arch}`;
+  const activeNativeProvenance = nativeProvenance?.architecture === nativePlatform ? nativeProvenance : null;
+  if (nativeProvenance && !activeNativeProvenance) {
+    const files = new Set(['resources/native-licenses/provenance.json', ...nativeProvenance.files.map(evidence => `resources/native-licenses/${evidence.file}`)]);
+    supplements = supplements.filter(file => !files.has(file.path));
+    warnings.push(`Skipped ${nativeProvenance.package} supplemental native evidence for ${nativeProvenance.architecture}; current build platform is ${nativePlatform}.`);
+  }
+  if (activeNativeProvenance) {
+    for (const evidence of activeNativeProvenance.files) {
       const supplement = supplements.find(file => file.path === `resources/native-licenses/${evidence.file}`);
       if (!supplement || supplement.sha256 !== evidence.sha256) throw new Error(`Native legal material differs from its recorded source: ${evidence.file}`);
     }
-    const binary = nativeProvenance.upstreamArchive?.verifiedDll;
+    const binary = activeNativeProvenance.upstreamArchive?.verifiedDll;
     if (binary) {
       const installedPath = path.resolve(root, binary.installedPath);
       const relative = path.relative(path.join(root, 'node_modules'), installedPath);
@@ -94,7 +101,7 @@ export async function generateNotices(root = projectRoot) {
     }
     const expected = lock.packages[location]?.version;
     if (expected && manifest.version !== expected) throw new Error(`Installed ${manifest.name} ${manifest.version} does not match locked ${expected}. Run npm ci.`);
-    if (nativeProvenance?.package === manifest.name && nativeProvenance.packageVersion !== manifest.version) throw new Error('Native legal provenance does not match the installed package version.');
+    if (activeNativeProvenance?.package === manifest.name && activeNativeProvenance.packageVersion !== manifest.version) throw new Error('Native legal provenance does not match the installed package version.');
     const license = typeof manifest.license === 'string' ? manifest.license : manifest.license?.type ?? (Array.isArray(manifest.licenses) ? manifest.licenses.map(item => item.type).join(' OR ') : 'UNDECLARED');
     const record = {
       name: manifest.name, version: manifest.version, location, license,
@@ -135,7 +142,7 @@ export async function generateNotices(root = projectRoot) {
     if (manifest.name.startsWith('@img/sharp-')) {
       try { record.nativeComponentVersions = JSON.parse(await readFile(path.join(absolute, 'versions.json'), 'utf8')); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
-      if (nativeProvenance?.package === manifest.name) record.supplementalProvenance = 'resources/native-licenses/provenance.json';
+      if (activeNativeProvenance?.package === manifest.name) record.supplementalProvenance = 'resources/native-licenses/provenance.json';
       if (/LGPL/.test(license) && !texts.some(file => /GNU LESSER GENERAL PUBLIC LICENSE/i.test(file.text))) {
         record.warnings.push(supplements.some(file => /GNU LESSER GENERAL PUBLIC LICENSE/i.test(file.text))
           ? 'The installed package omits its declared LGPL text. Supplemental upstream legal materials are included; see their provenance for exact component coverage.'
@@ -177,7 +184,7 @@ export async function generateNotices(root = projectRoot) {
     platform: process.platform, architecture: process.arch, packageLockSha256: lockHash,
     packages: installed.map(item => item.record), omittedOptionalPackages: omitted,
     supplementalFiles: supplements.map(({ text: _text, ...file }) => file), warnings,
-    nativeLicenseEvidence: nativeProvenance,
+    nativeLicenseEvidence: activeNativeProvenance,
     supplementalPackageLicenseEvidence: packageEvidence,
   };
   const resources = path.join(root, 'resources');

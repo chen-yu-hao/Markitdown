@@ -1,6 +1,6 @@
 # Markedown
 
-面向日常记录与论文写作的 Windows Markdown 编辑器。
+面向日常记录与论文写作的 Windows 与 Linux Markdown 编辑器。
 
 Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出放在同一个写作环境中。文稿以本地 Markdown 文件保存，可随时切换到源码模式继续编辑。
 
@@ -10,7 +10,7 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ## 下载与安装
 
-当前版本：**0.3.10**。支持 **Windows 10 22H2 / Windows 11，x64**。直接使用安装版或便携版无需安装 Node.js。
+当前发布版本：**0.3.10**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版。Linux x64 已支持从源码打包 AppImage、DEB 和 tar.gz。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
@@ -114,8 +114,9 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会生成相邻的 `markedown-a
 
 | 数据 | 位置 |
 | --- | --- |
-| 安装版设置、恢复记录与缓存 | 通常为 `%APPDATA%\Markedown` |
-| 便携版设置、恢复记录与缓存 | `Markedown.exe` 旁的 `data` 目录 |
+| Windows 安装版设置、恢复记录与缓存 | 通常为 `%APPDATA%\Markedown` |
+| Windows 便携版设置、恢复记录与缓存 | `Markedown.exe` 旁的 `data` 目录 |
+| Linux 设置、恢复记录与缓存 | 通常为 `~/.config/Markedown`，或 `XDG_CONFIG_HOME` 指定的位置 |
 | 默认图片目录 | 文稿旁的 `assets`，可在图像设置中调整 |
 
 恢复的文稿需要先手动保存一次，才会重新启用自动写回。遇到外部修改冲突时，可重新加载、另存副本或取消。撤销图片插入会撤销文稿中的 Markdown 文本，已写入的图片文件仍保留。
@@ -147,9 +148,9 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会生成相邻的 `markedown-a
 
 ## 开发与反馈
 
-从源码运行需要 Windows x64 和 Node.js 24 LTS。在工程目录执行：
+从源码运行需要 Windows x64 或 Linux x64，以及 Node.js 24 LTS。在工程目录执行：
 
-```powershell
+```bash
 npm ci
 node node_modules/electron/install.js
 npm run dev
@@ -157,7 +158,9 @@ npm run dev
 
 每次重新执行 `npm ci` 后，需要运行上面的 Electron 安装步骤。测试、打包与发布流程见[开发与构建说明](resources/Development.md)，已完成的验证及适用范围见[验证记录](resources/Validation.md)。
 
-欢迎通过 [GitHub Issues](https://github.com/chen-yu-hao/Markitdown/issues)反馈问题或提出功能建议。报告问题时请附上应用版本、Windows 版本、复现步骤及去除个人信息的最小示例；涉及排版或点击定位时，也请注明主题和显示缩放。
+Windows 发布包使用 `npm run dist:win` 构建；Linux 发布包使用 `npm run dist:linux` 构建。详细流程见[开发与构建说明](resources/Development.md)。
+
+欢迎通过 [GitHub Issues](https://github.com/chen-yu-hao/Markitdown/issues)反馈问题或提出功能建议。报告问题时请附上应用版本、系统版本、复现步骤及去除个人信息的最小示例；涉及排版或点击定位时，也请注明主题和显示缩放。
 
 第三方组件、图标来源及许可证说明见[第三方与来源说明](resources/ThirdPartyNotices.md)。依赖清单与许可证文本位于程序可执行文件旁，也保存在源码的 `resources` 目录中。
 

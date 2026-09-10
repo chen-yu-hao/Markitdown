@@ -1,15 +1,15 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, screen, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, screen, shell, type OpenDialogOptions } from 'electron';
 import { existsSync } from 'node:fs';
 import { mkdir, open, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { DocumentService, loadSettings, saveSettings, type SettingsUpdate } from './document-service';
+import { DocumentService, defaultSettingsForPlatform, loadSettings, saveSettings, type SettingsUpdate } from './document-service';
 import { canonicalPath, isWithinRoot, listDirectory, searchWorkspace } from './workspace-service';
 import { imageResponse, importImages } from './image-service';
 import { exportDocument, findPandoc, importDocumentToMarkdown } from './export-service';
 import { assertWritableDataDirectory, exportExtensions, newDocumentFilename, recentPaths, resolvedTheme, setNewFileRegistration, titleBarColors, validExportFormat } from './platform-service';
 import { prepareClose } from './close-policy';
 import { DocumentTransfers, transferEditorState, visibleWindowBounds, type DocumentTransfer } from './document-transfer';
-import type { AppEvent, DocumentPatch, DocumentSession, ExportFormat, ImageInput, Result, Settings } from '../shared/contracts';
+import type { AppEvent, DocumentPatch, DocumentSession, ExportFormat, ImageInput, Result, RuntimePlatform, Settings } from '../shared/contracts';
 import { defaultSettings } from '../shared/contracts';
 import { ExtensionRegistry } from '../shared/extensions';
 import { ZoteroService } from './zotero-service';
@@ -423,7 +423,7 @@ function installIPC() {
     const recoveryErrors = [...service.recoveryErrors, ...initialErrors.get(win.id) || []];
     initialErrors.delete(win.id);
     const transfer = transfers.forWindow(win.id);
-    return { documents: [...service.docs.values()].filter(doc => owners.get(doc.id) === win.id), settings, workspace: workspaces.get(win.id) || null, recoveryErrors, locale: app.getLocale(), version: app.getVersion(), ...(transfer?.targetWindow === win.id ? { transfer: { id: transfer.id, editorState: transfer.editorState } } : {}) };
+    return { documents: [...service.docs.values()].filter(doc => owners.get(doc.id) === win.id), settings, workspace: workspaces.get(win.id) || null, recoveryErrors, locale: app.getLocale(), version: app.getVersion(), platform: process.platform as RuntimePlatform, arch: process.arch, ...(transfer?.targetWindow === win.id ? { transfer: { id: transfer.id, editorState: transfer.editorState } } : {}) };
   });
   handle('newDocument', win => { const doc = service.create(settings); owners.set(doc.id, win.id); return doc; });
   handle('newWindow', () => createWindow().then(() => undefined));
@@ -527,14 +527,18 @@ function installIPC() {
     } catch (error) { return fail(error); }
   });
   handle('findPandoc', () => findPandoc(settings.pandocPath));
-  handle('choosePandoc', async win => { const result = await dialog.showOpenDialog(win, { filters: [{ name: 'Pandoc', extensions: ['exe'] }], properties: ['openFile'] }); return result.canceled ? null : result.filePaths[0]; });
+  handle('choosePandoc', async win => {
+    const options: OpenDialogOptions = process.platform === 'win32' ? { filters: [{ name: 'Pandoc', extensions: ['exe'] }], properties: ['openFile'] } : { properties: ['openFile'] };
+    const result = await dialog.showOpenDialog(win, options);
+    return result.canceled ? null : result.filePaths[0];
+  });
   handle('chooseExportFolder', async win => { const result = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] }); return result.canceled ? null : result.filePaths[0]; });
   handle('editCommand', (win, action: string) => { if (action === 'cut' || action === 'copy' || action === 'paste') win.webContents[action](); else throw new Error('Unsupported edit command.'); });
   handle('windowCommand', (win, action: string) => { if (action === 'minimize') win.minimize(); else if (action === 'maximize') win.isMaximized() ? win.unmaximize() : win.maximize(); else if (action === 'close') win.close(); else throw new Error('Unknown window command.'); });
   handle('settingsAction', async (win, action: string) => {
     try {
       if (action === 'clearHistory') { await persistSettings({ recentFiles: [], recentWorkspaces: [] }); return { status: 'ok', value: tr('历史记录已清除。', 'Recent history cleared.') }; }
-      if (action === 'resetSettings') { await persistSettings(structuredClone(defaultSettings)); return { status: 'ok', value: tr('设置已重置。窗口外观在新窗口生效。', 'Settings reset. Window frame changes apply to new windows.') }; }
+      if (action === 'resetSettings') { await persistSettings(defaultSettingsForPlatform()); return { status: 'ok', value: tr('设置已重置。窗口外观在新窗口生效。', 'Settings reset. Window frame changes apply to new windows.') }; }
       if (action === 'debug') { win.webContents.openDevTools({ mode: 'detach' }); return { status: 'ok', value: tr('开发者工具已打开。', 'Developer tools opened.') }; }
       if (action === 'registerNewFile' || action === 'unregisterNewFile') {
         const enabled = action === 'registerNewFile';

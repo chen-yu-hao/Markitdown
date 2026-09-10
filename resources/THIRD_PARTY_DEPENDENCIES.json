@@ -3,7 +3,7 @@
   "version": "0.3.10",
   "platform": "win32",
   "architecture": "x64",
-  "packageLockSha256": "8751fe3840ef06954e39827c42986bfea16b5658e760ef9f4b69937b9a184bf5",
+  "packageLockSha256": "14489bc87e92187682ac3053c7a76ef42c29e5c3490e2bfd00b4ba694879e497",
   "packages": [
     {
       "name": "@codemirror/autocomplete",

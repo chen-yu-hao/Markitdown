@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import afterPack from '../scripts/after-pack.cjs';
 import { generateNotices } from '../scripts/notices.mjs';
-import { collectSourceFiles } from '../scripts/release.mjs';
+import { collectSourceFiles, release } from '../scripts/release.mjs';
 
 let root;
 beforeEach(async () => { root = await mkdtemp(path.join(tmpdir(), 'markedown-release-test-')); });
@@ -96,6 +96,11 @@ describe('release delivery', () => {
     expect(JSON.parse(await readFile(path.join(output, 'portable.json'), 'utf8'))).toEqual({ format: 1, portable: true, product: 'Markedown', version: '0.1.6' });
     expect(await readFile(path.join(output, 'README.zh-CN.md'), 'utf8')).toBe('Chinese build instructions.');
     expect(await readFile(path.join(output, 'THIRD_PARTY_LICENSES.txt'), 'utf8')).toBe('contents of THIRD_PARTY_LICENSES.txt');
+    const linuxOutput = path.join(root, 'release', 'linux-unpacked');
+    await mkdir(linuxOutput, { recursive: true });
+    await afterPack({ ...context, electronPlatformName: 'linux', appOutDir: linuxOutput });
+    expect(await readdir(linuxOutput)).not.toContain('portable.json');
+    expect(await readFile(path.join(linuxOutput, 'README.zh-CN.md'), 'utf8')).toBe('Chinese build instructions.');
     await expect(afterPack({ ...context, appOutDir: root })).rejects.toThrow('outside');
     expect(await readdir(root)).not.toContain('portable.json');
   });
@@ -119,5 +124,18 @@ describe('release delivery', () => {
     expect(files).toContain('reference/kept.txt');
     expect(files).not.toContain('dist/main/index.cjs');
     expect(files.every(filename => !filename.includes('secret') && !filename.includes('.codex') && !filename.includes('.agents'))).toBe(true);
+  });
+
+  it('reports Linux release artifacts in check mode', async () => {
+    for (const file of ['README.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', 'index.html', '.gitignore']) await fixtureFile(file, file === 'package.json' ? JSON.stringify({ productName: 'Markedown', version: '0.3.2', build: { directories: { output: 'release' } } }) : 'source input');
+    for (const directory of ['src', 'tests', 'scripts', 'resources', 'reference']) await fixtureFile(`${directory}/kept.txt`, 'keep');
+    for (const name of ['THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md']) await fixtureFile(`resources/${name}`, `contents of ${name}`);
+    const result = await release({ root, checkOnly: true, platform: 'linux' });
+    expect(result.names).toEqual({
+      appImage: 'Markedown-0.3.2-Linux-x64.AppImage',
+      deb: 'Markedown-0.3.2-Linux-x64.deb',
+      tarball: 'Markedown-0.3.2-Linux-x64.tar.gz',
+      source: 'Markedown-0.3.2-Linux-Source.zip',
+    });
   });
 });
