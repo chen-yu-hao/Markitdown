@@ -225,7 +225,13 @@ export default function App() {
     const sourceChanged = patch.source !== doc.source || patch.mode !== doc.mode || patch.editVersion !== doc.editVersion || patch.mathNumberingPrefix !== doc.mathNumberingPrefix;
     const selectionChanged = patch.selection.anchor !== doc.selection.anchor || patch.selection.head !== doc.selection.head;
     const next = { ...doc, ...patch, dirty: patch.source !== doc.savedSource || doc.recovered };
-    replaceDocs(docsRef.current.map(item => item.id === id ? next : item));
+    // Scroll position is editor-local state. Updating React state for every
+    // wheel frame rerenders every Editor and can rebuild live decorations while
+    // the browser is scrolling (especially expensive for bibliography widgets).
+    // Keep the ref in sync for tab switches, but publish React state only when
+    // document content or selection actually changed.
+    if (sourceChanged || selectionChanged) replaceDocs(docsRef.current.map(item => item.id === id ? next : item));
+    else docsRef.current = docsRef.current.map(item => item.id === id ? next : item);
     // Scrolling publishes the latest offset so tab switches can restore it,
     // but it does not change the document state. Avoid sending an IPC update
     // for every wheel frame; large tables otherwise flood the main process
