@@ -270,10 +270,10 @@ describe('document files', () => {
     update(store, doc, 'new draft\n');
     const script = `
 $ErrorActionPreference = 'Stop'
-[Console]::InputEncoding = New-Object System.Text.UTF8Encoding($false)
-[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
-$request = ConvertFrom-Json -InputObject ([Console]::ReadLine())
-$stream = [IO.File]::Open([string]$request.path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$lockPath = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::ReadLine()))
+$stream = [IO.File]::Open($lockPath, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
 try {
   [Console]::WriteLine('LOCKED')
   [Console]::Out.Flush()
@@ -286,7 +286,9 @@ try {
     let diagnostic = '';
     const exited = new Promise<number | null>(resolve => holder.once('close', code => { closed = true; resolve(code); }));
     const ready = new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error(`Windows lock helper timed out: ${diagnostic}`)), 6000);
+      // A fresh Windows runner can take longer to start PowerShell. Readiness
+      // still requires the real FileShare.None lock, never an elapsed delay.
+      const timeout = setTimeout(() => reject(new Error(`Windows lock helper timed out: ${diagnostic}`)), 30000);
       let output = '';
       holder.stdout.setEncoding('utf8');
       holder.stderr.setEncoding('utf8');
@@ -299,7 +301,7 @@ try {
       holder.once('close', code => { clearTimeout(timeout); reject(new Error(`Windows lock helper exited ${code}: ${diagnostic}`)); });
       holder.stdin.on('error', error => { if ((error as NodeJS.ErrnoException).code !== 'EPIPE') reject(error); });
     });
-    holder.stdin.write(`${JSON.stringify({ path: filename })}\n`, 'utf8');
+    holder.stdin.write(`${Buffer.from(filename, 'utf8').toString('base64')}\n`, 'ascii');
     try {
       try {
         await ready;
@@ -322,7 +324,7 @@ try {
       if (relative.startsWith('..') || path.isAbsolute(relative) || !path.basename(lockDirectory).startsWith('markedown-lock-')) throw new Error('Unsafe Windows lock test cleanup path.');
       await fs.rm(lockDirectory, { recursive: true, force: true });
     }
-  }, 15000);
+  }, 45000);
 
   it('keeps edits made during an in-flight save dirty', async () => {
     const filename = await textFile('race.md', 'initial');
