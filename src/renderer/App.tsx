@@ -222,9 +222,15 @@ export default function App() {
   const change = useCallback((id: string, patch: DocumentPatch) => {
     const doc = docsRef.current.find(item => item.id === id);
     if (!doc || patch.editVersion < doc.editVersion) return;
+    const sourceChanged = patch.source !== doc.source || patch.mode !== doc.mode || patch.editVersion !== doc.editVersion || patch.mathNumberingPrefix !== doc.mathNumberingPrefix;
+    const selectionChanged = patch.selection.anchor !== doc.selection.anchor || patch.selection.head !== doc.selection.head;
     const next = { ...doc, ...patch, dirty: patch.source !== doc.savedSource || doc.recovered };
     replaceDocs(docsRef.current.map(item => item.id === id ? next : item));
-    void window.markedown.updateDocument(id, patch).catch(error => showError(String(error)));
+    // Scrolling publishes the latest offset so tab switches can restore it,
+    // but it does not change the document state. Avoid sending an IPC update
+    // for every wheel frame; large tables otherwise flood the main process
+    // while the renderer is still trying to scroll.
+    if (sourceChanged || selectionChanged) void window.markedown.updateDocument(id, patch).catch(error => showError(String(error)));
   }, [replaceDocs, showError]);
   async function newDocument() { try { upsert(await window.markedown.newDocument(), true); } catch (error) { showError(String(error)); } }
   async function openFiles(paths?: string[], offset?: number) {
