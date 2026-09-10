@@ -474,6 +474,22 @@ describe('recovery and settings', () => {
     expect(await fs.readFile(filename, 'utf8')).toBe('after explicit save');
   });
 
+  it('persists scroll-only changes without replacing content, selection or dirty state', async () => {
+    const original = await service();
+    const doc = original.create();
+    update(original, doc, 'unsaved text', { selection: { anchor: 1, head: 4 } });
+    const before = structuredClone(original.docs.get(doc.id)!);
+    original.updateScroll(doc.id, 450, before.editVersion);
+    expect(original.docs.get(doc.id)).toEqual({ ...before, scrollTop: 450 });
+    original.updateScroll(doc.id, 10, before.editVersion - 1);
+    original.updateScroll(doc.id, 20, before.editVersion + 1);
+    expect(original.docs.get(doc.id)!.scrollTop).toBe(450);
+    expect(() => original.updateScroll(doc.id, NaN, before.editVersion)).toThrow();
+    await original.flushRecovery();
+    const restored = await service();
+    expect(restored.docs.get(doc.id)).toMatchObject({ source: before.source, selection: before.selection, scrollTop: 450, dirty: true, recovered: true });
+  });
+
   it('isolates corrupt recovery records and removes records for closed tabs', async () => {
     const original = await service();
     const doc = original.create();

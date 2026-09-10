@@ -80,6 +80,9 @@ jobs:
       - name: Verify Packaged Document Tabs
         timeout-minutes: 10
         run: node scripts/verify-document-tabs.mjs release/win-unpacked/Markedown.exe
+      - name: Verify Packaged Academic Scrolling
+        timeout-minutes: 5
+        run: node scripts/verify-academic-scroll.mjs release/win-unpacked/Markedown.exe
       - name: Verify Packaged Sidebar Files
         timeout-minutes: 5
         run: node scripts/verify-file-tree.mjs release/win-unpacked/Markedown.exe

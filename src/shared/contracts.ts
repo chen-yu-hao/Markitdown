@@ -190,6 +190,7 @@ export interface MarkedownAPI {
   newWindow(): Promise<void>;
   openFiles(paths?: string[]): Promise<Result<DocumentSession[]>>;
   updateDocument(id: string, patch: DocumentPatch): Promise<void>;
+  updateScroll(id: string, scrollTop: number, editVersion: number): Promise<void>;
   saveDocument(id: string, patch: DocumentPatch, saveAs?: boolean): Promise<Result<DocumentSession>>;
   closeDocument(id: string): Promise<Result<boolean>>;
   closeOtherDocuments(keepId: string): Promise<Result<string[]>>;

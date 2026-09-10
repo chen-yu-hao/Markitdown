@@ -10,6 +10,7 @@ const api: MarkedownAPI = {
   newWindow: () => invoke('newWindow'),
   openFiles: paths => invoke('openFiles', paths),
   updateDocument: (id, patch) => invoke('updateDocument', id, patch),
+  updateScroll: (id, scrollTop, editVersion) => invoke('updateScroll', id, scrollTop, editVersion),
   saveDocument: (id, patch, saveAs) => invoke('saveDocument', id, patch, saveAs),
   closeDocument: id => invoke('closeDocument', id),
   closeOtherDocuments: keepId => invoke('closeOtherDocuments', keepId),

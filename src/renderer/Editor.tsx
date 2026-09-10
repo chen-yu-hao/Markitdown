@@ -24,6 +24,7 @@ export interface EditorHandle {
   replace(value: string, all?: boolean): void;
   scrollTo(offset: number): void;
   focus(): void;
+  flushScroll(): void;
   insertText(text: string, bibliography?: boolean): void;
   beginTransfer(): { patch: DocumentPatch; editorState: unknown } | null;
   cancelTransfer(): void;
@@ -39,6 +40,7 @@ export interface EditorProps {
   settings?: Settings;
   citations?: CitationRenderData;
   onChange(patch: DocumentPatch): void;
+  onScroll?(scrollTop: number, editVersion: number): void;
   onImportImages(files?: File[]): Promise<string[]>;
   onFindResult?(result: { current: number; total: number }): void;
   transferState?: unknown;
@@ -206,16 +208,21 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
     protectedRanges.push({ from: start, to: end });
   };
   for (const equation of equations) {
-    if (equation.to < from || equation.from > to) continue;
+    if (!equation.block && (equation.to < from || equation.from > to)) continue;
     if (!isActive(equation.from, equation.to)) render(equation.from, equation.to, equation.block);
     else protectedRanges.push({ from: equation.from, to: equation.to });
   }
   for (const bibliography of citationScan.bibliographies.slice(0, 1)) {
-    if (bibliography.to >= from && bibliography.from <= to && !isActive(bibliography.from, bibliography.to)) render(bibliography.from, bibliography.to, true);
+    if (!isActive(bibliography.from, bibliography.to)) render(bibliography.from, bibliography.to, true);
   }
   if (citationScan.keys.length && !citationScan.bibliographies.length) decorations.push(Decoration.widget({ widget: new RenderedWidget(BIBLIOGRAPHY_MARKER, state.doc.length, true, resolveImage, settings, equationIndex, citations, true), block: true, side: 1 }).range(state.doc.length));
   syntaxTree(state).iterate({
-    from, to,
+    // Block replacements define the document's height, including offscreen
+    // tables and bibliography placeholders. Keep them in the decoration set
+    // and let CodeMirror virtualize their DOM. Removing a tall replacement at
+    // a viewport boundary changes it back into short source lines and makes
+    // the scroll anchor jump. Only inline presentation is viewport limited.
+    from: 0, to: state.doc.length,
     enter(node) {
       const name = node.name;
       const start = node.from;
@@ -251,6 +258,7 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
           return false;
         }
       }
+      if (end < from || start > to) return false;
       if (name === 'Paragraph' && settings.firstLineIndent && node.node.parent?.name === 'Document' && !equations.some(equation => start < equation.to && end > equation.from)) decorations.push(Decoration.line({ class: 'md-paragraph-indent' }).range(state.doc.lineAt(start).from));
       if (/^(ATXHeading|SetextHeading)/.test(name)) {
         const level = Number(name.slice(-1));
@@ -418,6 +426,19 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const transferLocked = useRef(props.transferState !== undefined);
   const transferConfig = useRef(new Compartment());
+  const scrollTopRef = useRef(props.document.scrollTop);
+
+  function scrollPosition(view: EditorView) {
+    if (propsRef.current.active && view.scrollDOM.clientHeight > 0) scrollTopRef.current = view.scrollDOM.scrollTop;
+    return scrollTopRef.current;
+  }
+
+  function publishScroll(view: EditorView) {
+    if (transferLocked.current || !propsRef.current.active) return;
+    const top = scrollPosition(view);
+    if (propsRef.current.onScroll) propsRef.current.onScroll(top, versionRef.current);
+    else publish(view);
+  }
 
   function lockTransfer(locked: boolean) {
     transferLocked.current = locked;
@@ -448,7 +469,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     const current = propsRef.current;
     const source = view.state.doc.toString();
     const mode = new TextEncoder().encode(source).length > sourceLimit ? 'source' : current.document.mode;
-    current.onChange({ source, mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current, mathNumberingPrefix: current.document.mathNumberingPrefix });
+    current.onChange({ source, mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: scrollPosition(view), editVersion: versionRef.current, mathNumberingPrefix: current.document.mathNumberingPrefix });
   }
 
   function applyExternal(view: EditorView, document: DocumentSession) {
@@ -461,6 +482,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
       selection: { anchor: Math.min(document.selection.anchor, document.source.length), head: Math.min(document.selection.head, document.source.length) },
       annotations: [externalChange.of(true), Transaction.addToHistory.of(false)],
     });
+    scrollTopRef.current = document.scrollTop;
     view.scrollDOM.scrollTop = document.scrollTop;
   }
 
@@ -562,13 +584,14 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   useImperativeHandle(ref, () => ({
     command,
     insertText,
+    flushScroll() { if (viewRef.current) publishScroll(viewRef.current); },
     beginTransfer() {
       const view = viewRef.current;
       if (!view || transferLocked.current || view.composing || view.compositionStarted || view.state.field(insertions).size || deferredBibliographyRef.current || pendingExternalRef.current) return null;
       const editorState = view.state.toJSON({ history: historyField });
       const source = view.state.doc.toString();
       const current = propsRef.current;
-      const patch: DocumentPatch = { source, mode: current.document.mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: current.active ? view.scrollDOM.scrollTop : current.document.scrollTop, editVersion: versionRef.current, mathNumberingPrefix: current.document.mathNumberingPrefix };
+      const patch: DocumentPatch = { source, mode: current.document.mode, selection: { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head }, scrollTop: scrollPosition(view), editVersion: versionRef.current, mathNumberingPrefix: current.document.mathNumberingPrefix };
       lockTransfer(true);
       return { patch, editorState };
     },
@@ -686,7 +709,9 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
               return false;
             },
             scroll(_event, editor) {
-              if (!scrollFrame) scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; if (viewRef.current === editor) publish(editor); });
+              if (!propsRef.current.active) return false;
+              scrollPosition(editor);
+              if (!scrollFrame) scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; if (viewRef.current === editor) publishScroll(editor); });
               return false;
             },
           }),
@@ -761,6 +786,10 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     if (view.compositionStarted) { pendingCitationsRef.current = citations; return; }
     view.dispatch({ effects: citationsRef.current.reconfigure(editorCitations.of(citations)) });
   }, [props.citations]);
+
+  useLayoutEffect(() => {
+    if (props.active && viewRef.current) viewRef.current.scrollDOM.scrollTop = scrollTopRef.current;
+  }, [props.active]);
 
   useEffect(() => {
     if (!props.active) return;

@@ -189,6 +189,15 @@ export class DocumentService {
     return clone(doc);
   }
 
+  // Scroll updates carry no Markdown and never restart the autosave timer.
+  updateScroll(id: string, scrollTop: number, editVersion: number): void {
+    const doc = this.require(id);
+    if (!Number.isFinite(scrollTop) || typeof scrollTop !== 'number' || !Number.isSafeInteger(editVersion) || editVersion < 0) throw new Error('Invalid document scroll position.');
+    if (editVersion !== doc.editVersion || doc.scrollTop === Math.max(0, scrollTop)) return;
+    doc.scrollTop = Math.max(0, scrollTop);
+    this.scheduleRecovery();
+  }
+
   update(id: string, patch: DocumentPatch): void {
     const doc = this.require(id);
     if (!patch || typeof patch !== 'object') throw new Error('Invalid document update.');

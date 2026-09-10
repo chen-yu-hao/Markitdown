@@ -456,6 +456,10 @@ function installIPC() {
     own(win, id); applyPatch(id, patch);
     scheduleAutoSave(id);
   });
+  handle('updateScroll', (win, id: string, scrollTop: number, editVersion: number) => {
+    own(win, id);
+    service.updateScroll(id, scrollTop, editVersion);
+  });
   handle('saveDocument', async (win, id: string, patch: DocumentPatch, saveAs = false) => { try { own(win, id); applyPatch(id, patch); return await saveWithDialog(win, id, saveAs); } catch (error) { return fail(error); } });
   handle('closeDocument', async (win, id: string) => { try { own(win, id); return await closeDocuments(win, [id]); } catch (error) { return fail(error); } });
   handle('closeOtherDocuments', async (win, keepId: string): Promise<Result<string[]>> => {
