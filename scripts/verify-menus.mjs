@@ -24,8 +24,8 @@ try {
   const help = page.getByRole('menuitem', { name: '帮助', exact: true });
   const documentsBeforeHelp = await page.evaluate(async () => (await window.markedown.bootstrap()).documents.length);
   await help.click();
-  await page.getByRole('menu', { name: '帮助', exact: true }).getByRole('menuitem', { name: '关于 Markedown', exact: true }).click();
-  const about = page.getByRole('dialog', { name: '关于 Markedown', exact: true });
+  await page.getByRole('menu', { name: '帮助', exact: true }).getByRole('menuitem', { name: '关于 Markit', exact: true }).click();
+  const about = page.getByRole('dialog', { name: '关于 Markit', exact: true });
   await about.waitFor();
   assert(await page.getByTestId('preferences').count() === 0, 'About opened Preferences');
   assert(await page.evaluate(async () => (await window.markedown.bootstrap()).documents.length) === documentsBeforeHelp, 'About changed the open documents');

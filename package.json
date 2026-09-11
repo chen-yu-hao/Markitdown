@@ -1,11 +1,11 @@
 {
-  "name": "markedown",
-  "productName": "Markedown",
-  "desktopName": "com.zhuanz.markedown",
+  "name": "markit",
+  "productName": "Markit",
+  "desktopName": "com.zhuanz.markit",
   "version": "0.3.10",
   "private": true,
-  "description": "Markedown Markdown editor for desktop Linux and Windows",
-  "author": "Markedown contributors",
+  "description": "Markit Markdown editor for desktop Linux and Windows",
+  "author": "Markit contributors",
   "main": "dist/main/index.cjs",
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -66,8 +66,8 @@
     "vitest": "^4.0.0"
   },
   "build": {
-    "appId": "com.zhuanz.markedown",
-    "productName": "Markedown",
+    "appId": "com.zhuanz.markit",
+    "productName": "Markit",
     "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release",
@@ -92,7 +92,7 @@
         "zip"
       ],
       "signExecutable": false,
-      "artifactName": "Markedown-${version}-Windows-${arch}.${ext}"
+      "artifactName": "Markit-${version}-Windows-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -101,26 +101,26 @@
       "createDesktopShortcut": true,
       "deleteAppDataOnUninstall": false,
       "include": "resources/installer.nsh",
-      "artifactName": "Markedown-${version}-Windows-${arch}-Setup.${ext}"
+      "artifactName": "Markit-${version}-Windows-${arch}-Setup.${ext}"
     },
     "linux": {
       "icon": "resources/icons",
       "category": "Office",
-      "executableName": "markedown",
-      "maintainer": "Markedown contributors <iawhaha@163.com>",
+      "executableName": "markit",
+      "maintainer": "Markit contributors <iawhaha@163.com>",
       "syncDesktopName": true,
       "synopsis": "Markdown editor",
-      "description": "Markedown Markdown editor for local documents, live preview and document export.",
+      "description": "Markit Markdown editor for local documents, live preview and document export.",
       "mimeTypes": ["text/markdown", "text/plain"],
       "target": ["AppImage", "deb", "rpm", "tar.gz"],
-      "artifactName": "Markedown-${version}-Linux-x64.${ext}"
+      "artifactName": "Markit-${version}-Linux-x64.${ext}"
     },
     "deb": {
-      "packageName": "markedown",
+      "packageName": "markit",
       "packageCategory": "editors"
     },
     "rpm": {
-      "packageName": "markedown",
+      "packageName": "markit",
       "packageCategory": "Office"
     }
   }

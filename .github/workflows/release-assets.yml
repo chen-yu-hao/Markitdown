@@ -27,7 +27,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       RELEASE_TAG: ${{ inputs.tag }}
     steps:
-      - name: Keep Installer and Portable ZIP
+      - name: Keep Windows and Linux Packages
         shell: pwsh
         run: |
           if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag.' }
@@ -35,8 +35,8 @@ jobs:
           $release = gh api "repos/$env:GH_REPO/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Could not read the release.' }
           if ($release.tag_name -cne $env:RELEASE_TAG -or $release.draft -or $release.immutable) { throw 'Expected a mutable published release.' }
-          $keep = @("Markedown-$version-Windows-x64-Setup.exe", "Markedown-$version-Windows-x64.zip")
-          $remove = @("Markedown-$version-Windows-Source.zip", 'README.zh-CN.md', 'SHA256SUMS.txt', 'THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md')
+          $keep = @("Markit-$version-Windows-x64-Setup.exe", "Markit-$version-Windows-x64.zip", "Markit-$version-Linux-x64.AppImage", "Markit-$version-Linux-x64.deb", "Markit-$version-Linux-x64.rpm", "Markit-$version-Linux-x64.tar.gz")
+          $remove = @("Markit-$version-Windows-Source.zip", 'README.zh-CN.md', 'SHA256SUMS.txt', 'THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md')
           $assets = @(gh api --paginate --slurp "repos/$env:GH_REPO/releases/$($release.id)/assets" | ConvertFrom-Json | ForEach-Object { $_ })
           if ($LASTEXITCODE -ne 0) { throw 'Could not list release assets.' }
           $assets = @($assets | ForEach-Object { $_ })
@@ -62,4 +62,4 @@ jobs:
             $after = @($remaining | Where-Object name -CEQ $before.name)
             if ($after.Count -ne 1 -or $after[0].id -ne $before.id -or $after[0].size -ne $before.size -or $after[0].digest -ne $before.digest) { throw "Download changed: $($before.name)" }
           }
-          Write-Output 'Only the installer and portable ZIP remain; GitHub supplies Source code archives.'
+          Write-Output 'Only the Windows and Linux packages remain; GitHub supplies Source code archives.'

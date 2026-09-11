@@ -1,4 +1,4 @@
-name: Windows Release
+name: Release
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '24.14.0'
+          node-version: '22.14.0'
           cache: npm
 
       - name: Use Canonical Windows Temp Directory
@@ -70,25 +70,25 @@ jobs:
       - run: npm run build
       - run: npx electron-builder --win nsis zip --x64 --publish never
       - run: node scripts/verify-packaged.mjs
-      - run: node scripts/verify-equation-layout.mjs release/win-unpacked/Markedown.exe
+      - run: node scripts/verify-equation-layout.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Equation Scrolling
         timeout-minutes: 5
-        run: node scripts/verify-equation-scroll.mjs release/win-unpacked/Markedown.exe
+        run: node scripts/verify-equation-scroll.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Theme Numbers
         timeout-minutes: 5
-        run: node scripts/verify-theme-numbers.mjs release/win-unpacked/Markedown.exe
+        run: node scripts/verify-theme-numbers.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Document Tabs
         timeout-minutes: 10
-        run: node scripts/verify-document-tabs.mjs release/win-unpacked/Markedown.exe
+        run: node scripts/verify-document-tabs.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Academic Scrolling
         timeout-minutes: 5
-        run: node scripts/verify-academic-scroll.mjs release/win-unpacked/Markedown.exe
+        run: node scripts/verify-academic-scroll.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Sidebar Files
         timeout-minutes: 5
-        run: node scripts/verify-file-tree.mjs release/win-unpacked/Markedown.exe
+        run: node scripts/verify-file-tree.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Standalone Equations
         timeout-minutes: 5
-        run: node scripts/verify-workspace-equations.mjs release/win-unpacked/Markedown.exe
+        run: node scripts/verify-workspace-equations.mjs release/win-unpacked/Markit.exe
       - run: node scripts/release.mjs
 
       - name: Publish Verified Assets
@@ -99,7 +99,7 @@ jobs:
         run: |
           $manifest = Get-Content package.json -Raw | ConvertFrom-Json
           $records = Get-Content release/SHA256SUMS.txt
-          $downloads = @("Markedown-$($manifest.version)-Windows-x64-Setup.exe", "Markedown-$($manifest.version)-Windows-x64.zip")
+          $downloads = @("Markit-$($manifest.version)-Windows-x64-Setup.exe", "Markit-$($manifest.version)-Windows-x64.zip")
           $assets = @()
           foreach ($record in $records) {
             $parts = $record -split '  ', 2
@@ -125,14 +125,28 @@ jobs:
             # previous binaries after all verification steps have passed.
             $isDraft = ($existing | ConvertFrom-Json).isDraft
           } else {
-            gh release create $env:RELEASE_TAG --verify-tag --draft --title "Markedown $($manifest.version) for Windows" --notes-file $notesPath
+            gh release create $env:RELEASE_TAG --verify-tag --draft --title "Markit $($manifest.version)" --notes-file $notesPath
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release.' }
           }
           gh release upload $env:RELEASE_TAG @assets --clobber
           if ($LASTEXITCODE -ne 0) { throw 'Release asset upload failed.' }
           $published = gh release view $env:RELEASE_TAG --json assets | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Could not verify uploaded assets.' }
-          if ($published.assets.Count -ne $downloads.Count) { throw 'Only the installer and portable ZIP may be uploaded. GitHub provides source archives automatically.' }
+          $version = $manifest.version
+          $allowed = @(
+            "Markit-$version-Windows-x64-Setup.exe",
+            "Markit-$version-Windows-x64.zip",
+            "Markit-$version-Linux-x64.AppImage",
+            "Markit-$version-Linux-x64.deb",
+            "Markit-$version-Linux-x64.rpm",
+            "Markit-$version-Linux-x64.tar.gz"
+          )
+          foreach ($remote in $published.assets) {
+            if ($remote.name -cnotin $allowed) { throw "Unexpected release asset: $($remote.name)" }
+          }
+          foreach ($filename in $downloads) {
+            if (@($published.assets | Where-Object name -CEQ $filename).Count -ne 1) { throw "Uploaded asset missing: $filename" }
+          }
           foreach ($filename in $assets) {
             $file = Get-Item -LiteralPath $filename
             $remote = @($published.assets | Where-Object name -eq $file.Name)
@@ -140,3 +154,68 @@ jobs:
           }
           gh release edit $env:RELEASE_TAG --draft=false --latest
           if ($LASTEXITCODE -ne 0) { throw 'Could not publish the release.' }
+
+  linux:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate Release Tag
+        run: |
+          version=$(node -p "require('./package.json').version")
+          test "$RELEASE_TAG" = "v$version"
+          git show-ref --verify "refs/tags/$RELEASE_TAG"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.14.0'
+          cache: npm
+
+      - name: Install Linux Packaging Tools
+        run: sudo apt-get update && sudo apt-get install --yes rpm
+      - run: npm ci
+      - name: Install Locked Electron Runtime
+        run: node node_modules/electron/install.js
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npx electron-builder --linux AppImage deb rpm tar.gz --x64 --publish never
+      - run: node scripts/release.mjs --platform=linux
+
+      - name: Upload Linux Assets
+        run: |
+          version=$(node -p "require('./package.json').version")
+          assets=(
+            "release/Markit-$version-Linux-x64.AppImage"
+            "release/Markit-$version-Linux-x64.deb"
+            "release/Markit-$version-Linux-x64.rpm"
+            "release/Markit-$version-Linux-x64.tar.gz"
+          )
+          for asset in "${assets[@]}"; do test -s "$asset"; done
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          mapfile -t remote < <(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+          allowed=(
+            "Markit-$version-Windows-x64-Setup.exe"
+            "Markit-$version-Windows-x64.zip"
+            "Markit-$version-Linux-x64.AppImage"
+            "Markit-$version-Linux-x64.deb"
+            "Markit-$version-Linux-x64.rpm"
+            "Markit-$version-Linux-x64.tar.gz"
+          )
+          for name in "${remote[@]}"; do
+            printf '%s\n' "${allowed[@]}" | grep -Fxq "$name" || { echo "Unexpected release asset: $name" >&2; exit 1; }
+          done
+          for name in "${allowed[@]}"; do
+            printf '%s\n' "${remote[@]}" | grep -Fxq "$name" || { echo "Missing release asset: $name" >&2; exit 1; }
+          done

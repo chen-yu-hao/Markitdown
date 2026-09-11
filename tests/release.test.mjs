@@ -47,7 +47,7 @@ describe('release delivery', () => {
   });
 
   it('collects installed production license texts, includes Electron, and flags missing declarations without replacing them', async () => {
-    await fixtureFile('package.json', JSON.stringify({ name: 'markedown-windows', productName: 'Markedown', version: '0.1.6' }));
+    await fixtureFile('package.json', JSON.stringify({ name: 'markit-windows', productName: 'Markit', version: '0.1.6' }));
     await fixtureFile('package-lock.json', JSON.stringify({ packages: {
       '': { version: '0.1.6' },
       'node_modules/runtime-a': { version: '1.0.0' },
@@ -86,14 +86,14 @@ describe('release delivery', () => {
   });
 
   it('stages portable metadata and notices beside the executable and rejects an out-of-tree hook path', async () => {
-    await fixtureFile('package.json', JSON.stringify({ productName: 'Markedown', version: '0.1.6' }));
+    await fixtureFile('package.json', JSON.stringify({ productName: 'Markit', version: '0.1.6' }));
     await fixtureFile('README.md', 'Chinese build instructions.');
     for (const name of ['THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md']) await fixtureFile(`resources/${name}`, `contents of ${name}`);
     const output = path.join(root, 'release', 'win-unpacked');
     await mkdir(output, { recursive: true });
     const context = { electronPlatformName: 'win32', appOutDir: output, packager: { projectDir: root, config: { directories: { output: 'release' } } } };
     await afterPack(context);
-    expect(JSON.parse(await readFile(path.join(output, 'portable.json'), 'utf8'))).toEqual({ format: 1, portable: true, product: 'Markedown', version: '0.1.6' });
+    expect(JSON.parse(await readFile(path.join(output, 'portable.json'), 'utf8'))).toEqual({ format: 1, portable: true, product: 'Markit', version: '0.1.6' });
     expect(await readFile(path.join(output, 'README.zh-CN.md'), 'utf8')).toBe('Chinese build instructions.');
     expect(await readFile(path.join(output, 'THIRD_PARTY_LICENSES.txt'), 'utf8')).toBe('contents of THIRD_PARTY_LICENSES.txt');
     const linuxOutput = path.join(root, 'release', 'linux-unpacked');
@@ -127,16 +127,16 @@ describe('release delivery', () => {
   });
 
   it('reports Linux release artifacts in check mode', async () => {
-    for (const file of ['README.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', 'index.html', '.gitignore']) await fixtureFile(file, file === 'package.json' ? JSON.stringify({ productName: 'Markedown', version: '0.3.2', build: { directories: { output: 'release' } } }) : 'source input');
+    for (const file of ['README.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', 'index.html', '.gitignore']) await fixtureFile(file, file === 'package.json' ? JSON.stringify({ productName: 'Markit', version: '0.3.2', build: { directories: { output: 'release' } } }) : 'source input');
     for (const directory of ['src', 'tests', 'scripts', 'resources', 'reference']) await fixtureFile(`${directory}/kept.txt`, 'keep');
     for (const name of ['THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md']) await fixtureFile(`resources/${name}`, `contents of ${name}`);
     const result = await release({ root, checkOnly: true, platform: 'linux' });
     expect(result.names).toEqual({
-      appImage: 'Markedown-0.3.2-Linux-x64.AppImage',
-      deb: 'Markedown-0.3.2-Linux-x64.deb',
-      rpm: 'Markedown-0.3.2-Linux-x64.rpm',
-      tarball: 'Markedown-0.3.2-Linux-x64.tar.gz',
-      source: 'Markedown-0.3.2-Linux-Source.zip',
+      appImage: 'Markit-0.3.2-Linux-x64.AppImage',
+      deb: 'Markit-0.3.2-Linux-x64.deb',
+      rpm: 'Markit-0.3.2-Linux-x64.rpm',
+      tarball: 'Markit-0.3.2-Linux-x64.tar.gz',
+      source: 'Markit-0.3.2-Linux-Source.zip',
     });
   });
 });
