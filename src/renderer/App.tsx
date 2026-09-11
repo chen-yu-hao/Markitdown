@@ -41,6 +41,53 @@ function Modal({ title, onClose, children, wide = false }: { title: string; onCl
   return <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`modal ${wide ? 'modal-wide' : ''}`}><header><h2>{title}</h2><IconButton label="Close" onClick={onClose}><X /></IconButton></header>{children}</div></div>;
 }
 
+function AboutContent({ zh, version, platform, arch }: { zh: boolean; version: string; platform: RuntimePlatform; arch: string }) {
+  const t = (cn: string, en: string) => zh ? cn : en;
+  const platformName = platform === 'win32' ? 'Windows' : platform === 'linux' ? 'Linux' : platform === 'darwin' ? 'macOS' : platform;
+  return <div className="about-content">
+    <div className="about-logo" aria-hidden="true">M</div>
+    <h3>Markedown</h3>
+    <p>{t('面向本地文稿的 Markdown 编辑器，支持即时排版、数学公式、学术引用与多格式导出。', 'A local Markdown editor with live rendering, equations, academic references and multi-format export.')}</p>
+    <p className="about-version">Markedown {version} · {platformName} {arch}</p>
+    <p className="about-note">{t('文稿保存在本地，Markdown 源码始终是唯一数据源。', 'Documents stay local, and Markdown source remains the single source of truth.')}</p>
+    <CitationCredits />
+  </div>;
+}
+
+function MarkdownGuide({ zh }: { zh: boolean }) {
+  const t = (cn: string, en: string) => zh ? cn : en;
+  return <div className="guide-content">
+    <p>{t('Markdown 指南展示常用语法和 Markedown 的基本编辑方式。指南内容不会创建或修改文稿。', 'This guide covers common Markdown syntax and the basic Markedown workflow. It does not create or modify a document.')}</p>
+    <section>
+      <h3>{t('常用快捷键', 'Common shortcuts')}</h3>
+      <div className="guide-shortcuts">
+        <div><kbd>Ctrl+N</kbd><span>{t('新建文稿', 'New document')}</span></div>
+        <div><kbd>Ctrl+O</kbd><span>{t('打开文稿', 'Open document')}</span></div>
+        <div><kbd>Ctrl+S</kbd><span>{t('保存文稿', 'Save document')}</span></div>
+        <div><kbd>Ctrl+W</kbd><span>{t('关闭文稿', 'Close document')}</span></div>
+        <div><kbd>Ctrl+/</kbd><span>{t('切换源码模式', 'Toggle source mode')}</span></div>
+        <div><kbd>Ctrl+,</kbd><span>{t('打开偏好设置', 'Open preferences')}</span></div>
+      </div>
+    </section>
+    <section>
+      <h3>Markdown</h3>
+      <ul>
+        <li><code># {t('一级标题', 'Heading')}</code> {t('创建标题', 'creates a heading')}</li>
+        <li><code>**{t('粗体', 'bold')}**</code>、<code>*{t('斜体', 'italic')}*</code>、<code>~~{t('删除线', 'strikethrough')}~~</code> {t('设置文字样式', 'apply text styles')}</li>
+        <li><code>- {t('列表项', 'list item')}</code> {t('创建无序列表', 'creates a bullet list')}</li>
+        <li><code>- [ ] {t('待办事项', 'task')}</code> {t('创建任务列表', 'creates a task list')}</li>
+        <li><code>&gt; {t('引用内容', 'quote')}</code> {t('创建引用块', 'creates a blockquote')}</li>
+        <li><code>[{t('链接', 'link')}](https://example.com)</code> {t('插入链接', 'inserts a link')}</li>
+        <li><code>$E = mc^2$</code> {t('插入行内公式；独占段落的公式会按行间公式处理。', 'inserts an inline equation; a standalone paragraph is treated as a display equation.')}</li>
+      </ul>
+    </section>
+    <section>
+      <h3>{t('编辑方式', 'Editing')}</h3>
+      <p>{t('点击即时排版区域即可编辑对应的 Markdown 源码。需要精确处理大段文本时，可使用源码模式。文稿保存后会保留原始换行格式和 UTF-8 BOM。', 'Click a rendered block to edit its Markdown source. Use source mode for precise editing of larger passages. Saved documents retain their original line endings and UTF-8 BOM.')}</p>
+    </section>
+  </div>;
+}
+
 function FileTree({ root, refresh, selected, onOpen, onError }: { root: string; refresh: number; selected: string | null; onOpen(path: string): void; onError(message: string): void }) {
   const [entries, setEntries] = useState<Record<string, DirectoryEntry[]>>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set([root]));
@@ -98,6 +145,8 @@ export default function App() {
   const effectiveTheme = settings.separateDarkTheme && systemDark ? settings.darkTheme : settings.theme;
   const dark = effectiveTheme === 'night';
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [settingsCategory, setSettingsCategory] = useState<'file' | 'editor' | 'image' | 'markdown' | 'export' | 'appearance' | 'general'>('file');
   const [settingsQuery, setSettingsQuery] = useState('');
   const [academicOpen, setAcademicOpen] = useState<'citations' | 'equations' | null>(null);
@@ -106,8 +155,9 @@ export default function App() {
   const consumedReferenceRefresh = useRef(0);
   const resolvedCitationSignatures = useRef(new Map<string, string>());
   const [exportOpen, setExportOpen] = useState(false);
+  const modalOpen = settingsOpen || aboutOpen || guideOpen || !!academicOpen || exportOpen;
   const modalOpenRef = useRef(false);
-  modalOpenRef.current = settingsOpen || !!academicOpen || exportOpen;
+  modalOpenRef.current = modalOpen;
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [pandoc, setPandoc] = useState<string | null | undefined>(undefined);
   const [toast, setToast] = useState<{ text: string; error: boolean; path?: string } | null>(null);
@@ -268,7 +318,7 @@ export default function App() {
     else if (result.status === 'error') showError(result.message);
     return false;
   }
-  async function removeDocuments(ids: string[]) {
+  async function removeDocuments(ids: string[], leaveEmptyDocument = false) {
     const removed = new Set(ids);
     const index = docsRef.current.findIndex(doc => doc.id === activeIdRef.current);
     const remaining = docsRef.current.filter(doc => !removed.has(doc.id));
@@ -276,8 +326,12 @@ export default function App() {
     replaceDocs(remaining);
     setCitationData(previous => Object.fromEntries(Object.entries(previous).filter(([id]) => !removed.has(id))));
     setConflicts(items => items.filter(id => !removed.has(id)));
-    if (removed.has(activeIdRef.current)) select(remaining[Math.min(index, remaining.length - 1)]?.id || '');
-    if (!remaining.length) await newDocument();
+    if (removed.has(activeIdRef.current)) {
+      const nextId = remaining[Math.min(index, remaining.length - 1)]?.id;
+      if (nextId) select(nextId);
+      else { activeIdRef.current = ''; setActiveId(''); }
+    }
+    if (!remaining.length && leaveEmptyDocument) await newDocument();
   }
   async function closeDocument(id: string, others = false) {
     if (tabBusyRef.current) return;
@@ -300,7 +354,7 @@ export default function App() {
       const snapshot = editor.beginTransfer();
       if (!snapshot) { showError(t('请完成当前输入或图片插入后，再移动标签。', 'Finish the current input or image insertion before moving this tab.')); return; }
       const result = await window.markedown.detachDocument(id, snapshot.patch, snapshot.editorState, position);
-      if (result.status === 'ok') { completed = true; await removeDocuments([id]); }
+      if (result.status === 'ok') { completed = true; await removeDocuments([id], true); }
       else if (result.status === 'error' || result.status === 'conflict') showError(result.message);
     } catch (error) { showError(String(error)); }
     finally { if (!completed) editor.cancelTransfer(); tabBusyRef.current = false; setTabBusy(false); }
@@ -343,7 +397,7 @@ export default function App() {
     if (tabBusyRef.current) return;
     if (name.startsWith('savePrevious:')) { void save(name.slice(13)); return; }
     if (name.startsWith('openRecent:')) { void openFiles([name.slice(11)]); return; }
-    if ((settingsOpen || academicOpen) && !['settings', 'equationNumberingSettings', 'about', 'zoomIn', 'zoomOut', 'zoomReset'].includes(name)) return;
+    if (modalOpen && !['settings', 'equationNumberingSettings', 'about', 'guide', 'zoomIn', 'zoomOut', 'zoomReset'].includes(name)) return;
     const editor = editors.current.get(activeIdRef.current);
     switch (name) {
       case 'cut': case 'copy': case 'paste': editor?.focus(); void window.markedown.editCommand(name).catch(error => showError(String(error))); break;
@@ -352,8 +406,8 @@ export default function App() {
       case 'zoomOut': void updateSettings({ zoom: Math.max(50, settingsRef.current.zoom - 10) }); break;
       case 'zoomReset': void updateSettings({ zoom: 100 }); break;
       case 'import': void window.markedown.importDocuments().then(result => { if (result.status === 'ok') result.value.forEach(doc => upsert(doc, true)); else if (result.status === 'error') showError(result.message); }).catch(error => showError(String(error))); break;
-      case 'about': setSettingsOpen(true); break;
-      case 'guide': void window.markedown.newDocument().then(doc => { const source = '# Markedown\n\n'+t('即写即排版。点击排版区域即可编辑源码。','Write Markdown on a single live canvas. Click a rendered block to edit its source.')+'\n\n## '+t('常用快捷键','Keyboard shortcuts')+'\n\n- Ctrl+S '+t('保存','Save')+'\n- Ctrl+B **'+t('加粗','Bold')+'**\n- Ctrl+I *'+t('斜体','Italic')+'*\n- Ctrl+/ '+t('切换源码模式','Toggle source mode')+'\n- Ctrl+, '+t('偏好设置','Preferences')+'\n\n## Markdown\n\n- [ ] '+t('任务列表','Task list')+'\n- =='+t('高亮','Highlight')+'==\n\n> [!NOTE]\n> '+t('本地文稿始终保留 Markdown 源码。','Markdown source remains the document of record.')+'\n\n| '+t('主题','Theme')+' | '+t('风格','Style')+' |\n| --- | --- |\n| Github | Sans serif |\n| Newsprint | Paper |\n| Night | Dark |\n| Pixyll | Editorial |\n| Whitey | Centered titles |\n\n$E=mc^2$\n'; upsert(doc,true); change(doc.id,{...patchOf(doc),source,editVersion:1}); }); break;
+      case 'about': setSettingsOpen(false); setAcademicOpen(null); setExportOpen(false); setGuideOpen(false); setAboutOpen(true); break;
+      case 'guide': setSettingsOpen(false); setAcademicOpen(null); setExportOpen(false); setAboutOpen(false); setGuideOpen(true); break;
       case 'new': void newDocument(); break;
       case 'newWindow': void window.markedown.newWindow(); break;
       case 'open': void openFiles(); break;
@@ -365,8 +419,8 @@ export default function App() {
       case 'citations': setAcademicOpen('citations'); break;
       case 'equationReferences': setAcademicOpen('equations'); break;
       case 'refreshReferences': setReferenceRefresh(value => value + 1); break;
-      case 'settings': setSettingsCategory('file'); setSettingsQuery(''); setSettingsOpen(true); break;
-      case 'equationNumberingSettings': setSettingsCategory('markdown'); setSettingsQuery(t('数学公式', 'Math')); setAcademicOpen(null); setSettingsOpen(true); break;
+      case 'settings': setAboutOpen(false); setGuideOpen(false); setAcademicOpen(null); setExportOpen(false); setSettingsCategory('file'); setSettingsQuery(''); setSettingsOpen(true); break;
+      case 'equationNumberingSettings': setAboutOpen(false); setGuideOpen(false); setAcademicOpen(null); setExportOpen(false); setSettingsCategory('markdown'); setSettingsQuery(t('数学公式', 'Math')); setSettingsOpen(true); break;
       case 'find': setFindOpen(true); break;
       case 'replace': setFindOpen(true); setReplaceOpen(true); break;
       case 'mode': toggleMode(); break;
@@ -390,6 +444,8 @@ export default function App() {
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('wheel', onWheel); };
   }, []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const closeAbout = useCallback(() => setAboutOpen(false), []);
+  const closeGuide = useCallback(() => setGuideOpen(false), []);
   const closeAcademic = useCallback(() => { setAcademicOpen(null); requestAnimationFrame(() => editors.current.get(activeIdRef.current)?.focus()); }, []);
   const closeExport = useCallback(() => { if (!exporting) setExportOpen(false); }, [exporting]);
   const conflictId = conflicts[0];
@@ -422,7 +478,7 @@ export default function App() {
   })), [settings, documentSettingsKey]);
 
   return <div className={`app ${focusMode ? 'focus-mode' : ''}`} data-testid="app" onDragOver={event => { if ([...event.dataTransfer.types].includes('Files')) event.preventDefault(); }} onDrop={event => {
-    if (event.defaultPrevented || settingsOpen || academicOpen) return;
+    if (event.defaultPrevented || modalOpen) return;
     const files = [...event.dataTransfer.files].filter(file => !file.type.startsWith('image/'));
     const paths = window.markedown.droppedPaths(files);
     if (!paths.length) return;
@@ -432,8 +488,8 @@ export default function App() {
       else if (result.status === 'error') showError(result.message);
     }).catch(error => showError(String(error)));
   }}>
-    <TopBar zh={zh} title={active ? (active.dirty ? '• ' : '') + active.title + ' — Markedown' : 'Markedown'} settings={settings} hasDocument={!!active && !settingsOpen} sourceMode={active?.mode === 'source'} focus={focusMode} typewriter={typewriter} canBack={navigation.index > 0} canForward={navigation.index < navigation.ids.length - 1} command={name => actions.current(name)} update={patch => void updateSettings(patch)} />
-    <div className="workspace" inert={settingsOpen} aria-hidden={settingsOpen}>
+    <TopBar zh={zh} title={active ? (active.dirty ? '• ' : '') + active.title + ' — Markedown' : 'Markedown'} settings={settings} hasDocument={!!active && !modalOpen} sourceMode={active?.mode === 'source'} focus={focusMode} typewriter={typewriter} canBack={navigation.index > 0} canForward={navigation.index < navigation.ids.length - 1} command={name => actions.current(name)} update={patch => void updateSettings(patch)} />
+    <div className="workspace" inert={modalOpen} aria-hidden={modalOpen}>
       {!focusMode && sidebar && <aside className="sidebar" data-testid="sidebar">
         <div className="sidebar-switcher" role="tablist" aria-label={t('工作区视图', 'Workspace views')}>
           {(['files', 'outline', 'search'] as const).map((tab, index) => <button key={tab} role="tab" aria-selected={sidebarTab === tab} title={[t('文件', 'Files'), t('大纲', 'Outline'), t('搜索', 'Search')][index]} onClick={() => setSidebarTab(tab)}>{[<Folder size={16} />, <AlignLeft size={16} />, <Search size={16} />][index]}<span>{[t('文件', 'Files'), t('大纲', 'Outline'), t('搜索', 'Search')][index]}</span></button>)}
@@ -454,8 +510,10 @@ export default function App() {
     </div>
     {focusMode && <div className="focus-exit"><IconButton label={t('退出专注模式', 'Exit focus mode')} onClick={() => setFocusMode(false)}><Minimize2 /></IconButton></div>}
     {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role={toast.error ? 'alert' : 'status'}><span>{toast.text}</span>{toast.path && <button className="text-command" onClick={() => void window.markedown.revealFile(toast.path!)}><FolderOpen size={15} />{t('显示文件', 'Show file')}</button>}<IconButton label={t('关闭提示', 'Dismiss')} onClick={() => setToast(null)}><X /></IconButton></div>}
-    <CitationCredits startup paused={!ready || !!toast || settingsOpen || !!academicOpen || exportOpen || !!conflictDoc || recoveryErrors.length > 0} />
+    <CitationCredits startup paused={!ready || !!toast || modalOpen || !!conflictDoc || recoveryErrors.length > 0} />
     {settingsOpen && <Preferences settings={settings} zh={zh} version={version} platform={platform} arch={arch} pandoc={pandoc} update={updateSettings} documentPrefix={active?.mathNumberingPrefix ?? settings.mathNumberingPrefix} updateDocumentPrefix={value => { const doc = docsRef.current.find(item => item.id === activeIdRef.current); if (doc) change(doc.id, { ...patchOf(doc), mathNumberingPrefix: value }); }} close={closeSettings} error={showError} disableWritingModes={() => { setFocusMode(false); setTypewriter(false); }} initialCategory={settingsCategory} initialQuery={settingsQuery} />}
+    {aboutOpen && <Modal title={t('关于 Markedown', 'About Markedown')} onClose={closeAbout}><AboutContent zh={zh} version={version} platform={platform} arch={arch} /></Modal>}
+    {guideOpen && <Modal title={t('Markdown 指南', 'Markdown guide')} onClose={closeGuide} wide><MarkdownGuide zh={zh} /></Modal>}
     {academicOpen && active && <AcademicPanel source={active.source} settings={settings} zh={zh} initialTab={academicOpen} onClose={closeAcademic} onError={showError} onInsert={(text, bibliography) => { editors.current.get(activeIdRef.current)?.insertText(text, bibliography); setAcademicOpen(null); }} />}
     {exportOpen && <Modal title={t('导出文稿', 'Export document')} onClose={closeExport}><div className="export-content"><div className="export-formats">{settings.exportPresets.map(({ format, id, name }) => <button key={id} className="export-format" disabled={!!exporting || (!['html','htmlPlain','pdf','png'].includes(format) && !pandoc)} onClick={() => void doExport(format)} title={!['html','htmlPlain','pdf','png'].includes(format) && !pandoc ? t('需要 Pandoc', 'Pandoc required') : format.toUpperCase()}>{exporting === format ? <LoaderCircle className="spin" /> : format === 'png' ? <FileImage /> : format === 'html' || format === 'tex' ? <FileCode2 /> : <FileText />}<strong>{name === 'Image' ? t('图像','Image') : name === 'HTML (without styles)' ? t('HTML（无样式）',name) : name}</strong>{format === 'png' && <span>{t('长图', 'Long image')}</span>}</button>)}</div><div className="export-options"><label><input type="checkbox" checked={settings.exportOutline} onChange={event => void updateSettings({ exportOutline: event.target.checked })} />{t('包含目录', 'Include table of contents')}</label><select aria-label={t('PDF 纸张', 'PDF paper')} value={settings.pageSize} onChange={event => void updateSettings({ pageSize: event.target.value as 'A4' | 'Letter' })}><option>A4</option><option>Letter</option></select></div>{!pandoc && <div className="pandoc-note">{t('Pandoc 未安装', 'Pandoc not installed')}<button className="text-command" onClick={() => void window.markedown.choosePandoc().then(path => { if (path) void updateSettings({ pandocPath: path }); })}><FolderOpen size={14} />{t('选择程序', 'Choose executable')}</button></div>}</div></Modal>}
     {conflictDoc && <Modal title={t('文件已在外部修改', 'File changed on disk')} onClose={dismissConflict}><div className="conflict-content"><FileText size={30} /><strong>{conflictDoc.title}</strong><p>{t('当前编辑内容尚未写回文件。', 'Your current edits have not been written to disk.')}</p><div className="modal-actions"><button className="text-command" onClick={() => void resolveConflict('reload')}>{t('重新加载', 'Reload')}</button><button className="primary-command" onClick={() => void resolveConflict('copy')}><Save size={15} />{t('另存副本', 'Save a copy')}</button><button className="text-command" onClick={dismissConflict}>{t('取消', 'Cancel')}</button></div></div></Modal>}
