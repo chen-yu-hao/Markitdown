@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, screen, shell, type OpenDialogOptions } from 'electron';
 import { existsSync } from 'node:fs';
-import { mkdir, open, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { DocumentService, defaultSettingsForPlatform, loadSettings, saveSettings, type SettingsUpdate } from './document-service';
 import { canonicalPath, isWithinRoot, listDirectory, searchWorkspace } from './workspace-service';
@@ -17,13 +17,25 @@ import { CitationService } from './citation-service';
 import { listMarkdownExtensions } from '../shared/markdown';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'markedown-image', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
-app.setName('Markedown');
-if (process.platform === 'win32') app.setAppUserModelId('com.zhuanz.markedown');
+app.setName('Markit');
+if (process.platform === 'win32') app.setAppUserModelId('com.zhuanz.markit');
 const testMode = process.argv.includes('--test-mode');
 const testData = process.env.MARKEDOWN_DATA_DIR;
 const portable = existsSync(path.join(path.dirname(process.execPath), 'portable.json'));
 if (testData) app.setPath('userData', path.resolve(testData));
 else if (portable) app.setPath('userData', path.join(path.dirname(process.execPath), 'data'));
+
+async function migrateLegacyDataDirectory() {
+  if (testData || portable) return;
+  const current = path.resolve(app.getPath('userData'));
+  const legacy = path.join(path.dirname(current), 'Markedown');
+  if (current === path.resolve(legacy) || !existsSync(legacy)) return;
+  const currentEntries = existsSync(current) ? await readdir(current) : [];
+  if (currentEntries.length > 0) return;
+  await mkdir(current, { recursive: true });
+  for (const entry of await readdir(legacy)) await rename(path.join(legacy, entry), path.join(current, entry));
+  await rm(legacy, { recursive: false, force: true });
+}
 const singleInstance = testMode || app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
@@ -55,7 +67,7 @@ const transfers = new DocumentTransfers(owners, (transfer, result) => {
     const source = windows.get(transfer.sourceWindow);
     const document = service.docs.get(transfer.id);
     if (source && !source.isDestroyed()) { if (document) publish(document, true); source.show(); source.focus(); }
-    else { owners.delete(transfer.id); void service.flushRecovery().catch(error => dialog.showErrorBox('Markedown', String(error))); }
+    else { owners.delete(transfer.id); void service.flushRecovery().catch(error => dialog.showErrorBox('Markit', String(error))); }
   }
   externallyNotified.delete(transfer.id);
   scheduleAutoSave(transfer.id);
@@ -190,7 +202,7 @@ async function closeDocuments(win: BrowserWindow, ids: string[], entireWindow = 
       read: id => owners.get(id) === win.id ? service.docs.get(id) : undefined,
       decide: async doc => {
         const { response } = await dialog.showMessageBox(win, {
-          type: 'question', title: 'Markedown', message: tr(`保存对“${doc.title}”的更改？`, `Save changes to "${doc.title}"?`),
+          type: 'question', title: 'Markit', message: tr(`保存对“${doc.title}”的更改？`, `Save changes to "${doc.title}"?`),
           buttons: [tr('保存', 'Save'), tr('不保存', "Don't Save"), tr('取消', 'Cancel')], cancelId: 2, defaultId: 0, noLink: true,
         });
         return response === 0 ? 'save' : response === 1 ? 'discard' : 'cancel';
@@ -336,7 +348,7 @@ function fitWindowToDisplay(win: BrowserWindow) {
 async function createWindow(paths: string[] = [], transfer?: DocumentTransfer, position?: { x: number; y: number }) {
   const display = transfer ? screen.getDisplayNearestPoint(position || screen.getCursorScreenPoint()) : undefined;
   const win = new BrowserWindow({
-    width: 1280, height: 860, minWidth: 700, minHeight: 480, title: 'Markedown', show: false,
+    width: 1280, height: 860, minWidth: 700, minHeight: 480, title: 'Markit', show: false,
     ...(display ? visibleWindowBounds(display.workArea, position) : {}),
     backgroundColor: titleBarColors(settings, nativeTheme.shouldUseDarkColors).color, icon: path.join(app.getAppPath(), 'resources', 'icon.png'),
     ...(settings.windowStyle === 'integrated' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: titleBarColors(settings, nativeTheme.shouldUseDarkColors) } : {}),
@@ -374,14 +386,14 @@ async function createWindow(paths: string[] = [], transfer?: DocumentTransfer, p
     if (closeRequests.has(win.id)) return;
     if (win.webContents.isDestroyed()) {
       closeRequests.add(win.id);
-      void service.flushRecovery().catch(error => dialog.showErrorBox('Markedown', String(error))).finally(() => { closing.add(win.id); closeRequests.delete(win.id); win.destroy(); });
+      void service.flushRecovery().catch(error => dialog.showErrorBox('Markit', String(error))).finally(() => { closing.add(win.id); closeRequests.delete(win.id); win.destroy(); });
       return;
     }
     const ids = [...owners].filter(([, owner]) => owner === win.id).map(([id]) => id);
     void closeDocuments(win, ids, true).then(result => {
       if (result.status === 'ok') { closing.add(win.id); win.close(); }
-      else if (result.status === 'error' || result.status === 'conflict') void dialog.showMessageBox(win, { type: 'warning', title: 'Markedown', message: tr('文稿仍保持打开。', 'Your documents remain open.'), detail: result.message });
-    }).catch(error => dialog.showErrorBox('Markedown', String(error)));
+      else if (result.status === 'error' || result.status === 'conflict') void dialog.showMessageBox(win, { type: 'warning', title: 'Markit', message: tr('文稿仍保持打开。', 'Your documents remain open.'), detail: result.message });
+    }).catch(error => dialog.showErrorBox('Markit', String(error)));
   });
   win.on('focus', () => { if (rendererReady.has(win.id)) void checkExternalChanges(win.id); });
   if (process.env.MARKEDOWN_DEV_URL) await win.loadURL(process.env.MARKEDOWN_DEV_URL);
@@ -545,13 +557,13 @@ function installIPC() {
         const result = await setNewFileRegistration(enabled);
         return { status: 'ok', value: enabled
           ? tr(`已注册 ${result.changed} 项资源管理器新建菜单，保留 ${result.preserved} 项其他应用已有配置。`, `${result.changed} Explorer New-file entries registered; ${result.preserved} existing third-party entries preserved.`)
-          : tr(`已移除 ${result.changed} 项 Markedown 注册的新建菜单。`, `${result.changed} Markedown-owned Explorer New-file entries removed.`) };
+          : tr(`已移除 ${result.changed} 项 Markit 注册的新建菜单。`, `${result.changed} Markit-owned Explorer New-file entries removed.`) };
       }
       let destination: string;
       if (action === 'dataFolder') destination = service.dataDir;
       else if (action === 'recoveryFolder') destination = path.join(service.dataDir, 'recovery');
       else if (action === 'advancedSettings') { await saveSettings(service.dataDir, {}); destination = path.join(service.dataDir, 'settings.json'); }
-      else if (action === 'themeFolder') { destination = path.join(service.dataDir, 'themes'); await mkdir(destination, { recursive: true }); await writeFile(path.join(destination, 'README.txt'), 'Markedown Themes\n\nGithub, Newsprint, Night, Pixyll, Whitey\n\nThese built-in themes are independently implemented. Third-party CSS loading is not supported in this release.\n', 'utf8'); }
+      else if (action === 'themeFolder') { destination = path.join(service.dataDir, 'themes'); await mkdir(destination, { recursive: true }); await writeFile(path.join(destination, 'README.txt'), 'Markit Themes\n\nGithub, Newsprint, Night, Pixyll, Whitey\n\nThese built-in themes are independently implemented. Third-party CSS loading is not supported in this release.\n', 'utf8'); }
       else return { status: 'error', message: tr('不支持此设置操作。', 'Unsupported settings action.') };
       const error = await shell.openPath(destination);
       if (error) throw new Error(error);
@@ -587,6 +599,7 @@ function installIPC() {
 
 if (singleInstance) void app.whenReady().then(async () => {
   try {
+    await migrateLegacyDataDirectory();
     await assertWritableDataDirectory(app.getPath('userData'));
     service = new DocumentService(app.getPath('userData'));
     zotero = new ZoteroService(app.getPath('userData'));
@@ -612,6 +625,6 @@ if (singleInstance) void app.whenReady().then(async () => {
     setInterval(() => { void checkExternalChanges(); }, 2000).unref();
     app.on('second-instance', (_event, argv) => { const win = BrowserWindow.getFocusedWindow() || [...windows.values()][0]; if (win) { win.restore(); win.show(); win.focus(); void openPaths(win, argvFiles(argv)).catch(error => emit(win.id, { type: 'error', message: String(error) })); } });
     app.on('activate', () => { if (windows.size === 0) void createWindow(); });
-  } catch (error) { dialog.showErrorBox('Markedown', `${tr('无法启动应用，请确认数据目录可写。', 'Cannot start. Check that the data directory is writable.')}\n\n${String(error)}`); app.quit(); }
+  } catch (error) { dialog.showErrorBox('Markit', `${tr('无法启动应用，请确认数据目录可写。', 'Cannot start. Check that the data directory is writable.')}\n\n${String(error)}`); app.quit(); }
 });
 app.on('window-all-closed', () => app.quit());

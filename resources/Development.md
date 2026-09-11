@@ -1,6 +1,6 @@
 # 开发与构建
 
-本文面向从源码运行、测试和打包 Markedown 的开发者。安装使用说明见[项目首页](../README.md)。
+本文面向从源码运行、测试和打包 Markit 的开发者。安装使用说明见[项目首页](../README.md)。
 
 ## 环境准备
 
@@ -39,13 +39,13 @@ UI 验证使用独立数据目录，结果和截图写入 `test-results`。部�
 
 ## Linux 打包
 
-在 Ubuntu、Arch 或其他 Linux x64 环境中执行：
+在 Ubuntu、Fedora、Manjaro 或其他 Linux x64 环境中执行：
 
 ```bash
 npm run pack:linux
 ```
 
-解包程序位于 `release/linux-unpacked/markedown`。生成可分发产物：
+解包程序位于 `release/linux-unpacked/markit`。生成可分发产物：
 
 ```bash
 npm run dist:linux
@@ -55,11 +55,30 @@ npm run dist:linux
 
 | 本地产物 | 用途 |
 | --- | --- |
-| `Markedown-<版本>-Linux-x64.AppImage` | 适合多数 Linux 发行版的单文件包 |
-| `Markedown-<版本>-Linux-x64.deb` | Ubuntu/Debian 安装包 |
-| `Markedown-<版本>-Linux-x64.tar.gz` | Arch 及其他发行版的解压运行包 |
+| `Markit-<版本>-Linux-x64.AppImage` | 适合多数 Linux 发行版的单文件包 |
+| `Markit-<版本>-Linux-x64.deb` | Ubuntu/Debian 安装包 |
+| `Markit-<版本>-Linux-x64.rpm` | Fedora/RHEL 及其他 RPM 发行版安装包 |
+| `Markit-<版本>-Linux-x64.tar.gz` | Manjaro/Arch 及其他发行版的解压运行包 |
 
-Linux 构建使用当前平台安装的原生 npm 依赖。不要在 Windows 上生成 Linux 的许可证清单或直接复用 Windows 的 `sharp` 原生包；切换平台后应重新执行 `npm ci` 和 `npm run notices`。AppImage 在部分系统需要 FUSE，无法使用 FUSE 时可使用 tar.gz。
+安装方式示例：
+
+```bash
+# Ubuntu/Debian
+sudo apt install ./Markit-<版本>-Linux-x64.deb
+
+# Fedora/RHEL
+sudo dnf install ./Markit-<版本>-Linux-x64.rpm
+
+# Manjaro/Arch 或其他发行版
+tar -xzf Markit-<版本>-Linux-x64.tar.gz
+./Markit-<版本>-Linux-x64/markit
+
+# AppImage
+chmod +x Markit-<版本>-Linux-x64.AppImage
+./Markit-<版本>-Linux-x64.AppImage
+```
+
+Linux 构建使用当前平台安装的原生 npm 依赖。不要在 Windows 上生成 Linux 的许可证清单或直接复用 Windows 的 `sharp` 原生包；切换平台后应重新执行 `npm ci` 和 `npm run notices`。AppImage 可在多数发行版直接运行；系统没有 FUSE 时可使用 `--appimage-extract-and-run`，或改用 tar.gz。发布 Linux 包时应在目标平台或兼容的 Linux x64 环境中构建，以保持原生模块和系统库兼容。
 
 ## Windows 打包
 
@@ -74,15 +93,15 @@ npm run dist:win
 node scripts/verify-packaged.mjs
 ```
 
-`dist:win` 执行生产构建，生成 NSIS 安装程序和便携 ZIP，并整理源码、许可证与校验文件。`verify-packaged.mjs` 在隔离数据目录中启动 `release/win-unpacked/Markedown.exe`，验证图片导入、HTML/PDF/PNG 导出及多档应用缩放。
+`dist:win` 执行生产构建，生成 NSIS 安装程序和便携 ZIP，并整理源码、许可证与校验文件。`verify-packaged.mjs` 在隔离数据目录中启动 `release/win-unpacked/Markit.exe`，验证图片导入、HTML/PDF/PNG 导出及多档应用缩放。
 
 以下文件保存在本地 `release/` 目录，用于交付归档与校验：
 
 | 本地产物 | 内容 |
 | --- | --- |
-| `Markedown-<版本>-Windows-x64-Setup.exe` | 未签名 NSIS 安装程序 |
-| `Markedown-<版本>-Windows-x64.zip` | 含 `portable.json` 的便携程序 |
-| `Markedown-<版本>-Windows-Source.zip` | 源码、测试、脚本、锁文件、文档和 macOS 对照资料 |
+| `Markit-<版本>-Windows-x64-Setup.exe` | 未签名 NSIS 安装程序 |
+| `Markit-<版本>-Windows-x64.zip` | 含 `portable.json` 的便携程序 |
+| `Markit-<版本>-Windows-Source.zip` | 源码、测试、脚本、锁文件、文档和 macOS 对照资料 |
 | `README.zh-CN.md` | 中文使用与构建说明入口 |
 | `THIRD_PARTY_LICENSES.txt` | 运行依赖许可证文本及补充材料 |
 | `THIRD_PARTY_DEPENDENCIES.json` | 依赖版本、许可证声明和来源记录 |
@@ -103,9 +122,9 @@ node scripts/release.mjs --platform=windows
 
 ## GitHub 发布
 
-仓库的 [Windows Release 工作流](https://github.com/chen-yu-hao/Markitdown/blob/main/.github/workflows/release.yml)支持推送 `v*` 标签触发，也支持手动指定已有标签。标签必须与 `package.json` 中的版本一致。Linux 产物目前通过 Linux x64 环境执行 `npm run dist:linux` 构建，发布前应在 Ubuntu/Debian 和 Arch 或其他目标发行版分别检查。
+仓库的 [Release 工作流](https://github.com/chen-yu-hao/Markitdown/blob/main/.github/workflows/release.yml)支持推送 `v*` 标签触发，也支持手动指定已有标签。标签必须与 `package.json` 中的版本一致。工作流会先构建 Windows 安装包，再在 Ubuntu x64 环境构建并上传 AppImage、DEB、RPM 和 tar.gz Linux 产物。
 
-工作流检出指定标签，安装锁定依赖与 Electron，完成测试、构建、打包及实际程序验证后，只上传 `Markedown-<版本>-Windows-x64-Setup.exe` 与 `Markedown-<版本>-Windows-x64.zip`。核对这两个附件后，草稿才会公开为最新版本；已公开的同名版本不会被工作流覆盖。
+工作流检出指定标签，安装锁定依赖与 Electron，完成测试、构建、打包及实际程序验证后，上传 Windows 安装包、便携 ZIP 以及四种 Linux 产物。核对附件后，版本公开为最新版本；已公开的同名版本会被安全地更新。
 
 发布页的 Source code（zip / tar.gz）由 GitHub 按标签自动生成。许可证、依赖清单与第三方说明保留在程序可执行文件旁和源码的 `resources` 目录中，不再单独上传为 Release 附件。`scripts/release.mjs` 仍生成上表中的全部本地产物；其中自建源码 ZIP、说明副本和 `SHA256SUMS.txt` 留在本地 `release/` 目录，用于归档与校验。
 
@@ -118,10 +137,10 @@ Windows 检出时必须保留 `resources/native-licenses` 的原始字节，许�
 可通过命令行打开含中文或空格路径的文稿：
 
 ```powershell
-.\Markedown.exe "C:\文稿\研究笔记.md"
+.\Markit.exe "C:\文稿\研究笔记.md"
 ```
 
-Windows 安装版数据通常位于 `%APPDATA%\Markedown`；Linux 通常位于 `~/.config/Markedown`，或 `XDG_CONFIG_HOME` 指定的位置；Windows 便携版位于程序旁的 `data`。`MARKEDOWN_DATA_DIR` 可为开发或验证指定独立目录，恢复记录可能包含完整未保存文稿。
+Windows 安装版数据通常位于 `%APPDATA%\Markit`；Linux 通常位于 `~/.config/Markit`，或 `XDG_CONFIG_HOME` 指定的位置；Windows 便携版位于程序旁的 `data`。`MARKEDOWN_DATA_DIR` 可为开发或验证指定独立目录，恢复记录可能包含完整未保存文稿。
 
 工作区扫描使用系统 Windows PowerShell 读取隐藏与重解析点属性。受权限限制的子目录会跳过；PowerShell 被系统策略禁用时会报告扫描失败。搜索跳过符号链接和目录联接，避免循环遍历。
 

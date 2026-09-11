@@ -1,4 +1,4 @@
-# Markedown 功能验收
+# Markit 功能验收
 
 中文输入、**即时排版**、*强调*、~~删除线~~、==高亮== 与 `inline code`。
 
@@ -22,7 +22,7 @@ $$
 ## 代码
 
 ```swift
-let greeting = "你好，Markedown"
+let greeting = "你好，Markit"
 print(greeting)
 ```
 
