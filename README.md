@@ -10,17 +10,18 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ## 下载与安装
 
-当前发布版本：**0.3.10**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版。Linux x64 已支持从源码打包 AppImage、DEB 和 tar.gz。
+当前发布版本：**0.3.10**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版。Linux x64 支持 AppImage、DEB、RPM 和 tar.gz：Ubuntu/Debian 使用 DEB，Fedora/RHEL 使用 RPM，Manjaro/Arch 使用 AppImage 或 tar.gz。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
 | 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.10/Markedown-0.3.10-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
 | 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.10/Markedown-0.3.10-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
+| Linux x64 | AppImage、DEB、RPM、tar.gz | 具体安装包以发布页为准；各发行版的安装方式见[构建说明](resources/Development.md) |
 | 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.10.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.10)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.10)提供更新说明和 Windows/Linux 发行包。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
 
 ### 更新已有版本
 
@@ -163,6 +164,5 @@ Windows 发布包使用 `npm run dist:win` 构建；Linux 发布包使用 `npm r
 欢迎通过 [GitHub Issues](https://github.com/chen-yu-hao/Markitdown/issues)反馈问题或提出功能建议。报告问题时请附上应用版本、系统版本、复现步骤及去除个人信息的最小示例；涉及排版或点击定位时，也请注明主题和显示缩放。
 
 第三方组件、图标来源及许可证说明见[第三方与来源说明](resources/ThirdPartyNotices.md)。依赖清单与许可证文本位于程序可执行文件旁，也保存在源码的 `resources` 目录中。
-
 
 

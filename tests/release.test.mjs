@@ -134,6 +134,7 @@ describe('release delivery', () => {
     expect(result.names).toEqual({
       appImage: 'Markedown-0.3.2-Linux-x64.AppImage',
       deb: 'Markedown-0.3.2-Linux-x64.deb',
+      rpm: 'Markedown-0.3.2-Linux-x64.rpm',
       tarball: 'Markedown-0.3.2-Linux-x64.tar.gz',
       source: 'Markedown-0.3.2-Linux-Source.zip',
     });

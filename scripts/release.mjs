@@ -87,7 +87,7 @@ function artifactNames(product, version, platform) {
   const stem = `${product}-${version}-${platform.label}`;
   return platform.id === 'windows'
     ? { installer: `${stem}-x64-Setup.exe`, portable: `${stem}-x64.zip`, source: `${stem}-Source.zip` }
-    : { appImage: `${stem}-x64.AppImage`, deb: `${stem}-x64.deb`, tarball: `${stem}-x64.tar.gz`, source: `${stem}-Source.zip` };
+    : { appImage: `${stem}-x64.AppImage`, deb: `${stem}-x64.deb`, rpm: `${stem}-x64.rpm`, tarball: `${stem}-x64.tar.gz`, source: `${stem}-Source.zip` };
 }
 
 export async function release({ checkOnly = false, root = projectRoot, platform = process.platform } = {}) {

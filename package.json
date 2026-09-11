@@ -20,7 +20,7 @@
     "pack:linux": "npm run build && electron-builder --linux dir --x64",
     "dist": "npm run build && electron-builder --x64 && node scripts/release.mjs",
     "dist:win": "npm run build && electron-builder --win nsis zip --x64 && node scripts/release.mjs --platform=windows",
-    "dist:linux": "npm run build && electron-builder --linux AppImage deb tar.gz --x64 && node scripts/release.mjs --platform=linux",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb rpm tar.gz --x64 && node scripts/release.mjs --platform=linux",
     "test:ui": "node scripts/verify-ui-v2.mjs"
   },
   "dependencies": {
@@ -112,12 +112,16 @@
       "synopsis": "Markdown editor",
       "description": "Markedown Markdown editor for local documents, live preview and document export.",
       "mimeTypes": ["text/markdown", "text/plain"],
-      "target": ["AppImage", "deb", "tar.gz"],
+      "target": ["AppImage", "deb", "rpm", "tar.gz"],
       "artifactName": "Markedown-${version}-Linux-x64.${ext}"
     },
     "deb": {
       "packageName": "markedown",
       "packageCategory": "editors"
+    },
+    "rpm": {
+      "packageName": "markedown",
+      "packageCategory": "Office"
     }
   }
 }

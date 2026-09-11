@@ -39,7 +39,7 @@ UI 验证使用独立数据目录，结果和截图写入 `test-results`。部�
 
 ## Linux 打包
 
-在 Ubuntu、Arch 或其他 Linux x64 环境中执行：
+在 Ubuntu、Fedora、Manjaro 或其他 Linux x64 环境中执行：
 
 ```bash
 npm run pack:linux
@@ -57,9 +57,28 @@ npm run dist:linux
 | --- | --- |
 | `Markedown-<版本>-Linux-x64.AppImage` | 适合多数 Linux 发行版的单文件包 |
 | `Markedown-<版本>-Linux-x64.deb` | Ubuntu/Debian 安装包 |
-| `Markedown-<版本>-Linux-x64.tar.gz` | Arch 及其他发行版的解压运行包 |
+| `Markedown-<版本>-Linux-x64.rpm` | Fedora/RHEL 及其他 RPM 发行版安装包 |
+| `Markedown-<版本>-Linux-x64.tar.gz` | Manjaro/Arch 及其他发行版的解压运行包 |
 
-Linux 构建使用当前平台安装的原生 npm 依赖。不要在 Windows 上生成 Linux 的许可证清单或直接复用 Windows 的 `sharp` 原生包；切换平台后应重新执行 `npm ci` 和 `npm run notices`。AppImage 在部分系统需要 FUSE，无法使用 FUSE 时可使用 tar.gz。
+安装方式示例：
+
+```bash
+# Ubuntu/Debian
+sudo apt install ./Markedown-<版本>-Linux-x64.deb
+
+# Fedora/RHEL
+sudo dnf install ./Markedown-<版本>-Linux-x64.rpm
+
+# Manjaro/Arch 或其他发行版
+tar -xzf Markedown-<版本>-Linux-x64.tar.gz
+./Markedown-<版本>-Linux-x64/markedown
+
+# AppImage
+chmod +x Markedown-<版本>-Linux-x64.AppImage
+./Markedown-<版本>-Linux-x64.AppImage
+```
+
+Linux 构建使用当前平台安装的原生 npm 依赖。不要在 Windows 上生成 Linux 的许可证清单或直接复用 Windows 的 `sharp` 原生包；切换平台后应重新执行 `npm ci` 和 `npm run notices`。AppImage 可在多数发行版直接运行；系统没有 FUSE 时可使用 `--appimage-extract-and-run`，或改用 tar.gz。发布 Linux 包时应在目标平台或兼容的 Linux x64 环境中构建，以保持原生模块和系统库兼容。
 
 ## Windows 打包
 
