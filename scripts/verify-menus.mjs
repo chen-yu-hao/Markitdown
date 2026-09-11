@@ -112,6 +112,12 @@ try {
   await page.locator('.cm-content:visible').focus();
   await page.keyboard.press('Control+w');
   await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.length === 0));
+  await page.keyboard.press('Control+n');
+  await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.length === 1));
+  // Exercise the tab close control itself. This is especially important on
+  // Windows, where a close-button pointer event must not start the tab drag.
+  await page.getByTestId('document-tab').getByRole('button', { name: /^关闭/ }).click();
+  await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.length === 0));
   assert(await page.getByTestId('document-tab').count() === 0, 'Closing the last document created a replacement tab');
   assert(await page.locator('.cm-content:visible').count() === 0, 'Closing the last document left an editor mounted');
   checks.push('closing the last document leaves the window with zero open documents');

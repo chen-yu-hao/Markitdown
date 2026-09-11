@@ -220,7 +220,13 @@ export default function DocumentTabs({ documents, activeId, zh, busy, onSelect, 
         onDragStart={event => event.preventDefault()}>
         <FileText size={14} /><span>{title(doc)}</span>
         {(doc.dirty || doc.recovered) && <i className="dirty-dot" aria-label={t('未保存', 'Unsaved')} />}
-        <button type="button" disabled={busy} aria-label={t(`关闭 ${doc.title}`, `Close ${doc.title}`)} title={t('关闭', 'Close')} onClick={event => { event.stopPropagation(); if (!busy) onClose(doc.id); }}><X size={13} /></button>
+        {/* Keep the close control out of the parent tab's pointer-capture drag
+            gesture. Chromium on Windows can otherwise turn the final tab's
+            click into a cancelled drag before onClick is delivered. */}
+        <button type="button" disabled={busy} aria-label={t(`关闭 ${doc.title}`, `Close ${doc.title}`)} title={t('关闭', 'Close')}
+          onPointerDown={event => event.stopPropagation()}
+          onMouseDown={event => event.stopPropagation()}
+          onClick={event => { event.stopPropagation(); if (!busy) onClose(doc.id); }}><X size={13} /></button>
       </div>)}
     </div>
     {menu && createPortal(<div ref={popup} role="menu" aria-label={t('标签菜单', 'Tab menu')} className="document-tab-menu" data-testid="document-tab-menu" onKeyDown={menuKeyDown} onContextMenu={event => event.preventDefault()}>
