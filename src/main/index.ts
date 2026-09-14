@@ -1,4 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, screen, shell, type OpenDialogOptions } from 'electron';
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, Menu, nativeTheme, net, protocol, safeStorage, screen, shell, type OpenDialogOptions } from 'electron';
+import sharp from 'sharp';
+import { TranslationService } from './translation-service';
+import { installEditorContextMenu } from './editor-context-menu';
+import type { TranslationConfigUpdate, TranslationProvider, TranslationTarget } from '../shared/translation';
 import { existsSync } from 'node:fs';
 import { mkdir, open, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -31,6 +35,8 @@ let service: DocumentService;
 let settings: Settings;
 let zotero: ZoteroService;
 let citations: CitationService;
+let translator: TranslationService;
+const translationRequests = new Map<number, AbortController>();
 const extensions = new ExtensionRegistry();
 const referenceSearches = new Map<number, AbortController>();
 const windows = new Map<number, BrowserWindow>();
@@ -343,6 +349,22 @@ async function createWindow(paths: string[] = [], transfer?: DocumentTransfer, p
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true },
   });
   windows.set(win.id, win);
+  win.on('closed', () => { translationRequests.get(win.id)?.abort(); translationRequests.delete(win.id); });
+  installEditorContextMenu(win, {
+    zh: () => tr('zh', 'en') === 'zh',
+    translate: (text, provider) => emit(win.id, { type: 'translate', text, provider }),
+    error: error => emit(win.id, { type: 'error', message: String(error) }),
+    copyImage: async source => {
+      const url = new URL(source);
+      if (url.protocol !== 'markedown-image:' || url.hostname !== 'document') throw new Error('Only local document images can be copied.');
+      const id = decodeURIComponent(url.pathname.slice(1)); own(win, id);
+      const doc = service.docs.get(id)!;
+      const image = await imageResponse(doc.path, url.searchParams.get('src') || '', { thumbnails: false });
+      if (!image) throw new Error(tr('图片无法读取，文件可能已移动或删除。', 'Image unavailable. The file may have been moved or deleted.'));
+      const bytes = image.mime === 'image/png' ? image.data : await sharp(image.data, { limitInputPixels: 256_000_000 }).timeout({ seconds: 30 }).rotate().png().toBuffer();
+      await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(bytes)], { type: 'image/png' }) })]);
+    },
+  });
   win.on('closed', () => { const pending = transfers.forWindow(win.id); if (pending) transfers.cancel(pending.id); windows.delete(win.id); integratedWindows.delete(win.id); workspaces.delete(win.id); searches.get(win.id)?.abort(); searches.delete(win.id); referenceSearches.get(win.id)?.abort(); referenceSearches.delete(win.id); initialErrors.delete(win.id); rendererReady.delete(win.id); closeRequests.delete(win.id); closing.delete(win.id); });
   if (transfer) {
     transfers.attach(transfer.id, win.id);
@@ -534,6 +556,20 @@ function installIPC() {
   });
   handle('chooseExportFolder', async win => { const result = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] }); return result.canceled ? null : result.filePaths[0]; });
   handle('editCommand', (win, action: string) => { if (action === 'cut' || action === 'copy' || action === 'paste') win.webContents[action](); else throw new Error('Unsupported edit command.'); });
+  handle('copyText', async (_win, text: string) => {
+    if (typeof text !== 'string' || text.length > 1_000_000) throw new Error('Invalid clipboard text.');
+    await clipboard.write([new ClipboardItem({ 'text/plain': text })]);
+  });
+  handle('translation.getConfig', async () => { try { return { status: 'ok', value: await translator.getConfig() }; } catch (error) { return fail(error); } });
+  handle('translation.configure', async (_win, update: TranslationConfigUpdate) => { try { return { status: 'ok', value: await translator.configure(update) }; } catch (error) { return fail(error); } });
+  handle('translation.cancel', win => { translationRequests.get(win.id)?.abort(); translationRequests.delete(win.id); });
+  handle('translation.translate', async (win, text: string, provider: TranslationProvider, targetLanguage: TranslationTarget) => {
+    translationRequests.get(win.id)?.abort();
+    const controller = new AbortController(); translationRequests.set(win.id, controller);
+    try { return { status: 'ok', value: await translator.translate(text, controller.signal, { provider, targetLanguage }) }; }
+    catch (error) { return controller.signal.aborted ? { status: 'cancelled' } : fail(error); }
+    finally { if (translationRequests.get(win.id) === controller) translationRequests.delete(win.id); }
+  });
   handle('windowCommand', (win, action: string) => { if (action === 'minimize') win.minimize(); else if (action === 'maximize') win.isMaximized() ? win.unmaximize() : win.maximize(); else if (action === 'close') win.close(); else throw new Error('Unknown window command.'); });
   handle('settingsAction', async (win, action: string) => {
     try {
@@ -589,6 +625,13 @@ if (singleInstance) void app.whenReady().then(async () => {
   try {
     await assertWritableDataDirectory(app.getPath('userData'));
     service = new DocumentService(app.getPath('userData'));
+    translator = new TranslationService({ dataDir: app.getPath('userData'), fetch: (input, init) => net.fetch(input instanceof Request ? input.url : String(input), init), encryption: {
+      encrypt: value => {
+        if (!safeStorage.isEncryptionAvailable() || (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text')) throw new Error('System credential encryption is unavailable.');
+        return safeStorage.encryptString(value).toString('base64');
+      },
+      decrypt: value => safeStorage.decryptString(Buffer.from(value, 'base64')),
+    } });
     zotero = new ZoteroService(app.getPath('userData'));
     extensions.register({ manifest: { id: 'markedown.zotero', name: 'Zotero', version: '1.0.0', apiVersion: 1, capabilities: ['references'] }, references: { id: 'zotero', name: 'Zotero', status: () => zotero.status(), search: (query, signal) => zotero.search(query, signal), resolve: (keys, refresh) => zotero.resolve(keys, refresh) } });
     extensions.seal();

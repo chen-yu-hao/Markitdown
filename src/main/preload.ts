@@ -3,6 +3,13 @@ import type { AppEvent, MarkedownAPI } from '../shared/contracts';
 
 const invoke = (method: string, ...args: unknown[]) => ipcRenderer.invoke(`markedown:${method}`, ...args);
 const api: MarkedownAPI = {
+  translation: {
+    getConfig: () => invoke('translation.getConfig'),
+    configure: update => invoke('translation.configure', update),
+    translate: (text, provider, target) => invoke('translation.translate', text, provider, target),
+    cancel: () => invoke('translation.cancel'),
+  },
+  copyText: text => invoke('copyText', text),
   references: { status: () => invoke('references.status'), search: query => invoke('references.search', query), cancelSearch: () => invoke('references.cancelSearch'), resolve: (source, refresh) => invoke('references.resolve', source, refresh) },
   extensions: { list: () => invoke('extensions.list') },
   bootstrap: () => invoke('bootstrap'),

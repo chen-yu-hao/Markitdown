@@ -13,6 +13,7 @@ import CitationCredits from './CitationCredits';
 import DocumentTabs from './DocumentTabs';
 import { emptyCitationData, type CitationRenderData } from '../shared/academic-contracts';
 import { scanCitations } from '../shared/citations';
+import TranslationPanel from './TranslationPanel';
 
 type Analysis = ReturnType<typeof analyzeMarkdown>;
 const patchOf = (doc: DocumentSession): DocumentPatch => ({ source: doc.source, mode: doc.mode, selection: doc.selection, scrollTop: doc.scrollTop, editVersion: doc.editVersion, mathNumberingPrefix: doc.mathNumberingPrefix });
@@ -119,6 +120,7 @@ export default function App() {
   const [documents, setDocuments] = useState<DocumentSession[]>([]);
   const docsRef = useRef<DocumentSession[]>([]);
   const [activeId, setActiveId] = useState('');
+  const [translationRequest, setTranslationRequest] = useState<{ text: string; provider: 'google' | 'baidu' } | null>(null);
   const activeIdRef = useRef('');
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const settingsRef = useRef(settings); settingsRef.current = settings;
@@ -156,7 +158,7 @@ export default function App() {
   const consumedReferenceRefresh = useRef(0);
   const resolvedCitationSignatures = useRef(new Map<string, string>());
   const [exportOpen, setExportOpen] = useState(false);
-  const modalOpen = settingsOpen || aboutOpen || guideOpen || !!academicOpen || exportOpen;
+  const modalOpen = settingsOpen || aboutOpen || guideOpen || !!academicOpen || exportOpen || !!translationRequest;
   const modalOpenRef = useRef(false);
   modalOpenRef.current = modalOpen;
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
@@ -208,6 +210,7 @@ export default function App() {
     else if (event.type === 'settings') applySettings(event.settings);
     else if (event.type === 'command') actions.current(event.command);
     else if (event.type === 'error') showError(event.message);
+    else if (event.type === 'translate') setTranslationRequest(event);
     else if (event.type === 'external') setConflicts(previous => previous.includes(event.id) ? previous : [...previous, event.id]);
   }, [upsert, showError, applySettings]);
   useEffect(() => {
@@ -458,6 +461,7 @@ export default function App() {
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const closeAbout = useCallback(() => setAboutOpen(false), []);
   const closeGuide = useCallback(() => setGuideOpen(false), []);
+  const closeTranslation = useCallback(() => { setTranslationRequest(null); void window.markedown.translation.cancel(); }, []);
   const closeAcademic = useCallback(() => { setAcademicOpen(null); requestAnimationFrame(() => editors.current.get(activeIdRef.current)?.focus()); }, []);
   const closeExport = useCallback(() => { if (!exporting) setExportOpen(false); }, [exporting]);
   const conflictId = conflicts[0];
@@ -534,5 +538,6 @@ export default function App() {
     {exportOpen && <Modal title={t('导出文稿', 'Export document')} onClose={closeExport}><div className="export-content"><div className="export-formats">{settings.exportPresets.map(({ format, id, name }) => <button key={id} className="export-format" disabled={!!exporting || (!['html','htmlPlain','pdf','png'].includes(format) && !pandoc)} onClick={() => void doExport(format)} title={!['html','htmlPlain','pdf','png'].includes(format) && !pandoc ? t('需要 Pandoc', 'Pandoc required') : format.toUpperCase()}>{exporting === format ? <LoaderCircle className="spin" /> : format === 'png' ? <FileImage /> : format === 'html' || format === 'tex' ? <FileCode2 /> : <FileText />}<strong>{name === 'Image' ? t('图像','Image') : name === 'HTML (without styles)' ? t('HTML（无样式）',name) : name}</strong>{format === 'png' && <span>{t('长图', 'Long image')}</span>}</button>)}</div><div className="export-options"><label><input type="checkbox" checked={settings.exportOutline} onChange={event => void updateSettings({ exportOutline: event.target.checked })} />{t('包含目录', 'Include table of contents')}</label><select aria-label={t('PDF 纸张', 'PDF paper')} value={settings.pageSize} onChange={event => void updateSettings({ pageSize: event.target.value as 'A4' | 'Letter' })}><option>A4</option><option>Letter</option></select></div>{!pandoc && <div className="pandoc-note">{t('Pandoc 未安装', 'Pandoc not installed')}<button className="text-command" onClick={() => void window.markedown.choosePandoc().then(path => { if (path) void updateSettings({ pandocPath: path }); })}><FolderOpen size={14} />{t('选择程序', 'Choose executable')}</button></div>}</div></Modal>}
     {conflictDoc && <Modal title={t('文件已在外部修改', 'File changed on disk')} onClose={dismissConflict}><div className="conflict-content"><FileText size={30} /><strong>{conflictDoc.title}</strong><p>{t('当前编辑内容尚未写回文件。', 'Your current edits have not been written to disk.')}</p><div className="modal-actions"><button className="text-command" onClick={() => void resolveConflict('reload')}>{t('重新加载', 'Reload')}</button><button className="primary-command" onClick={() => void resolveConflict('copy')}><Save size={15} />{t('另存副本', 'Save a copy')}</button><button className="text-command" onClick={dismissConflict}>{t('取消', 'Cancel')}</button></div></div></Modal>}
     {recoveryErrors.length > 0 && <Modal title={t('恢复记录提示', 'Recovery notices')} onClose={dismissRecoveryErrors}><div className="recovery-errors">{recoveryErrors.map((message, index) => <p key={index}>{message}</p>)}</div></Modal>}
+    {translationRequest && <Modal title={t('翻译选中文字', 'Translate selection')} wide onClose={closeTranslation}><TranslationPanel key={translationRequest.text + translationRequest.provider} text={translationRequest.text} provider={translationRequest.provider} zh={zh} /></Modal>}
   </div>;
 }

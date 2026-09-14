@@ -1,5 +1,6 @@
 import type { ReferencesAPI } from './academic-contracts';
 import type { ExtensionManifest } from './extensions';
+import type { TranslationConfig, TranslationConfigUpdate, TranslationProvider, TranslationResult, TranslationTarget } from './translation';
 export type EditorMode = 'live' | 'source';
 export type LineEnding = 'LF' | 'CRLF';
 export interface FileRevision { hash: string; size: number; mtimeMs: number }
@@ -181,11 +182,19 @@ export type AppEvent =
   | { type: 'external'; id: string; deleted: boolean }
   | { type: 'settings'; settings: Settings }
   | { type: 'command'; command: string }
+  | { type: 'translate'; text: string; provider: TranslationProvider }
   | { type: 'error'; message: string };
 export type ExportFormat = 'html' | 'htmlPlain' | 'pdf' | 'png' | 'docx' | 'epub' | 'tex' | 'rtf' | 'odt' | 'mediawiki' | 'rst' | 'textile' | 'opml';
 export type SettingsAction = 'clearHistory' | 'recoveryFolder' | 'themeFolder' | 'dataFolder' | 'advancedSettings' | 'resetSettings' | 'debug' | 'registerNewFile' | 'unregisterNewFile';
 export interface ImageInput { name: string; bytes: Uint8Array }
 export interface MarkedownAPI {
+  translation: {
+    getConfig(): Promise<Result<TranslationConfig>>;
+    configure(update: TranslationConfigUpdate): Promise<Result<TranslationConfig>>;
+    translate(text: string, provider: TranslationProvider, targetLanguage: TranslationTarget): Promise<Result<TranslationResult>>;
+    cancel(): Promise<void>;
+  };
+  copyText(text: string): Promise<void>;
   references: ReferencesAPI;
   extensions: { list(): Promise<ExtensionManifest[]> };
   bootstrap(): Promise<Bootstrap>;

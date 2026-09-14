@@ -5,6 +5,7 @@ import './preferences.css';
 import WordPreferences from './WordPreferences';
 import CitationCredits from './CitationCredits';
 import { diagramEngineAvailable } from '../shared/markdown-diagrams';
+import { TranslationPreferences } from './TranslationPanel';
 
 interface Props { settings: Settings; zh: boolean; version: string; platform: RuntimePlatform; arch: string; pandoc: string | null | undefined; update(patch: Partial<Settings>): Promise<void>; documentPrefix?: string; updateDocumentPrefix?(prefix: string): void; close(): void; error(message: string): void; disableWritingModes(): void; initialCategory?: Category; initialQuery?: string }
 type Category = 'file' | 'editor' | 'image' | 'markdown' | 'export' | 'appearance' | 'general';
@@ -81,6 +82,7 @@ export default function Preferences({ settings: s, zh, version, platform, arch, 
         {row(t('公式复制格式','Equation copy format'),select('mathOutput',[['svg','SVG'],['mathml','MathML']],t('公式复制格式','Equation copy format')))}
         <p className="pref-hint">{t('SVG 保留公式外观；MathML 适合支持数学公式编辑的应用。纯文本复制仍可保留 Markdown 源码。','SVG preserves appearance; MathML works with applications that support editable mathematics. Plain-text copies can still retain Markdown source.')}</p>
       </> },
+      { title:t('翻译','Translation'),keywords:'翻译 google 百度 translation api key',content:<TranslationPreferences zh={zh} /> },
       { title:t('文献引用','Citations'),keywords:'zotero 文献 引用 参考文献 bibliography citation',content:<>
         {row(t('引文样式','Citation style'),select('citationStyle',[['numeric',t('顺序编号','Numeric')],['author-date',t('作者与年份','Author and date')]],t('引文样式','Citation style')))}
         <div className="pref-row"><span>Zotero</span><span>http://localhost:23119/api/</span></div>

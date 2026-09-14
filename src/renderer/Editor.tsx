@@ -137,6 +137,7 @@ class RenderedWidget extends WidgetType {
     }
     if (!this.block && dom.firstElementChild?.tagName === 'P' && dom.children.length === 1) dom.firstElementChild.replaceWith(...dom.firstElementChild.childNodes);
     dom.addEventListener('mousedown', event => {
+      if ((event as MouseEvent).button !== 0) return;
       if (isScrollableWidgetSurface(event.target)) return;
       event.preventDefault();
       if (navigateAcademicReference(view, event.target as Element)) return;

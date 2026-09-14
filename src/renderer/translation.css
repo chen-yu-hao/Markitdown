@@ -1,0 +1,5 @@
+.translation-panel{padding:20px;overflow:auto;min-height:0;font-size:13px;line-height:1.6}
+.translation-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.translation-panel>label{display:block;margin:12px 0}.translation-panel textarea{display:block;width:100%;min-height:110px;max-height:260px;resize:vertical;margin-top:6px;padding:10px;font:inherit;color:var(--text);background:var(--surface-alt);border:1px solid var(--line);border-radius:5px}
+.translation-settings{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding-top:12px;font-size:12px;border-top:1px solid var(--line)}
+.translation-settings>label{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.translation-settings input{min-width:0;flex:1;max-width:330px;padding:7px}.translation-settings>button{align-self:flex-start}.translation-settings .pref-hint{margin:0 0 8px}.translation-error{color:#b33f39;overflow-wrap:anywhere}
