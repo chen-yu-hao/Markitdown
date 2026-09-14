@@ -142,6 +142,8 @@ finally {
   const report = { status: failure ? 'failed' : 'passed', measurements, errors, failure: failure?.message, run };
   await writeFile(path.join(run, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report));
+  // Discard only isolated test drafts so Electron's normal close flow can finish.
+  await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }); }).catch(() => {});
   await Promise.race([app.close().catch(() => {}), new Promise(resolve => setTimeout(resolve, 5000))]);
   if (child.exitCode === null) child.kill();
   clearTimeout(watchdog);

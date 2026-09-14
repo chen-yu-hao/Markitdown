@@ -15,8 +15,9 @@ await writeFile(path.join(data,'settings.json'), JSON.stringify({ language:'en',
 const env={...process.env,MARKEDOWN_DATA_DIR:data}; delete env.ELECTRON_RUN_AS_NODE; delete env.MARKEDOWN_DEV_URL;
 const executable=process.argv[2] ? path.resolve(process.argv[2]) : undefined;
 const app=await electron.launch({...(executable?{executablePath:executable}:{}),args:[...(executable?[]:[process.cwd()]),'--test-mode','--force-device-scale-factor=1',filename],env});
-const watchdog=setTimeout(()=>app.process().kill(),180000);
-const checks=[],errors=[];let page;console.log('article-layout run',run,'pid',app.process().pid);
+const child = app.process();
+const watchdog=setTimeout(()=>child.kill(),180000);
+const checks=[],errors=[];let page;console.log('article-layout run',run,'pid',child.pid);
 try {
   page=await app.firstWindow();console.log('window ready');page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
   await page.locator('.cm-content:visible').waitFor();
@@ -69,4 +70,4 @@ try {
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({run,checks,errors}));
   await writeFile(path.join(run,'report.json'),JSON.stringify({checks,errors},null,2));
-} catch(error) { console.error(error);if(page)await page.screenshot({path:path.join(run,'failure.png')}).catch(()=>{});throw error; } finally {clearTimeout(watchdog);app.process().kill();}
+} catch(error) { console.error(error);if(page)await page.screenshot({path:path.join(run,'failure.png')}).catch(()=>{});throw error; } finally {clearTimeout(watchdog);await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }); }).catch(() => {});await Promise.race([app.close().catch(() => {}), new Promise(resolve=>setTimeout(resolve,5000))]);if(child.exitCode===null)child.kill();}
