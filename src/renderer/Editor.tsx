@@ -147,6 +147,12 @@ class RenderedWidget extends WidgetType {
       view.focus();
     });
     dom.addEventListener('click', event => { if (!isScrollableWidgetSurface(event.target)) event.preventDefault(); });
+    dom.addEventListener('keydown', event => {
+      if ((event.target as Element).closest('table')) { event.preventDefault(); event.stopPropagation(); }
+    });
+    dom.addEventListener('contextmenu', event => {
+      if ((event.target as Element).closest('table')) { event.preventDefault(); event.stopPropagation(); }
+    });
     for (const img of dom.querySelectorAll('img')) {
       img.addEventListener('load', () => view.requestMeasure());
       img.addEventListener('error', () => { img.classList.add('md-image-error'); view.requestMeasure(); });
