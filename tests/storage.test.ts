@@ -616,5 +616,5 @@ describe('workspace', () => {
     expect(isWithinRoot(`${inside}-sibling`, inside)).toBe(false);
     expect(isWithinRoot(path.join(inside, '..', 'outside'), inside)).toBe(false);
     expect(await canonicalPath(path.join(inside, 'link'))).toBe(await canonicalPath(outside));
-  });
+  }, 15000); // Windows hosted runners can take several seconds to create a junction.
 });
