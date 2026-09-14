@@ -50,6 +50,15 @@ async function active(page, file) {
     return visible ? current : undefined;
   }, `File did not become the active document: ${file}`);
 }
+async function activateWithKeyboard(page, file, key) {
+  // A newly visible editor focuses itself on the next animation frame.
+  // Finish that activation before moving keyboard focus to the sidebar.
+  await page.evaluate(async () => {
+    for (let frame = 0; frame < 2; frame++) await new Promise(requestAnimationFrame);
+  });
+  await row(page, file).press(key);
+  return active(page, file);
+}
 try {
   await source.locator('.cm-content:visible').waitFor();
   await source.evaluate(() => window.markedown.updateSettings({ language: 'zh-CN', autoSave: false, saveOnSwitch: false, spellcheck: 'off' }));
@@ -78,8 +87,8 @@ try {
   assert.equal((await documents(source)).filter(doc => doc.path === files.second).length, 1);
   checks.push('single click reactivates an existing dirty tab without reload; double click never duplicates tabs');
 
-  await row(source, files.first).focus(); await source.keyboard.press('Enter'); await active(source, files.first);
-  await row(source, files.second).focus(); await source.keyboard.press('Space'); await active(source, files.second);
+  await activateWithKeyboard(source, files.first, 'Enter');
+  await activateWithKeyboard(source, files.second, 'Space');
   await row(source, nested).click();
   await row(source, files.nested).click(); await active(source, files.nested);
   assert.equal((await documents(source)).some(doc => doc.path === nested), false);
