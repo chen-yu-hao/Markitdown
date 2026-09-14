@@ -399,7 +399,7 @@ export function validatedSettings(value: unknown): Settings {
   if (!value || typeof value !== 'object') return settings;
   const input = value as Record<string, unknown>;
   const enums: Partial<Record<keyof Settings, readonly string[]>> = {
-    theme: themeNames, darkTheme: themeNames, language: ['system', 'zh-CN', 'en'], pageSize: ['A4', 'Letter'],
+    theme: themeNames, darkTheme: themeNames, language: ['system', 'zh-CN', 'en'], readingLayout: ['single', 'double'], pageSize: ['A4', 'Letter'],
     startup: ['new', 'recent', 'workspace'], defaultExtension: ['md', 'markdown', 'txt'], defaultLineEnding: ['LF', 'CRLF'],
     dropFolders: ['open', 'ignore'], dropMarkdown: ['open', 'insertLink'], dropDocuments: ['import', 'ignore'], fileFilter: ['markdown', 'text', 'all'],
     spellcheck: ['off', 'auto', 'en-US', 'en-GB'], headingStyle: ['atx', 'setext'], bulletMarker: ['-', '*', '+'], orderedMarker: ['increment', 'one'],

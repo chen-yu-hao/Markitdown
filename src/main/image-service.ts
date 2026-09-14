@@ -202,6 +202,7 @@ export async function imageResponse(documentPath: string | null, destination: st
       let data: Buffer = await readFile(target);
       const metadata = await inspectImage(data);
       let mime: string;
+      let decodedBytes = (metadata.width ?? 2048) * (metadata.height ?? 2048) * 4;
       const animated = (metadata.pages ?? 1) > 1 && ['gif', 'webp'].includes(metadata.format ?? '');
       if (animated) mime = metadata.format === 'gif' ? 'image/gif' : 'image/webp';
       else if (!thumbnails && metadata.format === 'png' && !metadata.orientation) {
@@ -211,13 +212,16 @@ export async function imageResponse(documentPath: string | null, destination: st
       }
       else {
         let pipeline = sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).timeout({ seconds: 30 }).rotate();
-        if (thumbnails) pipeline = pipeline.resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true });
-        data = await pipeline.png().toBuffer();
+        // Keep long figures readable at the column width, preserving their
+        // aspect ratio rather than squeezing them into a square thumbnail.
+        if (thumbnails) pipeline = pipeline.resize({ width: 2048, withoutEnlargement: true });
+        const output = await pipeline.png().toBuffer({ resolveWithObject: true });
+        data = output.data;
+        decodedBytes = output.info.width * output.info.height * 4;
         mime = 'image/png';
       }
-      const cost = Math.max(data.length, animated
-        ? (metadata.width ?? 2048) * (metadata.height ?? 2048) * 4
-        : Math.min(metadata.width ?? 2048, thumbnails ? 2048 : Infinity) * Math.min(metadata.height ?? 2048, thumbnails ? 2048 : Infinity) * 4);
+      // Account for the actual rotated/resized output, including long images.
+      const cost = Math.max(data.length, decodedBytes);
       while (thumbnailCache.size && thumbnailCacheBytes + cost > MAX_CACHE_BYTES) {
         const oldest = thumbnailCache.entries().next().value!;
         thumbnailCache.delete(oldest[0]);

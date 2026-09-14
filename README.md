@@ -10,17 +10,17 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 ## 下载与安装
 
-当前发布版本：**0.3.10**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版。Linux x64 已支持从源码打包 AppImage、DEB 和 tar.gz。
+当前发布版本：**0.3.11**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版。Linux x64 已支持从源码打包 AppImage、DEB 和 tar.gz。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
-| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.10/Markedown-0.3.10-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
-| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.10/Markedown-0.3.10-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
-| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.10.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
+| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.11/Markedown-0.3.11-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
+| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.11/Markedown-0.3.11-Windows-x64.zip) | 完整解压到可写目录，运行 `Markedown.exe` |
+| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.11.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.10)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.11)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
 
 ### 更新已有版本
 
@@ -37,7 +37,7 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 - **文稿与工作区**：多标签、多窗口、独立撤销记录、侧栏文件单击打开、文件夹浏览、大纲定位、全文搜索及查找替换。
 - **专注写作**：专注模式、打字机模式、字数统计、阅读宽度与字体设置、自定义快捷键。
 - **主题与偏好**：内建 Github、Newsprint、Night、Pixyll、Whitey 五种主题，数字使用等高字形，支持深浅色外观和可搜索的分类设置。
-- **本地图片**：粘贴、拖入或批量选择图片；默认写入文稿旁的 `assets`，大图使用缓存缩略图预览，保留原图。
+- **本地图片**：粘贴、拖入或批量选择图片；默认写入文稿旁的 `assets`，长图按正文宽度等比显示，大图使用按宽度生成的缓存预览，保留原图。
 - **保存与恢复**：自动保存、异常退出恢复、外部修改冲突提示，以及 UTF-8 BOM、LF/CRLF 格式保留。
 
 打开、保存和导出位于 **文件** 菜单，文本格式位于 **编辑 → 格式**，偏好设置位于 **编辑 → 偏好设置**（`Ctrl+,`）。
@@ -45,6 +45,10 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 右键文稿标签可选择 **打开新窗口**、**关闭** 或 **关闭其他标签**。将标签拖离标签条后松开，也可移到独立窗口；按 `Esc` 取消拖动。移窗保留未保存内容、撤销/重做、选区、滚动位置和编辑模式；关闭其他标签仅作用于当前窗口，取消保存确认会保留全部标签。
 
 ## 论文写作
+
+### 双栏论文阅读
+
+论文写作可在 **视图 → 论文版式 → 双栏（Nature 风格）** 启用双栏阅读，也可在 **偏好设置 → 外观 → 字号与版式** 中设置；双栏阅读支持当前未保存内容、公式、表格和本地图片，并可用 `Ctrl+/` 随时返回源码编辑，保留撤销记录。该全局版式选项同时用于 HTML/PDF/PNG 导出；窄窗口自动收为单栏，Pandoc 导出保留原有版式。
 
 ### 公式编号与交叉引用
 

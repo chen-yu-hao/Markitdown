@@ -2,7 +2,7 @@
   "name": "markedown",
   "productName": "Markedown",
   "desktopName": "com.zhuanz.markedown",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "private": true,
   "description": "Markedown Markdown editor for desktop Linux and Windows",
   "author": "Markedown contributors",
@@ -111,8 +111,15 @@
       "syncDesktopName": true,
       "synopsis": "Markdown editor",
       "description": "Markedown Markdown editor for local documents, live preview and document export.",
-      "mimeTypes": ["text/markdown", "text/plain"],
-      "target": ["AppImage", "deb", "tar.gz"],
+      "mimeTypes": [
+        "text/markdown",
+        "text/plain"
+      ],
+      "target": [
+        "AppImage",
+        "deb",
+        "tar.gz"
+      ],
       "artifactName": "Markedown-${version}-Linux-x64.${ext}"
     },
     "deb": {

@@ -62,6 +62,16 @@ beforeEach(async () => { directory = await mkdtemp(path.join(os.tmpdir(), 'marke
 afterEach(async () => { await rm(directory, { recursive: true, force: true }); });
 
 describe('large image admission and rendering', () => {
+  it('keeps tall preview figures wide instead of fitting them to a height cap', async () => {
+    const filename = path.join(directory, 'tall.png');
+    await sharp({ create: { width: 3_000, height: 6_000, channels: 3, background: '#287e68' } }).png().toFile(filename);
+    const preview = await imageResponse(document().path, 'tall.png');
+    expect(preview?.mime).toBe('image/png');
+    // Thumbnail width is capped while the aspect ratio is preserved. A
+    // height-constrained 2048×2048 fit would incorrectly produce 1024×2048.
+    expect(await sharp(preview!.data).metadata()).toMatchObject({ width: 2048, height: 4096 });
+  }, 60_000);
+
   it('imports a real image above 80 MP unchanged and keeps preview and HTML export consistent', async () => {
     expect(largePng.length).toBeLessThan(64 * 1024 * 1024);
     const [destination] = await importImages(document(), [{ name: 'large.png', bytes: largePng }], settings);

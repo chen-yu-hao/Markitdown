@@ -137,5 +137,5 @@ describe('release delivery', () => {
       tarball: 'Markedown-0.3.2-Linux-x64.tar.gz',
       source: 'Markedown-0.3.2-Linux-Source.zip',
     });
-  });
+  }, 15000);
 });

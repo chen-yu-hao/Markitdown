@@ -1,9 +1,9 @@
 {
   "product": "Markedown",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "platform": "win32",
   "architecture": "x64",
-  "packageLockSha256": "14489bc87e92187682ac3053c7a76ef42c29e5c3490e2bfd00b4ba694879e497",
+  "packageLockSha256": "0a804afe0f7d0e130d620edb22cb6a134004113b3169761aa4fcbefaf26a3e65",
   "packages": [
     {
       "name": "@codemirror/autocomplete",

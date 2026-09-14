@@ -14,6 +14,7 @@ import { headingText } from '../shared/markdown-preferences';
 import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitationScan, editorCitations, editorEquations, editorPreferences, editorSourceMode, equationIndexForCommand, preferenceExtensions } from './editor-preferences';
 import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, displayEquationInsertion, equationLabelInsertion } from './editor-academic';
 import { preservePointerPosition } from './editor-pointer';
+import { sameEditorSettings } from './editor-settings-equality';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 
@@ -775,7 +776,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   useEffect(() => {
     const view = viewRef.current;
     const settings = props.settings || defaultSettings;
-    if (!view || view.state.facet(editorPreferences) === settings) return;
+    if (!view || sameEditorSettings(view.state.facet(editorPreferences), settings)) return;
     if (view.compositionStarted) { pendingPreferencesRef.current = settings; return; }
     view.dispatch({ effects: preferencesRef.current.reconfigure(preferenceExtensions(settings)) });
   }, [props.settings]);

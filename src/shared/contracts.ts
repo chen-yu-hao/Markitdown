@@ -44,6 +44,8 @@ export interface Settings {
   language: 'system' | 'zh-CN' | 'en';
   fontSize: number;
   readingWidth: number;
+  /** Reading layout for live preview and styled exports. */
+  readingLayout: 'single' | 'double';
   autoSave: boolean;
   reopenWorkspace: boolean;
   showToolbar: boolean;
@@ -147,7 +149,7 @@ export const defaultExportPresets: ExportPreset[] = [
   ['mediawiki', 'MediaWiki'], ['rst', 'reStructuredText'], ['textile', 'Textile'], ['opml', 'OPML'],
 ].map(([format, name]) => ({ id: format, name, format: format as ExportFormat }));
 export const defaultSettings: Settings = {
-  theme: 'github', separateDarkTheme: false, darkTheme: 'night', language: 'system', fontSize: 17, readingWidth: 800,
+  theme: 'github', separateDarkTheme: false, darkTheme: 'night', language: 'system', fontSize: 17, readingWidth: 800, readingLayout: 'single',
   autoSave: true, reopenWorkspace: true, showToolbar: false, showStatusBar: true,
   pageSize: 'A4', exportOutline: true, htmlRemoteImages: false, pandocPath: '', recentWorkspaces: [],
   recentFiles: [], startup: 'new', defaultExtension: 'md', saveOnSwitch: false, recordHistory: true,

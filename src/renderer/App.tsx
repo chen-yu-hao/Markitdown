@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlignLeft, ArrowDown, ArrowUp, Bold, Braces, Check, ChevronDown, ChevronRight, ChevronsLeftRight, Code2, Download, ExternalLink, FileCode2, FileImage, FilePlus2, FileText, Folder, FolderOpen, Highlighter, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, LoaderCircle, Maximize2, Minimize2, Moon, MoreHorizontal, PanelLeft, Plus, Quote, Redo2, RefreshCw, Save, Search, Settings2, Strikethrough, Sun, Type, Undo2, X } from 'lucide-react';
 import Editor, { type EditorHandle } from './Editor';
+import ArticlePreview from './ArticlePreview';
 import { defaultSettings, type AppEvent, type DirectoryEntry, type DocumentPatch, type DocumentSession, type ExportFormat, type RuntimePlatform, type SearchHit, type Settings } from '../shared/contracts';
 import { analyzeMarkdown } from '../shared/markdown';
 import TopBar from './TopBar';
@@ -224,6 +225,7 @@ export default function App() {
   useEffect(() => { const media = matchMedia('(prefers-color-scheme: dark)'); const handler = () => setSystemDark(media.matches); media.addEventListener('change', handler); return () => media.removeEventListener('change', handler); }, []);
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; document.documentElement.dataset.editorTheme = effectiveTheme; document.documentElement.lang = zh ? 'zh-CN' : 'en'; }, [dark, effectiveTheme, zh]);
   const active = documents.find(doc => doc.id === activeId);
+  const paperPreview = !!active && settings.readingLayout === 'double' && active.mode === 'live';
   useEffect(() => {
     if (!active || active.mode === 'source' && active.source.length > 1024 * 1024 / 3 && new TextEncoder().encode(active.source).length > 1024 * 1024 && referenceRefresh <= consumedReferenceRefresh.current) return;
     let stale = false;
@@ -305,7 +307,11 @@ export default function App() {
       if (result.status === 'ok') {
         result.value.forEach(doc => upsert(doc, true));
         const id = result.value.at(-1)?.id;
-        if (id && offset !== undefined) requestAnimationFrame(() => editors.current.get(id)?.scrollTo(offset));
+        if (id && offset !== undefined) {
+          const doc = docsRef.current.find(doc => doc.id === id);
+          if (doc && settingsRef.current.readingLayout === 'double') change(id, { ...patchOf(doc), mode: 'source' });
+          requestAnimationFrame(() => editors.current.get(id)?.scrollTo(offset));
+        }
       } else if (result.status === 'error') showError(result.message);
     } catch (error) { showError(String(error)); }
   }
@@ -399,6 +405,12 @@ export default function App() {
     if (name.startsWith('openRecent:')) { void openFiles([name.slice(11)]); return; }
     if (modalOpen && !['settings', 'equationNumberingSettings', 'about', 'guide', 'zoomIn', 'zoomOut', 'zoomReset'].includes(name)) return;
     const editor = editors.current.get(activeIdRef.current);
+    if (paperPreview && !['save', 'saveAs', 'copy', 'new', 'newWindow', 'open', 'workspace', 'close', 'export', 'settings', 'sidebar', 'mode', 'focusMode', 'typewriter', 'zoomIn', 'zoomOut', 'zoomReset', 'back', 'forward', 'refreshReferences', 'about', 'guide'].includes(name) && active) {
+      change(active.id, { ...patchOf(active), mode: 'source' });
+      requestAnimationFrame(() => actions.current(name));
+      return;
+    }
+    if (paperPreview && name === 'copy') { void window.markedown.editCommand('copy'); return; }
     switch (name) {
       case 'cut': case 'copy': case 'paste': editor?.focus(); void window.markedown.editCommand(name).catch(error => showError(String(error))); break;
       case 'back': case 'forward': { const direction = name === 'back' ? -1 : 1; const history = navigationRef.current; let index = history.index + direction; while (index >= 0 && index < history.ids.length && !docsRef.current.some(d => d.id === history.ids[index])) index += direction; if (index >= 0 && index < history.ids.length) { setNavigation({ ...history, index }); select(history.ids[index], false); } break; }
@@ -440,8 +452,8 @@ export default function App() {
       if (!event.ctrlKey || !settingsRef.current.ctrlWheelZoom) return;
       event.preventDefault(); actions.current(event.deltaY < 0 ? 'zoomIn' : 'zoomOut');
     };
-    window.addEventListener('keydown', onKey); window.addEventListener('wheel', onWheel, { passive: false });
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('wheel', onWheel); };
+    window.addEventListener('keydown', onKey, true); window.addEventListener('wheel', onWheel, { passive: false });
+    return () => { window.removeEventListener('keydown', onKey, true); window.removeEventListener('wheel', onWheel); };
   }, []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const closeAbout = useCallback(() => setAboutOpen(false), []);
@@ -462,6 +474,10 @@ export default function App() {
   const invalidRegex = useMemo(() => { if (!findOptions.regex || !query) return false; try { new RegExp(query); return false; } catch { return true; } }, [findOptions.regex, query]);
   const tool = (name: string, cn: string, en: string, glyph: ReactNode) => <IconButton key={name} label={t(cn, en)} onClick={() => actions.current(name)} disabled={!active}>{glyph}</IconButton>;
   function goToHeading(id: string) {
+    if (paperPreview) {
+      document.querySelector('.article-preview-paper')?.shadowRoot?.getElementById(id)?.scrollIntoView({ block: 'start' });
+      return;
+    }
     const doc = docsRef.current.find(item => item.id === activeIdRef.current);
     if (!doc) return;
     const heading = analyzeMarkdown(doc.source, settingsRef.current).headings.find(item => item.id === id);
@@ -504,8 +520,8 @@ export default function App() {
         {!focusMode && settings.showToolbar && <div className="format-toolbar"><div className="toolbar-group"><select className="heading-select" aria-label={t('段落样式', 'Paragraph style')} value={paragraphStyle} onChange={event => actions.current(event.target.value)} disabled={!active}><option value="paragraph">{t('正文', 'Text')}</option>{[1, 2, 3, 4, 5, 6].map(level => <option key={level} value={`heading${level}`}>{t('标题', 'Heading')} {level}</option>)}</select>{tool('bold', '加粗', 'Bold', <Bold />)}{tool('italic', '斜体', 'Italic', <Italic />)}{tool('strike', '删除线', 'Strikethrough', <Strikethrough />)}{tool('mark', '高亮', 'Highlight', <Highlighter />)}<span className="divider" />{tool('link', '链接', 'Link', <Link />)}{tool('image', '插入图片', 'Insert image', <ImagePlus />)}{tool('code', '行内代码', 'Inline code', <Code2 />)}{tool('codeblock', '代码块', 'Code block', <Braces />)}<span className="divider" />{tool('quote', '引用', 'Quote', <Quote />)}{tool('unorderedList', '无序列表', 'Bullet list', <List />)}{tool('orderedList', '有序列表', 'Numbered list', <ListOrdered />)}{tool('task', '任务列表', 'Task list', <ListChecks />)}</div><div className="toolbar-right">{tool('undo', '撤销', 'Undo', <Undo2 />)}{tool('redo', '重做', 'Redo', <Redo2 />)}<span className="divider" /><IconButton label={t('专注模式', 'Focus mode')} active={focusMode} onClick={() => setFocusMode(value => !value)}><Maximize2 /></IconButton></div></div>}
         {findOpen && <div className="find-bar" data-testid="find-bar"><div className="find-primary"><IconButton label={t('替换', 'Replace')} active={replaceOpen} onClick={() => setReplaceOpen(value => !value)}>{replaceOpen ? <ChevronDown /> : <ChevronRight />}</IconButton><div className={`input-with-tools find-input ${invalidRegex ? 'invalid' : ''}`}><Search size={15} /><input autoFocus aria-label={t('查找内容', 'Find text')} placeholder={t('查找', 'Find')} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') editors.current.get(activeId)?.findNext(event.shiftKey); if (event.key === 'Escape') setFindOpen(false); }} /><span className="find-count">{invalidRegex ? t('表达式无效', 'Invalid regex') : `${findResult.current} / ${findResult.total}`}</span></div><IconButton label={t('区分大小写', 'Match case')} active={findOptions.caseSensitive} onClick={() => setFindOptions(value => ({ ...value, caseSensitive: !value.caseSensitive }))}><Type /></IconButton><IconButton label={t('全字匹配', 'Whole word')} active={findOptions.wholeWord} onClick={() => setFindOptions(value => ({ ...value, wholeWord: !value.wholeWord }))}><ChevronsLeftRight /></IconButton><IconButton label={t('正则表达式', 'Regular expression')} active={findOptions.regex} onClick={() => setFindOptions(value => ({ ...value, regex: !value.regex }))}><span className="regex-symbol">.*</span></IconButton><IconButton label={t('上一个', 'Previous match')} onClick={() => editors.current.get(activeId)?.findNext(true)}><ArrowUp /></IconButton><IconButton label={t('下一个', 'Next match')} onClick={() => editors.current.get(activeId)?.findNext()}><ArrowDown /></IconButton><IconButton label={t('关闭查找', 'Close find')} onClick={() => setFindOpen(false)}><X /></IconButton></div>{replaceOpen && <div className="replace-row"><input aria-label={t('替换为', 'Replace with')} placeholder={t('替换为', 'Replace with')} value={replacement} onChange={event => setReplacement(event.target.value)} /><button className="text-command" disabled={!query || invalidRegex} onClick={() => editors.current.get(activeId)?.replace(replacement)}>{t('替换', 'Replace')}</button><button className="text-command" disabled={!query || invalidRegex} onClick={() => editors.current.get(activeId)?.replace(replacement, true)}>{t('全部替换', 'Replace all')}</button></div>}</div>}
         {active?.recovered && <div className="recovery-banner"><span>{t('已恢复未保存的文稿', 'Unsaved document recovered')}</span><button className="text-command" onClick={() => void save()}><Save size={14} />{t('保存恢复内容', 'Save recovered content')}</button></div>}
-        <div className="editor-stack" data-testid="editor-stack">{!ready && <div className="editor-loading"><LoaderCircle className="spin" /></div>}{documents.map(doc => <Editor key={doc.id} ref={handle => { if (handle) editors.current.set(doc.id, handle); else editors.current.delete(doc.id); }} document={doc} active={doc.id === activeId} settings={editorSettings.get(doc.id)} citations={citationData[doc.id] || emptyCitationData} fontSize={settings.fontSizeMode === 'auto' ? 17 : settings.fontSize} readingWidth={settings.readingWidth} theme={dark ? 'dark' : 'light'} typewriter={typewriter} transferState={transfer?.id === doc.id ? transfer.editorState : undefined} onTransferReady={async accepted => { await window.markedown.completeDocumentTransfer(doc.id, accepted); setTransfer(null); }} onChange={patch => change(doc.id, patch)} onScroll={(top, version) => scroll(doc.id, top, version)} onImportImages={files => insertImages(doc.id, files)} onFindResult={result => { if (activeIdRef.current === doc.id) setFindResult(result); }} />)}</div>
-        {!focusMode && settings.showStatusBar && <footer className="status-bar"><div><span>{analysis.words.toLocaleString()} {t('字', 'words')}</span><span className="status-secondary">{analysis.characters.toLocaleString()} {t('字符', 'characters')}</span><span className="status-secondary">{analysis.words ? Math.max(1, Math.ceil(analysis.words / settings.readingSpeed)) : 0} {t('分钟', 'min')}</span></div><div><IconButton label={t('打字机模式', 'Typewriter mode')} active={typewriter} onClick={() => setTypewriter(value => !value)}><AlignLeft size={14} /></IconButton><span>{active?.bom ? 'UTF-8 BOM' : 'UTF-8'}</span><span>{active?.lineEnding || 'LF'}</span><button className={`mode-button ${active?.mode === 'source' ? 'source' : ''}`} onClick={toggleMode} data-testid="mode-toggle"><Code2 size={13} />{active?.mode === 'source' ? t('源码', 'Source') : t('即时排版', 'Live')}</button></div></footer>}
+        <div className="editor-stack" data-testid="editor-stack">{!ready && <div className="editor-loading"><LoaderCircle className="spin" /></div>}{documents.map(doc => <Editor key={doc.id} ref={handle => { if (handle) editors.current.set(doc.id, handle); else editors.current.delete(doc.id); }} document={doc} active={doc.id === activeId && !paperPreview} settings={editorSettings.get(doc.id)} citations={citationData[doc.id] || emptyCitationData} fontSize={settings.fontSizeMode === 'auto' ? 17 : settings.fontSize} readingWidth={settings.readingWidth} theme={dark ? 'dark' : 'light'} typewriter={typewriter} transferState={transfer?.id === doc.id ? transfer.editorState : undefined} onTransferReady={async accepted => { await window.markedown.completeDocumentTransfer(doc.id, accepted); setTransfer(null); }} onChange={patch => change(doc.id, patch)} onScroll={(top, version) => scroll(doc.id, top, version)} onImportImages={files => insertImages(doc.id, files)} onFindResult={result => { if (activeIdRef.current === doc.id) setFindResult(result); }} />)}{paperPreview && active && <ArticlePreview key={active.id} document={active} settings={editorSettings.get(active.id) || settings} citations={citationData[active.id] || emptyCitationData} theme={effectiveTheme} zh={zh} edit={() => change(active.id, { ...patchOf(active), mode: 'source' })} />}</div>
+        {!focusMode && settings.showStatusBar && <footer className="status-bar"><div><span>{analysis.words.toLocaleString()} {t('字', 'words')}</span><span className="status-secondary">{analysis.characters.toLocaleString()} {t('字符', 'characters')}</span><span className="status-secondary">{analysis.words ? Math.max(1, Math.ceil(analysis.words / settings.readingSpeed)) : 0} {t('分钟', 'min')}</span></div><div><IconButton label={t('打字机模式', 'Typewriter mode')} active={typewriter} onClick={() => setTypewriter(value => !value)}><AlignLeft size={14} /></IconButton><span>{active?.bom ? 'UTF-8 BOM' : 'UTF-8'}</span><span>{active?.lineEnding || 'LF'}</span><button className={`mode-button ${active?.mode === 'source' ? 'source' : ''}`} onClick={toggleMode} data-testid="mode-toggle"><Code2 size={13} />{active?.mode === 'source' ? t('源码', 'Source') : paperPreview ? t('双栏阅读', 'Two columns') : t('即时排版', 'Live')}</button></div></footer>}
       </main>
     </div>
     {focusMode && <div className="focus-exit"><IconButton label={t('退出专注模式', 'Exit focus mode')} onClick={() => setFocusMode(false)}><Minimize2 /></IconButton></div>}
