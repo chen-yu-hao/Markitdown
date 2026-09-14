@@ -2,7 +2,7 @@
   "name": "markedown",
   "productName": "Markedown",
   "desktopName": "com.zhuanz.markedown",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "private": true,
   "description": "Markedown Markdown editor for desktop Linux and Windows",
   "author": "Markedown contributors",
