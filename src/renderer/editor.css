@@ -18,7 +18,7 @@
 .markedown-editor .md-blockquote{border-left:3px solid #83aa95;padding-left:16px;color:var(--editor-muted)}
 .markedown-editor .md-task-checkbox{width:15px;height:15px;vertical-align:-1px;accent-color:var(--editor-accent);cursor:pointer;margin:0 4px 0 0}
 /* CodeMirror measures block border boxes; keep vertical spacing inside them. */
-.markedown-editor .md-rendered{overflow-wrap:anywhere;color:var(--editor-ink)}.markedown-editor .md-rendered-block{display:flow-root;margin:0;padding:12px 0;max-width:100%}.markedown-editor .md-rendered-inline{display:inline;vertical-align:baseline}
+.markedown-editor .md-rendered{overflow-wrap:anywhere;color:var(--editor-ink)}.markedown-editor .md-rendered-block{display:flow-root;margin:0;padding:12px 0;max-width:100%}.markedown-editor .md-rendered-inline{display:inline;vertical-align:baseline}.markedown-editor .md-rendered-inline:has(.md-equation-inline){display:inline-block}
 .markedown-editor .md-rendered p{margin:0}.markedown-editor .md-rendered a{color:var(--editor-accent)}.markedown-editor .md-rendered mark{background:#efda80;color:#30342a;padding:1px 2px;border-radius:2px}
 .markedown-editor[data-theme=dark] .md-rendered mark{background:#756638;color:#f1e9cc}.markedown-editor .md-rendered sup,.markedown-editor .md-rendered sub{font-size:.75em;line-height:0}
 .markedown-editor .md-rendered img{max-width:100%;height:auto;object-fit:contain;vertical-align:middle;border-radius:3px}.markedown-editor .md-rendered-block img{width:100%}.markedown-editor .md-rendered-inline img{max-width:100%}

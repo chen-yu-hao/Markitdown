@@ -44,15 +44,10 @@ try {
   assert(await page.locator('.markedown-editor[data-table-style="three-line"] table').count() === 1, 'Scientific three-line table style is not the default.');
   const tableBefore = await page.evaluate(() => window.editorTest.docs[0].source);
   const tableCell = page.locator('.markedown-editor[data-document-id="first"] table tbody td').first();
-  await tableCell.dblclick();
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('F2');
-  await page.keyboard.press('Tab');
-  await tableCell.click({ button: 'right' });
-  await page.waitForTimeout(50);
-  assert(await page.locator('.md-table-cell-editor').count() === 0, 'Live table opened a cell editor.');
-  assert(await page.locator('.md-table-context-menu').count() === 0, 'Live table opened an editing context menu.');
-  assert(await page.evaluate(() => window.editorTest.docs[0].source) === tableBefore, 'Live table interaction changed Markdown.');
+  await tableCell.click();
+  await page.locator('.md-node-table .node-cell-input').waitFor();
+  await page.locator('.md-node-table .node-done').click();
+  assert(await page.evaluate(() => window.editorTest.docs[0].source) === tableBefore, 'Opening a table node changed Markdown.');
   await page.evaluate(() => window.editorTest.setSettings({ tableStyle: 'grid' }));
   await page.waitForFunction(() => document.querySelector('.markedown-editor[data-table-style="grid"]'));
   const inlineHeight = await page.locator('.cm-line').filter({ hasText: 'Text with' }).first().evaluate(element => element.getBoundingClientRect().height);
@@ -187,7 +182,7 @@ try {
   assert(outsideCursor && Math.abs(outsideCursor.y + outsideCursor.height / 2 - outsidePoint.y) <= 2, 'Clicking outside an existing selection moved the caret away from the clicked visual row.');
   assert(await page.evaluate(() => window.editorTest.docs[0].source) === pointerSource, 'Mouse selection changed the Markdown source.');
   assert(errors.length === 0, 'Renderer errors: ' + errors.join('\n'));
-  console.log(JSON.stringify({ directory, checks: ['live widgets', 'source integrity', 'scientific three-line table default', 'live table double-click/keyboard/context menu remain read-only', 'table style switch', 'Unicode insertion', 'independent tab undo', 'mode history preservation', 'find/replace', 'tracked async image insertion', 'single image batch undo', 'Chromium Chinese IME composition', 'preference reconfiguration preserves source and history', 'native spellcheck attributes', 'smart typing punctuation', 'narrow viewport', 'Shift+click range selection', 'mouse drag selection', 'double-click word selection', 'triple-click line selection', 'click outside prior selection preserves source and visual caret'], errors }));
+  console.log(JSON.stringify({ directory, checks: ['live widgets', 'source integrity', 'scientific three-line table default', 'table node opens without source changes', 'table style switch', 'Unicode insertion', 'independent tab undo', 'mode history preservation', 'find/replace', 'tracked async image insertion', 'single image batch undo', 'Chromium Chinese IME composition', 'preference reconfiguration preserves source and history', 'native spellcheck attributes', 'smart typing punctuation', 'narrow viewport', 'Shift+click range selection', 'mouse drag selection', 'double-click word selection', 'triple-click line selection', 'click outside prior selection preserves source and visual caret'], errors }));
 } finally {
   await application.close();
 }

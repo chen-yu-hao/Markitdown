@@ -1,9 +1,9 @@
 {
   "product": "Markit",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "platform": "win32",
   "architecture": "x64",
-  "packageLockSha256": "f6c270157f0290938663ff1786c38767da61a68b86150ad8c1647853567c6ae6",
+  "packageLockSha256": "0f0a294d1fa8a41715f01d29868e086cbec6879b519bfacfe29ea0054b32cae9",
   "packages": [
     {
       "name": "@codemirror/autocomplete",

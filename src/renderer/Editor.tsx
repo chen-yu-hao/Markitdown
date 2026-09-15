@@ -15,10 +15,15 @@ import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitation
 import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, displayEquationInsertion, equationLabelInsertion } from './editor-academic';
 import { preservePointerPosition } from './editor-pointer';
 import { sameEditorSettings } from './editor-settings-equality';
+import { pasteWithoutScroll } from './editor-clipboard';
+import { closeNodeEditor, openMathNode, openTableNode, type NodeEditorTarget } from './node-editors';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 
 export interface EditorHandle {
+  applyPaperEdit(from: number, previous: string, text: string, selection: { anchor: number; head: number }, event?: string): boolean;
+  selectPaperRange(anchor: number, head: number): void;
+  importImages(files: File[]): void;
   command(name: string): void;
   find(query: string, options: { caseSensitive: boolean; wholeWord: boolean; regex: boolean }): void;
   findNext(previous?: boolean): void;
@@ -111,6 +116,37 @@ function isScrollableWidgetSurface(target: EventTarget | null): boolean {
   return (horizontal && /^(auto|scroll)$/.test(style.overflowX)) || (vertical && /^(auto|scroll)$/.test(style.overflowY));
 }
 
+function nodeTarget(view: EditorView, source: string, from: number, anchor: HTMLElement): NodeEditorTarget {
+  let length = source.length;
+  const block = view.state.field(editorEquations).equations.find(equation => equation.from === from)?.block;
+  return {
+    owner: view, source, documentSource: view.state.doc.toString(), from, anchor, settings: view.state.facet(editorPreferences), equations: view.state.field(editorEquations), citations: view.state.facet(editorCitations),
+    apply(previous, next, event) {
+      if (view.state.readOnly || view.state.sliceDoc(from, from + previous.length) !== previous) return false;
+      length = next.length;
+      pasteWithoutScroll(view, () => {
+        // A node edit replaces only its own source; other selections map normally.
+        const transaction = view.state.update({ changes: { from, to: from + previous.length, insert: next }, annotations: [Transaction.userEvent.of('input.type'), ...(event.startsWith('input.node.') ? [isolateHistory.of(event.endsWith('.commit') ? 'full' : 'before')] : [])], scrollIntoView: false });
+        view.dispatch(transaction); return transaction;
+      });
+      return true;
+    },
+    navigate(side) {
+      let position = Math.min(view.state.doc.length, side === 'before' ? Math.max(0, from - 1) : from + length);
+      if (block && side === 'after') {
+        const end = view.state.doc.lineAt(position).to;
+        if (end === view.state.doc.length) {
+          view.dispatch({ changes: { from: end, insert: '\n\n' }, selection: { anchor: end + 2 }, annotations: formatChange }); view.focus(); return;
+        }
+        position = end + 1;
+      } else if (block && side === 'before' && from === 0) {
+        view.dispatch({ changes: { from: 0, insert: '\n\n' }, selection: { anchor: 0 }, annotations: formatChange }); view.focus(); return;
+      }
+      view.dispatch({ selection: { anchor: position } }); view.focus();
+    },
+  };
+}
+
 class RenderedWidget extends WidgetType {
   constructor(readonly source: string, readonly from: number, readonly block: boolean, readonly resolveImage: (destination: string) => string, readonly settings: Settings, readonly equations: EquationIndex, readonly citations: CitationRenderData, readonly virtual = false) { super(); }
   eq(other: RenderedWidget) { return this.source === other.source && this.from === other.from && this.block === other.block && this.resolveImage === other.resolveImage && this.settings === other.settings && this.equations === other.equations && this.citations === other.citations && this.virtual === other.virtual; }
@@ -118,6 +154,7 @@ class RenderedWidget extends WidgetType {
     const dom = document.createElement(this.block ? 'div' : 'span');
     dom.className = `md-rendered ${this.block ? 'md-rendered-block' : 'md-rendered-inline'}`;
     dom.setAttribute('contenteditable', 'false');
+    dom.dataset.nodeFrom = String(this.from);
     dom.innerHTML = renderMarkdown(this.source, { imageURL: this.resolveImage, settings: this.settings, purpose: 'editor', equationIndex: this.equations, citations: this.citations, sourceOffset: this.from }).trim();
     // A large table is a single CodeMirror block widget.  Letting thousands of
     // rows participate in the editor's page scroll forces Chromium to lay out
@@ -144,10 +181,34 @@ class RenderedWidget extends WidgetType {
       const link = (event.target as Element).closest<HTMLAnchorElement>('a');
       const pointer = event as MouseEvent;
       if (link && (pointer.ctrlKey || pointer.metaKey)) { openLink(link.getAttribute('href') || ''); return; }
+      if ((event.target as Element).closest('table')) {
+        const cell = (event.target as Element).closest<HTMLTableCellElement>('td,th');
+        if (cell && openTableNode(nodeTarget(view, this.source, this.from, dom), (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex)) return;
+      }
+      const equation = this.equations.equations.find(item => item.from === this.from && item.to === this.from + this.source.length);
+      if (equation && openMathNode(nodeTarget(view, this.source, this.from, dom), equation.block)) {
+        return;
+      }
       view.dispatch({ selection: { anchor: Math.min(this.from, view.state.doc.length) }, effects: EditorView.scrollIntoView(Math.min(this.from, view.state.doc.length), { y: 'nearest' }) });
       view.focus();
     });
     dom.addEventListener('click', event => { if (!isScrollableWidgetSurface(event.target)) event.preventDefault(); });
+    dom.addEventListener('contextmenu', raw => {
+      const event = raw as MouseEvent, cell = (event.target as Element).closest<HTMLTableCellElement>('td,th');
+      if (!cell) return;
+      event.preventDefault(); event.stopPropagation();
+      openTableNode(nodeTarget(view, this.source, this.from, dom), (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex, { x: event.clientX, y: event.clientY });
+    });
+    if (dom.querySelector('table,.math-block,.md-equation-inline')) {
+      dom.tabIndex = 0;
+      dom.addEventListener('keydown', (raw: Event) => {
+        const event = raw as KeyboardEvent;
+        if (!['Enter', 'F2'].includes(event.key)) return;
+        event.preventDefault(); event.stopPropagation();
+        if (dom.querySelector('table')) openTableNode(nodeTarget(view, this.source, this.from, dom));
+        else openMathNode(nodeTarget(view, this.source, this.from, dom), this.block);
+      });
+    }
     for (const img of dom.querySelectorAll('img')) {
       img.addEventListener('load', () => view.requestMeasure());
       img.addEventListener('error', () => { img.classList.add('md-image-error'); view.requestMeasure(); });
@@ -211,7 +272,7 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
   };
   for (const equation of equations) {
     if (!equation.block && (equation.to < from || equation.from > to)) continue;
-    if (!isActive(equation.from, equation.to)) render(equation.from, equation.to, equation.block);
+    if (!isActive(equation.from, equation.to) || selection.empty && (selection.head <= equation.from || selection.head >= equation.to)) render(equation.from, equation.to, equation.block);
     else protectedRanges.push({ from: equation.from, to: equation.to });
   }
   for (const bibliography of citationScan.bibliographies.slice(0, 1)) {
@@ -239,7 +300,7 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
         // scrollable; users can still edit/export the exact source normally.
         if (name === 'Table' && end - start > liveTableLimit) {
           protectedRanges.push({ from: start, to: end });
-        } else if (!active) render(start, end, true);
+        } else if (!active || name === 'Table' && selection.empty) render(start, end, true);
         else {
           protectedRanges.push({ from: start, to: end });
           if (name === 'FencedCode' || name === 'CodeBlock') {
@@ -369,6 +430,15 @@ const viewportTracker = ViewPlugin.fromClass(class {
   }
   destroy() { this.destroyed = true; if (this.frame) cancelAnimationFrame(this.frame); }
 });
+
+const nodeKeyboard = keymap.of(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'F2'].map(key => ({ key, run(view: EditorView) {
+  if (!view.state.facet(liveMode) || !view.state.selection.main.empty) return false;
+  const head = view.state.selection.main.head, before = key === 'ArrowLeft' || key === 'ArrowUp';
+  const equation = view.state.field(editorEquations).equations.find(eq => key === 'F2' ? head >= eq.from && head <= eq.to : before ? eq.to === head : eq.from === head);
+  if (!equation) return false;
+  const dom = view.dom.querySelector<HTMLElement>(`[data-node-from="${equation.from}"]`);
+  return !!dom && openMathNode(nodeTarget(view, view.state.sliceDoc(equation.from, equation.to), equation.from, dom), equation.block);
+} })));
 
 const searchDecorations = ViewPlugin.fromClass(class {
   decorations: DecorationSet;
@@ -503,8 +573,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
       const prefix = range.from > 0 && view.state.sliceDoc(range.from - 1, range.from) !== '\n' ? '\n' : '';
       const suffix = range.to < view.state.doc.length && view.state.sliceDoc(range.to, range.to + 1) !== '\n' ? '\n' : '';
       const insert = prefix + markdown + suffix;
-      view.dispatch({ changes: { ...range, insert }, selection: { anchor: range.from + insert.length }, annotations: Transaction.userEvent.of('input.paste') });
-      view.focus();
+      pasteWithoutScroll(view, () => {
+        const transaction = view.state.update({ changes: { ...range, insert }, selection: { anchor: range.from + insert.length }, annotations: Transaction.userEvent.of('input.paste') });
+        view.dispatch(transaction); return transaction;
+      });
+      if (propsRef.current.active) view.focus();
     } finally {
       if (viewRef.current === view) view.dispatch({ effects: untrackInsertion.of(id) });
     }
@@ -584,6 +657,17 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   }
 
   useImperativeHandle(ref, () => ({
+    applyPaperEdit(from, previous, text, selection, event = 'input.type') {
+      const view = viewRef.current;
+      if (!view || transferLocked.current || from < 0 || from + previous.length > view.state.doc.length || view.state.sliceDoc(from, from + previous.length) !== previous) return false;
+      let start = 0, end = 0;
+      while (start < previous.length && start < text.length && previous[start] === text[start]) start++;
+      while (end < previous.length - start && end < text.length - start && previous[previous.length - end - 1] === text[text.length - end - 1]) end++;
+      view.dispatch({ changes: { from: from + start, to: from + previous.length - end, insert: text.slice(start, text.length - end) }, selection: { anchor: from + selection.anchor, head: from + selection.head }, annotations: [Transaction.userEvent.of(event.startsWith('input.node.') ? 'input.type' : event), ...(event.startsWith('input.node.') ? [isolateHistory.of(event.endsWith('.commit') ? 'full' : 'before')] : [])], scrollIntoView: false });
+      return true;
+    },
+    selectPaperRange(anchor, head) { const view = viewRef.current; if (view && !transferLocked.current) view.dispatch({ selection: { anchor: Math.min(anchor, view.state.doc.length), head: Math.min(head, view.state.doc.length) } }); },
+    importImages(files) { void importImages(files); },
     command,
     insertText,
     flushScroll() { if (viewRef.current) publishScroll(viewRef.current); },
@@ -650,7 +734,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
             liveMode.of(initial.document.mode === 'live' && new TextEncoder().encode(initial.document.source).length <= sourceLimit),
             ...(initial.document.mode === 'source' ? [syntaxHighlighting(defaultHighlightStyle)] : []),
           ]),
-          editorEquations, editorCitationScan, liveDecorations, viewportTracker,
+          editorEquations, editorCitationScan, liveDecorations, viewportTracker, nodeKeyboard,
           preservePointerPosition(view => view.state.facet(liveMode) && !(propsRef.current.typewriter && (propsRef.current.settings || defaultSettings).alwaysCenterCaret)),
           placeholder(''),
           keymap.of([
@@ -721,7 +805,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
             if (update.docChanged && !update.transactions.some(transaction => transaction.annotation(externalChange))) versionRef.current++;
             if ((update.docChanged || update.selectionSet) && !update.transactions.some(transaction => transaction.annotation(externalChange))) publish(update.view);
             if (update.docChanged || update.selectionSet) reportSearch(update.view);
-            if (propsRef.current.typewriter && (update.docChanged || ((propsRef.current.settings || defaultSettings).alwaysCenterCaret && update.selectionSet)) && update.view.hasFocus && !update.view.composing && !centerPending) {
+            if (propsRef.current.typewriter && !update.transactions.some(transaction => transaction.isUserEvent('input.paste')) && (update.docChanged || ((propsRef.current.settings || defaultSettings).alwaysCenterCaret && update.selectionSet)) && update.view.hasFocus && !update.view.composing && !centerPending) {
               centerPending = true;
               queueMicrotask(() => {
                 centerPending = false;
@@ -756,6 +840,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
       cancelAnimationFrame(scrollFrame);
       clearTimeout(searchTimerRef.current);
       viewRef.current = null;
+      closeNodeEditor(view);
       view.destroy();
     };
   }, []);
@@ -767,6 +852,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
 
   useEffect(() => {
     const view = viewRef.current;
+    if (view) closeNodeEditor(view);
     if (view) view.dispatch({ effects: configRef.current.reconfigure([
       editorSourceMode.of(props.document.mode === 'source'),
       liveMode.of(props.document.mode === 'live' && new TextEncoder().encode(props.document.source).length <= sourceLimit),
@@ -778,6 +864,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     const view = viewRef.current;
     const settings = props.settings || defaultSettings;
     if (!view || sameEditorSettings(view.state.facet(editorPreferences), settings)) return;
+    closeNodeEditor(view);
     if (view.compositionStarted) { pendingPreferencesRef.current = settings; return; }
     view.dispatch({ effects: preferencesRef.current.reconfigure(preferenceExtensions(settings)) });
   }, [props.settings]);
@@ -790,6 +877,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   }, [props.citations]);
 
   useLayoutEffect(() => {
+    if (!props.active && viewRef.current) closeNodeEditor(viewRef.current);
     if (props.active && viewRef.current) viewRef.current.scrollDOM.scrollTop = scrollTopRef.current;
   }, [props.active]);
 

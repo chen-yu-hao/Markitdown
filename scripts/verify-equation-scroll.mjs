@@ -145,14 +145,15 @@ async function editCheck(from) {
   const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
   const action = await beginAction(from, 'formula-content-edit-and-undo', point);
   await page.mouse.click(point.x, point.y);
-  await waitFor(async () => await formula(from).count() === 0 && (await current()).selection.head >= from && (await current()).selection.head <= from + expression.length + 6, 'Clicking formula content did not expose its source');
+  const input = page.locator('.md-node-math .node-math-input');
+  await input.waitFor();
   action.events = await page.evaluate(() => window.markedownEquationEvents);
   assert.equal((await current()).source, source, 'Entering equation source changed Markdown');
-  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
-  await waitFor(async () => (await current()).selection.head === from + 3, 'Equation source cursor did not enter the formula line');
+  await input.focus(); await page.keyboard.press('Control+Home');
   await page.keyboard.insertText('z+');
   const edited = source.slice(0, from + 3) + 'z+' + source.slice(from + 3);
   await waitFor(async () => (await current()).source === edited, 'Formula source is not editable at the selected location');
+  await page.locator('.md-node-math .node-done').click(); await editor().focus();
   await page.keyboard.press('Control+z'); await waitFor(async () => (await current()).source === source, 'Formula edit could not be undone');
   await page.keyboard.press('Control+y'); await waitFor(async () => (await current()).source === edited, 'Formula edit could not be redone');
   await page.keyboard.press('Control+z'); await waitFor(async () => (await current()).source === source, 'Final formula undo did not restore source');

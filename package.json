@@ -2,7 +2,7 @@
   "name": "markit",
   "productName": "Markit",
   "desktopName": "com.zhuanz.markit",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "private": true,
   "description": "Markit Markdown editor for desktop Linux and Windows",
   "author": "Markit contributors",
@@ -111,8 +111,16 @@
       "syncDesktopName": true,
       "synopsis": "Markdown editor",
       "description": "Markit Markdown editor for local documents, live preview and document export.",
-      "mimeTypes": ["text/markdown", "text/plain"],
-      "target": ["AppImage", "deb", "rpm", "tar.gz"],
+      "mimeTypes": [
+        "text/markdown",
+        "text/plain"
+      ],
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "tar.gz"
+      ],
       "artifactName": "Markit-${version}-Linux-x64.${ext}"
     },
     "deb": {

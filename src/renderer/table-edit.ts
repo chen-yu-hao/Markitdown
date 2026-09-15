@@ -22,6 +22,11 @@ function pipePositions(line: string): number[] {
 }
 
 function cellBounds(line: string, column: number): { from: number; to: number } | null {
+  const indent = line.length - line.trimStart().length;
+  if (indent || line.length !== line.trimEnd().length) {
+    const bounds = cellBounds(line.trim(), column);
+    return bounds ? { from: bounds.from + indent, to: bounds.to + indent } : null;
+  }
   const pipes = pipePositions(line);
   const startBoundary = pipes.length && pipes[0] === 0 ? 0 : -1;
   const endBoundary = pipes.length && pipes[pipes.length - 1] === line.length - 1 ? line.length - 1 : line.length;
@@ -66,6 +71,7 @@ function splitLines(source: string): { lines: string[]; newline: string; trailin
 }
 
 function cellsInLine(line: string): string[] {
+  line = line.trim();
   const pipes = pipePositions(line);
   const leading = pipes[0] === 0;
   const trailing = pipes.length > 0 && pipes[pipes.length - 1] === line.length - 1;
@@ -110,7 +116,7 @@ export function tableShape(source: string): TableShape | null {
   if (!columns || !/^\s*\|?\s*:?-{3,}:?/.test(lines[1])) return null;
   const tokens = markdown.parse(source, {});
   if (!tokens.some(token => token.type === 'table_open')) return null;
-  return { rows: Math.max(1, lines.length - 2), columns };
+  return { rows: Math.max(1, lines.length - 1), columns };
 }
 
 function tableEdit(source: string, tableFrom: number, lines: string[], newline: string, trailingNewline = false): TableSourceEdit {
@@ -185,7 +191,59 @@ export function deleteTableColumn(source: string, tableFrom: number, column: num
 
 /** Replace a cell while escaping literal pipes so Markdown structure is preserved. */
 export function replaceTableCell(source: string, tableFrom: number, row: number, column: number, value: string): TableSourceEdit | null {
+  value = value.replace(/\r\n?|\n/g, '<br>').replaceAll('\t', ' ');
   const range = tableCellSourceRange(source, tableFrom, row, column);
-  if (!range) return null;
+  if (!range) {
+    const shape = tableShape(source);
+    if (!shape || row < 0 || row >= shape.rows || column < 0 || column >= shape.columns) return null;
+    const { lines, newline, trailingNewline } = splitLines(source);
+    const index = row ? row + 1 : 0, cells = cellsInLine(lines[index]);
+    while (cells.length < shape.columns) cells.push('');
+    cells[column] = escapeCell(value); lines[index] = formatRow(cells, lines[0]);
+    return tableEdit(source, tableFrom, lines, newline, trailingNewline);
+  }
   return { from: range.from, to: range.to, insert: escapeCell(value) };
+}
+
+export function tableCells(source: string): string[][] {
+  const shape = tableShape(source); if (!shape) return [];
+  const { lines } = splitLines(source);
+  return [lines[0], ...lines.slice(2)].map(line => {
+    const cells = cellsInLine(line);
+    return Array.from({ length: shape.columns }, (_, i) => cells[i] || '');
+  });
+}
+
+export function alignTableColumn(source: string, column: number, alignment: 'left' | 'center' | 'right'): TableSourceEdit | null {
+  const shape = tableShape(source); if (!shape || column < 0 || column >= shape.columns) return null;
+  const { lines, newline, trailingNewline } = splitLines(source), cells = cellsInLine(lines[1]);
+  cells[column] = alignment === 'center' ? ':---:' : alignment === 'right' ? '---:' : ':---';
+  lines[1] = formatRow(cells, lines[1]);
+  return tableEdit(source, 0, lines, newline, trailingNewline);
+}
+
+/** Resize and spreadsheet paste preserve existing Markdown and column alignment. */
+export function resizeTable(source: string, rows: number, columns: number): TableSourceEdit | null {
+  const shape = tableShape(source);
+  if (!shape || !Number.isInteger(rows) || !Number.isInteger(columns) || rows < 1 || columns < 1 || rows > 2000 || columns > 100 || rows * columns > 20000) return null;
+  const { lines, newline, trailingNewline } = splitLines(source);
+  const contents = [lines[0], ...lines.slice(2)].slice(0, rows).map(cellsInLine);
+  while (contents.length < rows) contents.push([]);
+  const sized = contents.map(cells => formatRow(Array.from({ length: columns }, (_, i) => cells[i] || ''), lines[0]));
+  const alignment = cellsInLine(lines[1]);
+  sized.splice(1, 0, formatRow(Array.from({ length: columns }, (_, i) => alignment[i] || '---'), lines[1]));
+  return tableEdit(source, 0, sized, newline, trailingNewline);
+}
+
+export function pasteTableCells(source: string, row: number, column: number, tsv: string): TableSourceEdit | null {
+  const shape = tableShape(source); if (!shape || row < 0 || column < 0 || row >= shape.rows || column >= shape.columns) return null;
+  const values = tsv.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n').map(line => line.split('\t'));
+  const resized = resizeTable(source, Math.max(shape.rows, row + values.length), Math.max(shape.columns, column + Math.max(...values.map(line => line.length))));
+  if (!resized) return null;
+  let next = resized.insert;
+  for (let r = 0; r < values.length; r++) for (let c = 0; c < values[r].length; c++) {
+    const edit = replaceTableCell(next, 0, row + r, column + c, values[r][c]);
+    if (edit) next = next.slice(0, edit.from) + edit.insert + next.slice(edit.to);
+  }
+  return { from: 0, to: source.length, insert: next };
 }

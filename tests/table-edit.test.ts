@@ -33,8 +33,7 @@ describe('Markdown table source range helpers', () => {
   });
 });
 
-// These source transforms are retained as an extension-facing API. The built-in
-// live renderer is read-only; users edit table structure in source mode.
+// Source transforms serve node editing and remain available to internal extensions.
 describe('Markdown table source transforms (extension API)', () => {
   const source = '| Name | Value |\n| --- | ---: |\n| One | 1 |\n| Two | 2 |';
 

@@ -10,7 +10,7 @@ import { inflateRawSync } from 'node:zlib';
 import MarkdownIt from 'markdown-it';
 import sharp from 'sharp';
 import type { DocumentSession, ExportFormat, Settings } from '../shared/contracts';
-import { analyzeMarkdown, exportCss, renderMarkdown } from '../shared/markdown';
+import { analyzeMarkdown, exportCss, renderMarkdown, renderPaperBlocks } from '../shared/markdown';
 import { exportThemeCss, themeTokens } from '../shared/themes';
 import { atomicWrite } from './document-service';
 import { imageResponse, importImages, resolveImage } from './image-service';
@@ -22,7 +22,8 @@ import type { CitationRenderData } from '../shared/academic-contracts';
 import { BIBLIOGRAPHY_MARKER, citationCss, scanCitations } from '../shared/citations';
 import { getEquationIndex } from '../shared/markdown';
 import { mathCss } from '../shared/math-renderer';
-import { articleColumns, articleColumnCss } from '../shared/article-layout';
+import { articleColumnCss } from '../shared/article-layout';
+import { paginatePaper, paperPageCss } from '../shared/paper-pagination';
 
 const execFileAsync = promisify(execFile);
 const RENDER_TIMEOUT = 45_000;
@@ -117,9 +118,11 @@ export async function buildExportHtml(document: DocumentSession, settings: Setti
   const fontSize = settings.fontSizeMode === 'auto' ? 17 : Number.isFinite(settings.fontSize) ? Math.min(32, Math.max(12, settings.fontSize)) : 17;
   const css = plain ? '' : `${await offlineKatexCss()}\n${exportCss}\n${settings.readingLayout === 'double' ? articleColumnCss : ''}\n:root{color-scheme:light}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#242629}body{font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-size:${fontSize}px;line-height:1.7;letter-spacing:0}.export-layout{max-width:${width}px;margin:0 auto;padding:40px 24px 64px}.markdown-body{min-width:0;overflow-wrap:anywhere}.markdown-body img{max-width:100%;height:auto}.markdown-body pre{white-space:${settings.codeWordWrap === false ? 'pre' : 'pre-wrap'};overflow-wrap:anywhere}.markdown-body table{max-width:100%;table-layout:auto}.export-outline{font-size:14px;border-bottom:1px solid #d8dadd;margin-bottom:30px;padding-bottom:22px}.export-outline ol{list-style:none;padding:0;margin:0}.export-outline li{margin:4px 0}.export-outline a{color:#555d65;text-decoration:none}.katex-display{overflow-wrap:normal;overflow-x:auto;overflow-y:hidden}@page{size:${settings.pageSize === 'Letter' ? 'Letter' : 'A4'};margin:16mm}@media print{.export-layout{max-width:none;padding:0}.export-outline{break-after:page}h1,h2,h3,h4,h5,h6{break-after:avoid}pre,blockquote,img,tr{break-inside:avoid}a{color:inherit}.katex-display{overflow:visible}}`;
   const csp = `default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:${remoteAllowed ? ' https: http:' : ''}; font-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'`;
-  const bodyContent = plain ? unstyledContent(content) : settings.readingLayout === 'double' ? articleColumns(content) : content;
+  const paged = !plain && settings.readingLayout === 'double';
+  const bodyContent = plain ? unstyledContent(content) : paged ? renderPaperBlocks(document.source, { imageURL: destination => embedded.get(destination) ?? '', allowRemoteImages: remoteAllowed, imageLoading: 'eager', settings, purpose: 'export', citations }).map(block => `<div class="paper-block" data-source-from="${block.from}" data-source-to="${block.to}" data-kind="${block.kind}">${block.html}</div>`).join('') : content;
   const bodyClass = plain ? 'markdown-body' : settings.readingLayout === 'double' ? 'markdown-body article-columns' : 'markdown-body';
-  return `<!doctype html>\n<html lang="${settings.language === 'en' ? 'en' : 'zh-CN'}"${plain ? '' : ` data-theme="${theme}" data-table-style="${settings.tableStyle}"`}><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(document.title)}</title>${plain ? '' : `<style>${css}\n${exportThemeCss(theme)}\n${citationCss}</style>`}</head><body><div class="export-layout">${outline}<main class="${bodyClass}">${bodyContent}</main></div></body></html>`;
+  const paperCss = paged ? `${paperPageCss}\n:root{--paper-font-size:${settings.fontSizeMode === 'auto' ? '10pt' : `${settings.fontSize * .78}px`}}.export-layout{max-width:none;padding:24px}.paper-pages{color:#242629;background:transparent}.paper-pages a{color:#254d66}.paper-pages table{table-layout:fixed}.paper-pages img{width:100%;max-height:none}.export-outline{width:174mm;margin:0 auto 20px}@media print{.export-layout{padding:0}}${settings.pageSize === 'Letter' ? '.paper-pages,.paper-sheet{width:215.9mm}.paper-sheet{height:279.4mm}@page{size:Letter;margin:0}' : ''}` : '';
+  return `<!doctype html>\n<html lang="${settings.language === 'en' ? 'en' : 'zh-CN'}"${plain ? '' : ` data-theme="${theme}" data-table-style="${settings.tableStyle}"`}><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(document.title)}</title>${plain ? '' : `<style>${css}\n${exportThemeCss(theme)}\n${citationCss}\n${paperCss}</style>`}</head><body><div class="export-layout">${outline}<main class="${bodyClass}"${paged ? ' data-paper="true"' : ''}>${bodyContent}</main></div></body></html>`;
 }
 
 function academicDocument(document: DocumentSession, settings: Settings, citations?: CitationRenderData): DocumentSession {
@@ -252,7 +255,7 @@ export function constrainedImageSize(width: number, height: number): { width: nu
   return { width: Math.max(1, Math.floor(width * scale)), height: Math.max(1, Math.floor(height * scale)), scale };
 }
 
-async function renderDocument(html: string, format: 'pdf' | 'png', settings: Settings): Promise<Buffer> {
+async function renderDocument(html: string, format: 'pdf' | 'png' | 'html', settings: Settings): Promise<Buffer> {
   const { BrowserWindow, session } = await import('electron');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'markedown-render-'));
   const input = path.join(directory, 'document.html');
@@ -281,7 +284,12 @@ async function renderDocument(html: string, format: 'pdf' | 'png', settings: Set
       await window.loadFile(input);
       stage = 'waiting for fonts and images';
       await evaluate(`(async()=>{await document.fonts.ready;await Promise.all(Array.from(document.images,image=>image.complete?Promise.resolve():new Promise(resolve=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',resolve,{once:true})})));return true})()`);
-      if (format === 'pdf') {
+      if (settings.readingLayout === 'double') {
+        stage = 'paginating the article';
+        await evaluate(`(async()=>{const host=document.querySelector('main[data-paper]');if(!host)return;const blocks=Array.from(host.children,node=>({html:node.innerHTML,from:Number(node.dataset.sourceFrom),to:Number(node.dataset.sourceTo),kind:node.dataset.kind}));host.replaceChildren();await (${paginatePaper.toString()})(host,blocks)})()`);
+      }
+      if (format === 'html') return Buffer.from(await evaluate("'<!doctype html>\\n'+document.documentElement.outerHTML"), 'utf8');
+      if (format === 'pdf' && settings.readingLayout !== 'double') {
         const printableWidth = settings.pageSize === 'Letter' ? '183.9mm' : '178mm';
         await evaluate(`(()=>{const layout=document.querySelector('.export-layout');layout.style.width='${printableWidth}';layout.style.maxWidth='none';layout.style.padding='0'})()`);
       }
@@ -482,7 +490,7 @@ export async function exportDocument(document: DocumentSession, format: ExportFo
   }
   if (format === 'html' || format === 'htmlPlain' || format === 'pdf' || format === 'png') {
     const html = await buildExportHtml(document, settings, format, citations);
-    const bytes = format === 'html' || format === 'htmlPlain' ? Buffer.from(html, 'utf8') : await renderDocument(html, format, settings);
+    const bytes = format === 'htmlPlain' || (format === 'html' && settings.readingLayout !== 'double') ? Buffer.from(html, 'utf8') : await renderDocument(html, format, settings);
     await atomicWrite(targetPath, bytes);
   } else await exportWithPandoc(document, format, targetPath, settings, citations);
 }

@@ -143,11 +143,38 @@ try {
   assert.deepEqual(errors, []);
   checks.push('main-process position, tab switching and unchanged Markdown/dirty state');
   await page.screenshot({ path: path.join(run, 'editor.png') });
+  await page.evaluate(() => window.markedown.updateSettings({ readingLayout: 'double' }));
+  await page.locator('.article-preview main:not([aria-hidden]) .paper-sheet').first().waitFor();
+  await settle();
+  const paper=page.locator('.article-preview main:not([aria-hidden])');
+  assert.equal(await paper.locator('.csl-entry').count(),required.length,'Pagination duplicated or lost references');
+  assert.deepEqual(await paper.locator('.csl-entry').evaluateAll(nodes=>nodes.map(node=>node.dataset.referenceKey)),resolved.entries.map(entry=>entry.key));
+  assert.equal(await paper.locator('.md-bibliography h2').count(),1,'Bibliography heading missing or repeated');
+  if(!documentArgument) {
+    assert.equal(await paper.locator('tbody tr').count(),46,'Pagination duplicated or lost table rows');
+    assert(await paper.locator('table').count()>2,'Long table did not continue into another column');
+    assert.equal(await paper.locator('table').count(),await paper.locator('table thead').count(),'Continued tables need headers');
+  }
+  assert(await paper.locator('.paper-column').evaluateAll(nodes=>nodes.every(node=>node.scrollHeight<=node.clientHeight+2)),'A column overflows its A4 page');
+  const paperScroll=page.locator('.article-preview-scroll');
+  for(const fraction of [1,0,.7,1]){await paperScroll.evaluate((node,fraction)=>{node.scrollTop=(node.scrollHeight-node.clientHeight)*fraction;},fraction);await settle();}
+  await paper.locator('.csl-entry').last().scrollIntoViewIfNeeded();await settle();
+  const beforePaperEdit=await paperScroll.evaluate(node=>node.scrollTop);
+  await paper.locator('.csl-entry').last().click();await page.locator('.paper-edit-overlay .cm-content').waitFor();
+  assert((await page.locator('.paper-edit-overlay .cm-content').innerText()).includes('markedown:bibliography'));
+  await page.getByRole('button',{name:'Finish editing',exact:true}).click();await settle();
+  const afterPaperEdit=await paperScroll.evaluate(node=>node.scrollTop);
+  assert(Math.abs(afterPaperEdit-beforePaperEdit)<4,`Closing a continued bibliography edit jumped ${beforePaperEdit} -> ${afterPaperEdit}`);
+  assert.equal((await state()).source,source);
+  assert.deepEqual(errors,[]);
+  await page.screenshot({path:path.join(run,'paper-references.png')});
+  checks.push('A4 columns preserve table rows, repeat table headers, and include each reference once; continued-block editing preserves scroll');
 } catch (error) { failure = error; }
 finally {
   const report = { status: failure ? 'failed' : 'passed', fixture: documentArgument ? 'private local copy' : 'public synthetic', references: required.length, checks, errors, motion, failure: failure?.message };
   await writeFile(path.join(run, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ ...report, motion: `${motion.length} samples`, run }));
+  await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }); }).catch(() => {});
   await Promise.race([app.close().catch(() => {}), new Promise(resolve => setTimeout(resolve, 5000))]);
   if (child.exitCode === null) child.kill();
   clearTimeout(watchdog);

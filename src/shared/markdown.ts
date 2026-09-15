@@ -132,7 +132,7 @@ md.renderer.rules.math_inline = (tokens, index, _options, env) => {
   const equation = tokens[index].meta?.equation as EquationEntry | undefined;
   if (equation?.block) return mathBlock(tokens[index].content, equation, env);
   const html = mathHTML(equation?.source ?? tokens[index].content, Boolean(tokens[index].meta?.display), env);
-  if (!equation?.label && !equation?.number && !equation?.numberingError) return html;
+  if (!equation || !equation.label && !equation.number && !equation.numberingError && env?.purpose !== 'editor') return html;
   return `<span class="md-equation-inline" id="${equation.id}" data-equation-from="${equation.from}">${equationAliases(equation)}${html}${equation.number ? `<span class="md-equation-inline-number"> ${equationNumber(equation)}</span>` : ''}${equationDiagnostic(equation, env)}</span>`;
 };
 
@@ -382,6 +382,33 @@ export function renderMarkdown(source: string, options: RenderOptions = {}): str
   md.options.quotes = [...(settings.doubleQuoteStyle === 'guillemet' ? ['«', '»'] : ['“', '”']), ...(settings.singleQuoteStyle === 'singleGuillemet' ? ['‹', '›'] : ['‘', '’'])];
   try { return md.render(source, { ...options, settings, equationOriginalSource: source }); }
   finally { md.options.linkify = previous; md.options.typographer = previousTypographer; md.options.quotes = previousQuotes; }
+}
+
+export interface MarkdownPaperBlock { from: number; to: number; html: string; kind: string }
+
+/** Render top-level blocks using one full-document parse so references keep their numbering. */
+export function renderPaperBlocks(source: string, options: RenderOptions = {}): MarkdownPaperBlock[] {
+  const previous = { ...md.options };
+  const settings = { ...defaultSettings, ...options.settings };
+  md.options.linkify = settings.autoLinks;
+  md.options.typographer = settings.smartPunctuation === 'render' && settings.smartQuotes;
+  md.options.quotes = [...(settings.doubleQuoteStyle === 'guillemet' ? ['«', '»'] : ['“', '”']), ...(settings.singleQuoteStyle === 'singleGuillemet' ? ['‹', '›'] : ['‘', '’'])];
+  const env = { ...options, settings, equationOriginalSource: source };
+  try {
+    const tokens = md.parse(source, env);
+    const offsets = [0];
+    for (let i = 0; i < source.length; i++) if (source[i] === '\n') offsets.push(i + 1);
+    const result: MarkdownPaperBlock[] = [];
+    for (let start = 0; start < tokens.length;) {
+      const first = tokens[start];
+      let end = start + 1, depth = first.nesting;
+      while (depth > 0 && end < tokens.length) depth += tokens[end++].nesting;
+      const html = md.renderer.render(tokens.slice(start, end), md.options, env);
+      if (html.trim()) result.push({ from: offsets[first.map?.[0] ?? offsets.length] ?? source.length, to: offsets[first.map?.[1] ?? offsets.length] ?? source.length, html, kind: first.tag || first.type });
+      start = end;
+    }
+    return result;
+  } finally { Object.assign(md.options, previous); }
 }
 
 export function analyzeMarkdown(source: string, settings: Partial<Settings> = {}) {

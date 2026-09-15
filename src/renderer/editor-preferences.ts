@@ -12,6 +12,7 @@ import { getEquationIndex, renderMarkdown } from '../shared/markdown';
 import { emptyCitationData, type CitationRenderData } from '../shared/academic-contracts';
 import { scanCitations } from '../shared/citations';
 import { documentLineNumbers } from './editor-line-numbers';
+import { headingPointerSelection, stableTextPaste } from './editor-clipboard';
 
 export const editorPreferences = Facet.define<Settings, Settings>({ combine: values => values[0] || defaultSettings });
 export const editorCitations = Facet.define<CitationRenderData, CitationRenderData>({ combine: values => values[0] || emptyCitationData });
@@ -271,6 +272,7 @@ export function preferenceExtensions(settings: Settings): Extension[] {
   const brackets = [...(settings.pairBrackets ? ['(', '[', '{', '"', "'"] : []), ...(settings.pairMarkdown ? ['`', '*', '_', '~'] : [])];
   return [
     editorPreferences.of(settings), EditorState.tabSize.of(width), indentUnit.of(' '.repeat(width)),
+    headingPointerSelection(state => state.facet(editorSourceMode)), stableTextPaste,
     ...(settings.showLineNumbers ? documentLineNumbers : []),
     EditorView.contentAttributes.of({ 'aria-label': 'Markdown editor', spellcheck: String(settings.spellcheck !== 'off'), autocapitalize: 'off', ...(settings.spellcheck.startsWith('en-') ? { lang: settings.spellcheck } : {}) }),
     EditorState.languageData.of((state, position) => [{ closeBrackets: { brackets: isCode(state, position) ? (settings.pairBrackets ? ['(', '[', '{', '"', "'"] : []) : brackets, before: ')]}:;> ', explode: '[]{}' } }]),

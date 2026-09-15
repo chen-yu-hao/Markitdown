@@ -79,9 +79,15 @@ jobs:
       - name: Verify Long Image Width
         timeout-minutes: 5
         run: node scripts/verify-image-width.mjs release/win-unpacked/Markit.exe
-      - name: Verify Two-column Reading and Exports
+      - name: Verify A4 Two-column Editing and Exports
         timeout-minutes: 5
         run: node scripts/verify-article-layout.mjs release/win-unpacked/Markit.exe
+      - name: Verify Paste and Heading Selection
+        timeout-minutes: 3
+        run: node scripts/verify-paste-heading.mjs release/win-unpacked/Markit.exe
+      - name: Verify Table and Formula Node Editing
+        timeout-minutes: 5
+        run: node scripts/verify-node-editors.mjs release/win-unpacked/Markit.exe
       - run: node scripts/verify-equation-layout.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Equation Scrolling
         timeout-minutes: 5

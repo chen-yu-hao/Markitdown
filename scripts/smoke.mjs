@@ -90,23 +90,16 @@ try {
   await page.getByTestId('mode-toggle').filter({hasText:'Source'}).waitFor();
   await page.getByTestId('mode-toggle').click();
   assert((await currentDocument()).source===edited,'Mode roundtrip changed source.');
-  // Live tables are presentation-only. Editing table content or structure is
-  // intentionally available from source mode, so common table gestures must
-  // leave the Markdown source and DOM unchanged.
+  // Opening the table node must preserve source; mutations have dedicated coverage.
   const renderedTable=page.locator('.md-rendered table:visible').first();
   await renderedTable.waitFor();
   const tableBefore=(await currentDocument()).source;
   const tableCell=renderedTable.locator('th,td').first();
-  await tableCell.dblclick();
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('F2');
-  await page.keyboard.press('Tab');
-  await tableCell.click({button:'right'});
-  await page.waitForTimeout(100);
-  assert(await page.locator('.md-table-cell-editor').count()===0,'Live table opened a cell editor.');
-  assert(await page.locator('.md-table-context-menu').count()===0,'Live table opened an editing context menu.');
+  await tableCell.click();
+  await page.locator('.md-node-table .node-cell-input').waitFor();
+  await page.locator('.md-node-table .node-done').click();
   assert((await currentDocument()).source===tableBefore,'Live table interaction changed Markdown source.');
-  checks.push('live tables remain read-only while source mode handles edits');
+  checks.push('table node opens and closes without modifying source');
   await page.evaluate(()=>window.markedown.updateSettings({theme:'night'}));
   await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
   assert((await currentDocument()).source===edited,'Theme change altered source.');
