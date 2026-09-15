@@ -282,6 +282,13 @@ async function renderDocument(html: string, format: 'pdf' | 'png' | 'html', sett
     await writeFile(input, html, 'utf8');
     const job = async (): Promise<Buffer> => {
       await window.loadFile(input);
+      if (html.includes('data-diagram="mermaid"')) {
+        stage = 'rendering diagrams';
+        await evaluate(await readFile(path.join(__dirname, 'diagram-runtime.js'), 'utf8'));
+        await evaluate('markitRenderDiagrams(document)');
+        const failure = await evaluate("document.querySelector('[data-diagram-ready=error]')?.textContent || ''");
+        if (failure) throw new Error(`Diagram rendering failed: ${String(failure).slice(0, 300)}`);
+      }
       stage = 'waiting for fonts and images';
       await evaluate(`(async()=>{await document.fonts.ready;await Promise.all(Array.from(document.images,image=>image.complete?Promise.resolve():new Promise(resolve=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',resolve,{once:true})})));return true})()`);
       if (settings.readingLayout === 'double') {
@@ -490,7 +497,7 @@ export async function exportDocument(document: DocumentSession, format: ExportFo
   }
   if (format === 'html' || format === 'htmlPlain' || format === 'pdf' || format === 'png') {
     const html = await buildExportHtml(document, settings, format, citations);
-    const bytes = format === 'htmlPlain' || (format === 'html' && settings.readingLayout !== 'double') ? Buffer.from(html, 'utf8') : await renderDocument(html, format, settings);
+    const bytes = (format === 'htmlPlain' || format === 'html') && settings.readingLayout !== 'double' && !html.includes('data-diagram="mermaid"') ? Buffer.from(html, 'utf8') : await renderDocument(html, format === 'htmlPlain' ? 'html' : format, format === 'htmlPlain' ? { ...settings, readingLayout: 'single' } : settings);
     await atomicWrite(targetPath, bytes);
   } else await exportWithPandoc(document, format, targetPath, settings, citations);
 }

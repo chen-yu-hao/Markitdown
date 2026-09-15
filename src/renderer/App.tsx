@@ -121,6 +121,7 @@ export default function App() {
   const [documents, setDocuments] = useState<DocumentSession[]>([]);
   const docsRef = useRef<DocumentSession[]>([]);
   const [activeId, setActiveId] = useState('');
+  const [documentAnchor, setDocumentAnchor] = useState<{ id: string; offset: number; anchor?: string } | null>(null);
   const [translationRequest, setTranslationRequest] = useState<{ text: string; provider: 'google' | 'baidu' } | null>(null);
   const activeIdRef = useRef('');
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -211,8 +212,14 @@ export default function App() {
     if (event.type === 'document') upsert(event.document, event.activate);
     else if (event.type === 'settings') applySettings(event.settings);
     else if (event.type === 'command') actions.current(event.command);
+    else if (event.type === 'navigate') { setActiveId(event.id); setDocumentAnchor(event); }
     else if (event.type === 'error') showError(event.message);
     else if (event.type === 'translate') setTranslationRequest(event);
+    else if (event.type === 'image-action') {
+      let target = document.elementFromPoint(event.x, event.y);
+      while (target?.shadowRoot) { const inner = target.shadowRoot.elementFromPoint(event.x, event.y); if (!inner || inner === target) break; target = inner; }
+      target?.closest('img')?.dispatchEvent(new CustomEvent('markit-image-action', { bubbles: true, composed: true, detail: event.action }));
+    }
     else if (event.type === 'external') setConflicts(previous => previous.includes(event.id) ? previous : [...previous, event.id]);
   }, [upsert, showError, applySettings]);
   useEffect(() => {
@@ -492,6 +499,15 @@ export default function App() {
     const heading = analyzeMarkdown(doc.source, settingsRef.current).headings.find(item => item.id === id);
     if (heading) editors.current.get(doc.id)?.scrollTo(heading.offset);
   }
+  useEffect(() => {
+    if (!documentAnchor || activeId !== documentAnchor.id) return;
+    const timer = setTimeout(() => {
+      if (paperPreview && documentAnchor.anchor) paperEditor.current?.scrollToHeading(documentAnchor.anchor);
+      else editors.current.get(documentAnchor.id)?.scrollTo(documentAnchor.offset);
+      setDocumentAnchor(null);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [documentAnchor, activeId, paperPreview]);
 
   // Keep the settings object passed to each editor stable while only the
   // document scroll position changes. Recreating it on every wheel frame

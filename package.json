@@ -2,7 +2,7 @@
   "name": "markit",
   "productName": "Markit",
   "desktopName": "com.zhuanz.markit",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "private": true,
   "description": "Markit Markdown editor for desktop Linux and Windows",
   "author": "Markit contributors",
@@ -40,14 +40,17 @@
     "dompurify": "^3.3.0",
     "fflate": "0.8.2",
     "highlight.js": "^11.11.0",
+    "htmlparser2": "10.0.0",
     "katex": "^0.16.22",
     "lucide-react": "^0.468.0",
     "markdown-it": "15.0.1",
     "mathjax-full": "3.2.2",
+    "mermaid": "12.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sanitize-html": "2.17.7",
-    "sharp": "^0.34.0"
+    "sharp": "^0.34.0",
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@types/katex": "^0.16.7",

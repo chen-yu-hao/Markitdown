@@ -1,2 +1,2 @@
-/** The bundled offline build preserves diagram source; it has no Mermaid engine. */
-export const diagramEngineAvailable = false;
+/** Mermaid is bundled locally for the editor and isolated export renderer. */
+export const diagramEngineAvailable = true;

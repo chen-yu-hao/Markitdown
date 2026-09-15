@@ -7,11 +7,11 @@ import { defaultHighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirr
 import { SearchQuery, findNext as searchNext, findPrevious, getSearchQuery, replaceAll, replaceNext, search, setSearchQuery } from '@codemirror/search';
 import { GFM } from '@lezer/markdown';
 import { defaultSettings, type DocumentPatch, type DocumentSession, type Settings } from '../shared/contracts';
-import { getSafeLinkURL, renderMarkdown, type EquationIndex } from '../shared/markdown';
+import { getSafeLinkURL, renderMarkdown, type EquationIndex, type ElementIndex } from '../shared/markdown';
 import { emptyCitationData, type CitationRenderData } from '../shared/academic-contracts';
 import { BIBLIOGRAPHY_MARKER, scanCitations } from '../shared/citations';
 import { headingText } from '../shared/markdown-preferences';
-import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitationScan, editorCitations, editorEquations, editorPreferences, editorSourceMode, equationIndexForCommand, preferenceExtensions } from './editor-preferences';
+import { codeLanguage, defaultFenceLanguage, droppedMarkdownLink, editorCitationScan, editorCitations, editorEquations, editorPreferences, editorSourceMode, equationIndexForCommand, preferenceExtensions, editorElements, editorNodeEditing, nodeEditingEffect } from './editor-preferences';
 import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, displayEquationInsertion, equationLabelInsertion } from './editor-academic';
 import { preservePointerPosition } from './editor-pointer';
 import { sameEditorSettings } from './editor-settings-equality';
@@ -19,6 +19,9 @@ import { pasteWithoutScroll } from './editor-clipboard';
 import { closeNodeEditor, openMathNode, openTableNode, type NodeEditorTarget } from './node-editors';
 import 'katex/dist/katex.min.css';
 import './editor.css';
+import { renderDiagrams } from './diagram-runtime';
+import { documentElementCss } from '../shared/markdown-elements';
+import { openElementNode, openImageNode, showImageViewer, tocSource, diagramTemplates } from './element-editors';
 
 export interface EditorHandle {
   applyPaperEdit(from: number, previous: string, text: string, selection: { anchor: number; head: number }, event?: string): boolean;
@@ -80,8 +83,9 @@ const insertions = StateField.define<Map<string, { from: number; to: number }>>(
   },
 });
 
-function openLink(url: string) {
+function openLink(url: string, id?: string) {
   if (/^(https?:\/\/|mailto:)/i.test(url)) void window.markedown.openExternal(url);
+  else if (url && id) void window.markedown.openDocumentLink(id, url);
 }
 
 function navigateAcademicReference(view: EditorView, target: Element): boolean {
@@ -120,13 +124,18 @@ function nodeTarget(view: EditorView, source: string, from: number, anchor: HTML
   let length = source.length;
   const block = view.state.field(editorEquations).equations.find(equation => equation.from === from)?.block;
   return {
-    owner: view, source, documentSource: view.state.doc.toString(), from, anchor, settings: view.state.facet(editorPreferences), equations: view.state.field(editorEquations), citations: view.state.facet(editorCitations),
+    owner: view, source, documentSource: view.state.doc.toString(), from, anchor, settings: view.state.facet(editorPreferences), equations: view.state.field(editorEquations), citations: view.state.facet(editorCitations), imageURL: view.state.facet(imageResolver),
+    open: () => view.dispatch({ effects: nodeEditingEffect.of(true) }),
+    close: () => view.dispatch({ effects: nodeEditingEffect.of(false) }),
     apply(previous, next, event) {
       if (view.state.readOnly || view.state.sliceDoc(from, from + previous.length) !== previous) return false;
       length = next.length;
       pasteWithoutScroll(view, () => {
         // A node edit replaces only its own source; other selections map normally.
-        const transaction = view.state.update({ changes: { from, to: from + previous.length, insert: next }, annotations: [Transaction.userEvent.of('input.type'), ...(event.startsWith('input.node.') ? [isolateHistory.of(event.endsWith('.commit') ? 'full' : 'before')] : [])], scrollIntoView: false });
+        let start = 0, end = 0;
+        while (start < previous.length && start < next.length && previous[start] === next[start]) start++;
+        while (end < previous.length - start && end < next.length - start && previous[previous.length - 1 - end] === next[next.length - 1 - end]) end++;
+        const transaction = view.state.update({ changes: { from: from + start, to: from + previous.length - end, insert: next.slice(start, next.length - end) }, annotations: [Transaction.userEvent.of('input.type'), ...(event.startsWith('input.node.') ? [isolateHistory.of(event.endsWith('.commit') ? 'full' : 'before')] : [])], scrollIntoView: false });
         view.dispatch(transaction); return transaction;
       });
       return true;
@@ -148,14 +157,15 @@ function nodeTarget(view: EditorView, source: string, from: number, anchor: HTML
 }
 
 class RenderedWidget extends WidgetType {
-  constructor(readonly source: string, readonly from: number, readonly block: boolean, readonly resolveImage: (destination: string) => string, readonly settings: Settings, readonly equations: EquationIndex, readonly citations: CitationRenderData, readonly virtual = false) { super(); }
-  eq(other: RenderedWidget) { return this.source === other.source && this.from === other.from && this.block === other.block && this.resolveImage === other.resolveImage && this.settings === other.settings && this.equations === other.equations && this.citations === other.citations && this.virtual === other.virtual; }
+  constructor(readonly source: string, readonly from: number, readonly block: boolean, readonly resolveImage: (destination: string) => string, readonly settings: Settings, readonly equations: EquationIndex, readonly citations: CitationRenderData, readonly virtual = false, readonly elements?: ElementIndex) { super(); }
+  eq(other: RenderedWidget) { return this.source === other.source && this.from === other.from && this.block === other.block && this.resolveImage === other.resolveImage && this.settings === other.settings && this.equations === other.equations && this.citations === other.citations && this.virtual === other.virtual && this.elements === other.elements; }
   toDOM(view: EditorView) {
     const dom = document.createElement(this.block ? 'div' : 'span');
     dom.className = `md-rendered ${this.block ? 'md-rendered-block' : 'md-rendered-inline'}`;
     dom.setAttribute('contenteditable', 'false');
     dom.dataset.nodeFrom = String(this.from);
-    dom.innerHTML = renderMarkdown(this.source, { imageURL: this.resolveImage, settings: this.settings, purpose: 'editor', equationIndex: this.equations, citations: this.citations, sourceOffset: this.from }).trim();
+    dom.innerHTML = renderMarkdown(this.source, { imageURL: this.resolveImage, settings: this.settings, purpose: 'editor', equationIndex: this.equations, citations: this.citations, sourceOffset: this.from, elementContext: this.elements }).trim();
+    if (dom.querySelector('[data-diagram]')) requestAnimationFrame(() => { void renderDiagrams(dom, () => view.requestMeasure()); });
     // A large table is a single CodeMirror block widget.  Letting thousands of
     // rows participate in the editor's page scroll forces Chromium to lay out
     // and paint the whole table on every wheel event, which can make scrolling
@@ -180,7 +190,8 @@ class RenderedWidget extends WidgetType {
       if (navigateAcademicReference(view, event.target as Element)) return;
       const link = (event.target as Element).closest<HTMLAnchorElement>('a');
       const pointer = event as MouseEvent;
-      if (link && (pointer.ctrlKey || pointer.metaKey)) { openLink(link.getAttribute('href') || ''); return; }
+      if (link?.dataset.sourceTarget) { const position = Number(link.dataset.sourceTarget); view.dispatch({ selection: { anchor: position }, effects: EditorView.scrollIntoView(position, { y: 'center' }) }); return; }
+      if (link && (pointer.ctrlKey || pointer.metaKey)) { const id = /\/document\/([^?]+)/.exec(this.resolveImage(''))?.[1]; openLink(link.getAttribute('href') || '', id && decodeURIComponent(id)); return; }
       if ((event.target as Element).closest('table')) {
         const cell = (event.target as Element).closest<HTMLTableCellElement>('td,th');
         if (cell && openTableNode(nodeTarget(view, this.source, this.from, dom), (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex)) return;
@@ -189,13 +200,21 @@ class RenderedWidget extends WidgetType {
       if (equation && openMathNode(nodeTarget(view, this.source, this.from, dom), equation.block)) {
         return;
       }
+      if ((event.target as Element).closest('img')) return;
+      if (openElementNode(nodeTarget(view, this.source, this.from, dom))) return;
       view.dispatch({ selection: { anchor: Math.min(this.from, view.state.doc.length) }, effects: EditorView.scrollIntoView(Math.min(this.from, view.state.doc.length), { y: 'nearest' }) });
       view.focus();
     });
     dom.addEventListener('click', event => { if (!isScrollableWidgetSurface(event.target)) event.preventDefault(); });
+    dom.addEventListener('dblclick', event => { const img = (event.target as Element).closest('img'); if (img) { event.preventDefault(); showImageViewer(img.src, img.alt); } });
+    dom.addEventListener('markit-image-action', event => {
+      const img = (event.target as Element).closest('img'); if (!img) return;
+      if ((event as CustomEvent).detail === 'view') showImageViewer(img.src, img.alt);
+      else openImageNode(nodeTarget(view, this.source, this.from, dom));
+    });
     dom.addEventListener('contextmenu', raw => {
       const event = raw as MouseEvent, cell = (event.target as Element).closest<HTMLTableCellElement>('td,th');
-      if (!cell) return;
+      if (!cell) { if ((event.target as Element).closest('img')) return; if (openElementNode(nodeTarget(view, this.source, this.from, dom))) { event.preventDefault(); event.stopPropagation(); } return; }
       event.preventDefault(); event.stopPropagation();
       openTableNode(nodeTarget(view, this.source, this.from, dom), (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex, { x: event.clientX, y: event.clientY });
     });
@@ -249,6 +268,7 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
   const equations = equationIndex.equations;
   const citationScan = state.field(editorCitationScan);
   const citations = state.facet(editorCitations);
+  const elements = state.field(editorElements);
   let activeFrom = selection.from;
   let activeTo = selection.to;
   if (settings.showActiveBlockSource) {
@@ -267,10 +287,14 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
     if (end > start) decorations.push(Decoration.replace({}).range(start, end));
   };
   const render = (start: number, end: number, block: boolean) => {
-    if (end > start) decorations.push(Decoration.replace({ widget: new RenderedWidget(state.sliceDoc(start, end), start, block, resolveImage, settings, equationIndex, citations), block }).range(start, end));
+    if (end > start) decorations.push(Decoration.replace({ widget: new RenderedWidget(state.sliceDoc(start, end), start, block, resolveImage, settings, equationIndex, citations, false, elements), block }).range(start, end));
     protectedRanges.push({ from: start, to: end });
   };
+  for (const element of elements.ranges) {
+    if (element.block || !isActive(element.from, element.to)) render(element.from, element.to, element.block);
+  }
   for (const equation of equations) {
+    if (protectedRanges.some(range => equation.from >= range.from && equation.to <= range.to)) continue;
     if (!equation.block && (equation.to < from || equation.from > to)) continue;
     if (!isActive(equation.from, equation.to) || selection.empty && (selection.head <= equation.from || selection.head >= equation.to)) render(equation.from, equation.to, equation.block);
     else protectedRanges.push({ from: equation.from, to: equation.to });
@@ -300,7 +324,7 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
         // scrollable; users can still edit/export the exact source normally.
         if (name === 'Table' && end - start > liveTableLimit) {
           protectedRanges.push({ from: start, to: end });
-        } else if (!active || name === 'Table' && selection.empty) render(start, end, true);
+        } else if (!active || ['Table', 'FencedCode'].includes(name) && selection.empty) render(start, end, true);
         else {
           protectedRanges.push({ from: start, to: end });
           if (name === 'FencedCode' || name === 'CodeBlock') {
@@ -338,7 +362,8 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
       if (name === 'InlineCode') protectedRanges.push({ from: start, to: end });
       if (name === 'Link' || name === 'Autolink') {
         const url = node.node.getChild('URL');
-        const destination = url && getSafeLinkURL(state.sliceDoc(url.from, url.to), name === 'Autolink' ? 'autolink' : false);
+        const rawURL = url && state.sliceDoc(url.from, url.to);
+        const destination = rawURL && (getSafeLinkURL(rawURL, name === 'Autolink' ? 'autolink' : false) || (name === 'Link' && !/^(?![a-z]:[/\\])[a-z][\w+.-]*:|^[/\\]{2}/i.test(rawURL) ? rawURL.replace(/^<|>$/g,'') : undefined));
         decorations.push(Decoration.mark({ class: 'md-link', attributes: destination ? { 'data-link': destination } : undefined }).range(start, end));
       }
       if (name === 'URL' && node.node.parent?.name !== 'Link' && node.node.parent?.name !== 'Autolink') {
@@ -390,6 +415,7 @@ const liveDecorations = StateField.define<LiveState>({
     return { from: 0, to, decorations: buildLiveDecorations(state, 0, to) };
   },
   update(value, transaction) {
+    if (transaction.state.field(editorNodeEditing) && !transaction.reconfigured) return { from: transaction.changes.mapPos(value.from, -1), to: transaction.changes.mapPos(value.to, 1), decorations: value.decorations.map(transaction.changes) };
     let from = transaction.changes.mapPos(value.from, -1);
     let to = transaction.changes.mapPos(value.to, 1);
     let viewportChanged = false;
@@ -398,7 +424,7 @@ const liveDecorations = StateField.define<LiveState>({
       to = effect.value.to;
       viewportChanged = true;
     }
-    if (transaction.docChanged || transaction.selection || transaction.reconfigured || viewportChanged || syntaxTree(transaction.startState) !== syntaxTree(transaction.state)) return { from, to, decorations: buildLiveDecorations(transaction.state, from, to) };
+    if (transaction.docChanged || transaction.selection || transaction.reconfigured || viewportChanged || transaction.effects.some(e => e.is(nodeEditingEffect)) || syntaxTree(transaction.startState) !== syntaxTree(transaction.state)) return { from, to, decorations: buildLiveDecorations(transaction.state, from, to) };
     return value;
   },
   provide: field => EditorView.decorations.from(field, value => value.decorations),
@@ -587,6 +613,16 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
     const view = viewRef.current;
     if (!view || transferLocked.current) return;
     const settings = propsRef.current.settings || defaultSettings;
+    if (name === 'metadata') { if (!view.state.doc.toString().startsWith('---\n')) view.dispatch({ changes: { from: 0, insert: '---\ntitle: Untitled\nauthor: \ntags: []\n---\n\n' }, annotations: formatChange }); return; }
+    if (name === 'toc') { insertText('\n\n' + tocSource(view.state.doc.toString()) + '\n\n'); return; }
+    if (name === 'footnote') {
+      const source = view.state.doc.toString(); let id = 1; while (source.includes(`[^${id}]`)) id++;
+      const selection = view.state.selection.main;
+      view.dispatch({ changes: [{ from: selection.from, to: selection.to, insert: `[^${id}]` }, { from: source.length, insert: `\n\n[^${id}]: Note\n` }], annotations: formatChange }); return;
+    }
+    if (name.startsWith('diagram:')) { const template = diagramTemplates[name.slice(8)]; if (template) insertText('\n\n```mermaid\n' + template + '\n```\n\n'); return; }
+    if (name.startsWith('alert:')) { insertText(`\n\n> [!${name.slice(6)}]\n> Note\n\n`); return; }
+    if (name === 'table') { insertText('\n\n| A | B |\n| --- | --- |\n|  |  |\n\n'); return; }
     if (name === 'bibliography') { insertText('', true); return; }
     if (name === 'math') {
       if (view.composing || view.compositionStarted) return;
@@ -604,7 +640,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
       return;
     }
     const wrapping: Record<string, [string, string?, string?]> = {
-      bold: ['**'], italic: ['*'], strike: ['~~'], strikethrough: ['~~'], mark: ['=='], highlight: ['=='], code: ['`'],
+      bold: ['**'], italic: ['*'], strike: ['~~'], strikethrough: ['~~'], mark: ['=='], highlight: ['=='], code: ['`'], underline: ['<u>', '</u>'], comment: ['<!-- ', ' -->'],
       link: ['[', '](https://)', ''], sup: ['<sup>', '</sup>'], sub: ['<sub>', '</sub>'], inlineMath: ['$', '$'],
       codeblock: [`\n\`\`\`${defaultFenceLanguage(settings, 'menu')}\n`, '\n```\n'],
     };
@@ -713,6 +749,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   useLayoutEffect(() => {
     if (!host.current) return;
     const initial = propsRef.current;
+    if (!document.getElementById('markit-element-style')) { const style = document.createElement('style'); style.id = 'markit-element-style'; style.textContent = documentElementCss; document.head.append(style); }
     const resolver = (destination: string) => window.markedown.imageURL(initial.document.id, destination);
     let scrollFrame = 0;
     let centerPending = false;
@@ -734,7 +771,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
             liveMode.of(initial.document.mode === 'live' && new TextEncoder().encode(initial.document.source).length <= sourceLimit),
             ...(initial.document.mode === 'source' ? [syntaxHighlighting(defaultHighlightStyle)] : []),
           ]),
-          editorEquations, editorCitationScan, liveDecorations, viewportTracker, nodeKeyboard,
+          editorNodeEditing, editorElements, editorEquations, editorCitationScan, liveDecorations, viewportTracker, nodeKeyboard,
           preservePointerPosition(view => view.state.facet(liveMode) && !(propsRef.current.typewriter && (propsRef.current.settings || defaultSettings).alwaysCenterCaret)),
           placeholder(''),
           keymap.of([
@@ -777,7 +814,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
               const target = (event.target as Element).closest<HTMLElement>('[data-link],a');
               if (!target) return false;
               if (target.tagName === 'A') event.preventDefault();
-              if (event.ctrlKey || event.metaKey) { openLink(target.dataset.link || target.getAttribute('href') || ''); return true; }
+              if (event.ctrlKey || event.metaKey) { openLink(target.dataset.link || target.getAttribute('href') || '', propsRef.current.document.id); return true; }
               return false;
             },
             compositionend(_event, editor) {

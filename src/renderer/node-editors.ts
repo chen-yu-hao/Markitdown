@@ -14,6 +14,8 @@ export interface NodeEditorTarget {
   settings: Settings;
   equations?: EquationIndex;
   citations?: CitationRenderData;
+  imageURL?: (destination: string) => string;
+  open?(): void;
   apply(previous: string, next: string, event: string): boolean;
   close?(): void;
   navigate?(side: 'before' | 'after'): void;
@@ -24,13 +26,14 @@ export const hasNodeEditor = (owner: object) => active?.owner === owner;
 export function closeNodeEditor(owner?: object) { if (!owner || active?.owner === owner) active?.close(); }
 export function nodeEditorCommand(name: string) { return active?.command(name) || false; }
 
-function panelFor(target: NodeEditorTarget, type: 'table' | 'math') {
+export function panelFor(target: NodeEditorTarget, type: 'table' | 'math' | 'element', label?: [string, string]) {
   closeNodeEditor();
+  target.open?.();
   const zh = target.settings.language === 'zh-CN' || target.settings.language === 'system' && document.documentElement.lang.startsWith('zh');
   const t = (cn: string, en: string) => zh ? cn : en;
   const panel = document.createElement('section');
   panel.className = `md-node-editor md-node-${type}`; panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', type === 'table' ? t('表格编辑', 'Table editor') : t('公式编辑', 'Equation editor'));
+  panel.setAttribute('aria-label', label ? t(...label) : type === 'table' ? t('表格编辑', 'Table editor') : t('公式编辑', 'Equation editor'));
   panel.dataset.tableStyle = target.settings.tableStyle;
   panel.innerHTML = `<header><strong></strong><button type="button" class="node-done"></button></header><div class="node-body"></div><div class="node-message" role="status"></div>`;
   panel.querySelector('strong')!.textContent = panel.getAttribute('aria-label');
@@ -44,12 +47,19 @@ function panelFor(target: NodeEditorTarget, type: 'table' | 'math') {
   panel.addEventListener('focusin', event => { if (event.target instanceof HTMLTextAreaElement) lastInput = event.target; });
   const close = () => {
     if (closed) return; closed = true; panel.remove();
+    sizeObserver.disconnect(); window.removeEventListener('resize', fit);
     document.removeEventListener('pointerdown', outside, true);
     if (active?.panel === panel) active = undefined;
     target.close?.();
   };
+  const fit = () => {
+    panel.style.left = `${Math.max(12, Math.min(innerWidth - panel.offsetWidth - 12, parseFloat(panel.style.left) || 12))}px`;
+    panel.style.top = `${Math.max(48, Math.min(innerHeight - panel.offsetHeight - 12, parseFloat(panel.style.top) || 48))}px`;
+  };
+  const sizeObserver = new ResizeObserver(fit); sizeObserver.observe(panel); window.addEventListener('resize', fit);
   const outside = (event: PointerEvent) => {
     if (event.composedPath().includes(panel)) return;
+    if (event.composedPath().some(node => node instanceof HTMLElement && node.matches('.md-image-viewer'))) return;
     if (event.composedPath().some(node => node instanceof HTMLElement && (node.matches('.top-menus,.menu-popup') || node.getAttribute('role') === 'menuitem'))) return;
     // Consume a click on the old paper layout; it will be repaginated on close.
     if (hasNodeEditor(target.owner) && event.composedPath().some(node => node instanceof HTMLElement && node.classList.contains('article-preview'))) { event.preventDefault(); event.stopPropagation(); }
@@ -58,6 +68,9 @@ function panelFor(target: NodeEditorTarget, type: 'table' | 'math') {
   document.addEventListener('pointerdown', outside, true);
   done.onclick = close;
   active = { owner: target.owner, panel, close, command(name) {
+    if (type === 'table' && ['zoomIn', 'zoomOut', 'zoomReset'].includes(name)) {
+      panel.dispatchEvent(new CustomEvent('nodezoom', { detail: name })); return true;
+    }
     if (['copy', 'paste', 'cut', 'selectAll'].includes(name)) {
       const input = lastInput?.isConnected ? lastInput : undefined;
       if (!input) return false;
@@ -93,7 +106,7 @@ function panelFor(target: NodeEditorTarget, type: 'table' | 'math') {
   };
   const render = (markdown: string) => {
     const full = target.documentSource.slice(0, target.from) + markdown + target.documentSource.slice(target.from + target.source.length);
-    return renderMarkdown(markdown, { settings: target.settings, purpose: 'editor', equationIndex: getEquationIndex(full, target.settings), citations: target.citations, sourceOffset: target.from });
+    return renderMarkdown(markdown, { settings: target.settings, purpose: 'editor', imageURL: target.imageURL, equationIndex: type === 'math' ? getEquationIndex(full, target.settings) : target.equations, citations: target.citations, sourceOffset: target.from });
   };
   const body = panel.querySelector<HTMLElement>('.node-body')!;
   const button = (parent: HTMLElement, cn: string, en: string, action: () => void, text?: string) => {
@@ -129,9 +142,30 @@ export function openMathNode(target: NodeEditorTarget, block: boolean) {
 export function openTableNode(target: NodeEditorTarget, initialRow = 0, initialColumn = 0, menuPoint?: { x: number; y: number }) {
   const shape = tableShape(target.source); if (!shape || target.source.length > 512 * 1024) return false;
   const ui = panelFor(target, 'table');
+  const sizing = document.createElement('div'); sizing.className = 'node-table-sizing'; ui.panel.querySelector('header')!.after(sizing);
+  const zoom = document.createElement('input'); zoom.type = 'range'; zoom.min = '50'; zoom.max = '200'; zoom.step = '10'; zoom.value = '100'; zoom.setAttribute('aria-label', ui.t('表格缩放', 'Table zoom'));
+  const zoomLabel = document.createElement('output');
+  sizing.append(zoom, zoomLabel);
+  const setZoom = (value: number) => { zoom.value = String(Math.max(50, Math.min(200, value))); viewport.style.zoom = String(Number(zoom.value) / 100); zoomLabel.textContent = `${zoom.value}%`; };
+  ui.button(sizing, '重置缩放', 'Reset table zoom', () => setZoom(100), '100%');
+  let savedRect: DOMRect | undefined;
+  ui.button(sizing, '最大化或还原', 'Maximize or restore', () => {
+    if (!savedRect) { savedRect = ui.panel.getBoundingClientRect(); Object.assign(ui.panel.style, { left: '12px', top: '48px', width: 'calc(100vw - 24px)', height: 'calc(100vh - 60px)' }); }
+    else { Object.assign(ui.panel.style, { left: `${savedRect.left}px`, top: `${savedRect.top}px`, width: `${savedRect.width}px`, height: `${savedRect.height}px` }); savedRect = undefined; }
+  });
+  const header = ui.panel.querySelector('header')!;
+  header.onpointerdown = event => {
+    if ((event.target as Element).closest('button') || event.button) return;
+    const rect = ui.panel.getBoundingClientRect(), x = event.clientX, y = event.clientY; header.setPointerCapture(event.pointerId);
+    header.onpointermove = move => { ui.panel.style.left = `${Math.max(12, Math.min(innerWidth - ui.panel.offsetWidth - 12, rect.left + move.clientX - x))}px`; ui.panel.style.top = `${Math.max(48, Math.min(innerHeight - ui.panel.offsetHeight - 12, rect.top + move.clientY - y))}px`; };
+    header.onpointerup = () => { header.onpointermove = null; };
+  };
   let row = Math.min(initialRow, shape.rows - 1), column = Math.min(initialColumn, shape.columns - 1), selection: 'cell' | 'row' | 'column' = 'cell';
   const tools = document.createElement('div'); tools.className = 'node-table-tools';
   const viewport = document.createElement('div'); viewport.className = 'node-table-viewport';
+  zoom.oninput = () => setZoom(Number(zoom.value)); setZoom(100);
+  ui.panel.addEventListener('nodezoom', event => setZoom((event as CustomEvent).detail === 'zoomReset' ? 100 : Number(zoom.value) + ((event as CustomEvent).detail === 'zoomIn' ? 10 : -10)));
+  viewport.addEventListener('wheel', event => { if (event.ctrlKey || event.metaKey) { event.preventDefault(); event.stopPropagation(); setZoom(Number(zoom.value) + (event.deltaY < 0 ? 10 : -10)); } }, { passive: false });
   const footer = document.createElement('div'); footer.className = 'node-table-tools';
   ui.body.append(tools, viewport, footer);
   let field: HTMLTextAreaElement | undefined, originalCell = '', originalTable = '';
@@ -172,7 +206,8 @@ export function openTableNode(target: NodeEditorTarget, initialRow = 0, initialC
       const cell = head.insertCell(); ui.button(cell, `选择第 ${c + 1} 列`, `Select column ${c + 1}`, () => { column = c; selection = 'column'; draw(); }, columnName(c));
     }
     const start = Math.floor(row / 50) * 50, end = Math.min(shape.rows, start + 50);
-    const rendered = document.createElement('div'); rendered.innerHTML = ui.render(ui.source());
+    const lines = ui.source().split('\n');
+    const rendered = document.createElement('div'); rendered.innerHTML = ui.render([lines[0], lines[1], ...lines.slice(Math.max(2, start + 1), end + 1)].join('\n'));
     const renderedRows = rendered.querySelector('table')?.rows;
     const tbody = table.createTBody();
     for (let r = start; r < end; r++) {
@@ -181,8 +216,9 @@ export function openTableNode(target: NodeEditorTarget, initialRow = 0, initialC
       for (let c = 0; c < shape.columns; c++) {
         const td = tr.insertCell(); td.dataset.row = String(r); td.dataset.column = String(c); td.tabIndex = 0;
         td.setAttribute('aria-label', `${columnName(c)}${r + 1}`);
-        td.innerHTML = renderedRows?.[r]?.cells[c]?.innerHTML || '';
-        td.style.textAlign = renderedRows?.[r]?.cells[c]?.style.textAlign || '';
+        const renderedRow = r === 0 ? 0 : r - Math.max(1, start) + 1;
+        td.innerHTML = renderedRows?.[renderedRow]?.cells[c]?.innerHTML || '';
+        td.style.textAlign = renderedRows?.[renderedRow]?.cells[c]?.style.textAlign || '';
         if (r === 0) td.classList.add('node-table-header');
         const selected = selection === 'row' ? row === r : selection === 'column' ? column === c : row === r && column === c;
         td.classList.toggle('node-selected', selected); td.setAttribute('aria-selected', String(selected));
@@ -191,7 +227,8 @@ export function openTableNode(target: NodeEditorTarget, initialRow = 0, initialC
         td.oncontextmenu = event => { event.preventDefault(); event.stopPropagation(); row = r; column = c; draw(); showMenu(event.clientX, event.clientY); };
       }
     }
-    viewport.replaceChildren(table); ui.message(ui.t(`第 ${start + 1}–${end} 行 / 共 ${cells.length} 行 · Tab 切换单元格 · Shift+Enter 单元格内换行`, `Rows ${start + 1}–${end} of ${cells.length} · Tab to next cell · Shift+Enter for line break`));
+    const scroll = { top: viewport.scrollTop, left: viewport.scrollLeft }; viewport.replaceChildren(table); viewport.scrollTop = scroll.top; viewport.scrollLeft = scroll.left;
+    ui.message(ui.t(`第 ${start + 1}–${end} 行 / 共 ${cells.length} 行 · Tab 切换单元格 · Shift+Enter 单元格内换行`, `Rows ${start + 1}–${end} of ${cells.length} · Tab to next cell · Shift+Enter for line break`));
   }
   function showMenu(x: number, y: number) {
     ui.panel.querySelector('.node-context-menu')?.remove();
@@ -207,8 +244,11 @@ export function openTableNode(target: NodeEditorTarget, initialRow = 0, initialC
     field.setAttribute('aria-label', ui.t(`单元格 ${columnName(column)}${row + 1}`, `Cell ${columnName(column)}${row + 1}`));
     td.replaceChildren(field); field.focus({ preventScroll: true }); field.select();
     const cellRect = td.getBoundingClientRect(), scrollRect = viewport.getBoundingClientRect();
-    if (cellRect.bottom > scrollRect.bottom) viewport.scrollTop += cellRect.bottom - scrollRect.bottom + 4;
-    if (cellRect.top < scrollRect.top) viewport.scrollTop -= scrollRect.top - cellRect.top + 4;
+    const scale = Number(zoom.value) / 100;
+    if (cellRect.bottom > scrollRect.bottom) viewport.scrollTop += (cellRect.bottom - scrollRect.bottom + 4) / scale;
+    if (cellRect.top < scrollRect.top) viewport.scrollTop -= (scrollRect.top - cellRect.top + 4) / scale;
+    if (cellRect.right > scrollRect.right) viewport.scrollLeft += (cellRect.right - scrollRect.right + 4) / scale;
+    if (cellRect.left < scrollRect.left) viewport.scrollLeft -= (scrollRect.left - cellRect.left + 4) / scale;
     field.oninput = () => {
       const edit = replaceTableCell(ui.source(), 0, row, column, field!.value);
       if (edit) { const source = ui.source(); ui.change(source.slice(0, edit.from) + edit.insert + source.slice(edit.to)); }
@@ -220,6 +260,7 @@ export function openTableNode(target: NodeEditorTarget, initialRow = 0, initialC
     field.onkeydown = event => {
       if (event.isComposing) return;
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); ui.change(originalTable, true); draw(); return; }
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); const at = event.shiftKey ? row : row + 1; if (apply(insertTableRow(ui.source(), 0, row, event.shiftKey ? 'before' : 'after'))) { row = Math.max(1, at); draw(); editCell(); } return; }
       if (event.key !== 'Tab' && !(event.key === 'Enter' && !event.shiftKey)) return;
       event.preventDefault(); const shape = tableShape(ui.source())!;
       let next = row * shape.columns + column + (event.key === 'Tab' && event.shiftKey ? -1 : 1);

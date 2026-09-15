@@ -31,18 +31,18 @@ Markit 是面向日常记录与论文写作的桌面 Markdown 编辑器。即时
 
 ## 下载与安装
 
-当前发布版本：**0.3.13**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版，以及 Linux x64 的 AppImage、DEB、RPM 和 tar.gz。构建方法见[开发说明](resources/Development.md)。
+当前发布版本：**0.3.14**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版，以及 Linux x64 的 AppImage、DEB、RPM 和 tar.gz。构建方法见[开发说明](resources/Development.md)。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
-| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.13/Markit-0.3.13-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
-| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.13/Markit-0.3.13-Windows-x64.zip) | 完整解压到可写目录，运行 `Markit.exe` |
-| Linux | [Linux x64 软件包](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.13) | Ubuntu/Debian 使用 DEB，Fedora/RHEL 使用 RPM，其他发行版可使用 AppImage 或 tar.gz |
-| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.13.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
+| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.14/Markit-0.3.14-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
+| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.14/Markit-0.3.14-Windows-x64.zip) | 完整解压到可写目录，运行 `Markit.exe` |
+| Linux | [Linux x64 软件包](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.14) | Ubuntu/Debian 使用 DEB，Fedora/RHEL 使用 RPM，其他发行版可使用 AppImage 或 tar.gz |
+| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.14.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.13)提供更新说明、各平台软件包和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.14)提供更新说明、各平台软件包和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
 
 本版应用名称统一为 **Markit**。Windows 安装版继续使用旧版 Markedown 的设置、缓存和恢复数据。
 
@@ -56,6 +56,13 @@ Markit 是面向日常记录与论文写作的桌面 Markdown 编辑器。即时
 目前采用手动更新，可在[最新发布页](https://github.com/chen-yu-hao/Markitdown/releases/latest)获取新版本。
 
 ## 主要功能
+
+### Nomo 风格文档元素
+
+- **元数据与目录**：YAML front matter 显示为可编辑信息卡；`<!-- toc -->` 块生成可点击的正文目录；脚注引用可以跳转到底部定义。
+- **代码与图表节点**：fenced code block 支持语言、标题和独立源码编辑；Mermaid 离线渲染流程图、时序图、类图、状态图、饼图、甘特图和 ER 图。
+- **安全 HTML 与注释**：白名单 HTML、图片布局和作者注释保持源代码可迁移，危险标签与外部资源继续以安全文本处理。
+- **图片节点**：右键设置对齐、宽度、替代文本和标题，复制路径或查看大图；查看器支持 Ctrl+滚轮缩放和拖动平移。
 
 ### Markdown 编辑与导航
 
@@ -152,6 +159,8 @@ $$
 
 单栏和 A4 双栏都支持点击单元格打开表格编辑面板。点击上方的列字母或左侧的行标选择整列/整行，工具栏及右键菜单提供插入、删除行列；还可设置当前列左对齐、居中或右对齐，输入行列数调整表格尺寸。GFM 表格首行始终作为表头；删除表头时，下一行自动成为表头。
 
+拖动标题栏可移动面板，拖动右下角可调整面板大小，也可最大化/还原。面板滑块或 `Ctrl+滚轮` 将表格独立缩放至 50%–200%，不会改变正文缩放。`Ctrl+Enter` 在当前行下方插入行，`Ctrl+Shift+Enter` 在上方插入行。
+
 `Tab` / `Shift+Tab` 移动到下一个/上一个单元格，`Enter` 前进，末尾自动增加行，`Shift+Enter` 插入单元格内换行。从 Excel 复制的制表符文本可一次粘贴到多个单元格，按需扩展表格。单元格中保留 Markdown 写法，竖线自动转义。修改立即同步到文稿，可保存和撤销；`Esc` 还原当前单元格本次输入。长表格分组显示，每组 50 行；A4 续页表头和单元格映射回原表格。
 
 表格默认使用科研三线表（顶线、表头线、底线）。在 **偏好设置 → Markdown → Markdown 语法偏好 → 表格样式** 中可切换为网格表或简洁横线表；样式同步到单栏、A4 双栏和 HTML/PDF/PNG 导出。源码模式始终可直接修改完整表格。
@@ -225,7 +234,7 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会生成相邻的 `markedown-a
 
 支持 UTF-8 文稿。超过 1 MiB 的文稿默认使用源码模式，超过 5 MiB 强制使用源码模式；工作区搜索最多返回 500 条匹配。
 
-目前不支持 Mermaid 预览、表格合并/拆分、外部主题安装和自动更新。Zotero 当前支持个人文库，暂不支持群组库选择与 Better BibTeX citekey 映射。
+目前不支持表格合并/拆分、外部主题安装和自动更新。Mermaid 使用内置引擎离线渲染，禁用文档配置指令和外部资源。Zotero 当前支持个人文库，暂不支持群组库选择与 Better BibTeX citekey 映射。
 
 已提供 Markdown 语法和文献提供器的[扩展接口](resources/Extensions.md)，供源码层面的功能扩展使用；当前没有外部插件安装入口或插件市场。
 
@@ -264,7 +273,7 @@ npm run dist:win
 npm run dist:linux
 ```
 
-每次重新执行 `npm ci` 后，需要运行上面的 Electron 安装步骤。测试、打包与发布流程见[开发与构建说明](resources/Development.md)，本版验证及适用范围见 [0.3.13 验证记录](resources/Validation-0.3.13.md)，历史检查见[既有记录](resources/Validation.md)。
+每次重新执行 `npm ci` 后，需要运行上面的 Electron 安装步骤。测试、打包与发布流程见[开发与构建说明](resources/Development.md)，本版验证及适用范围见 [0.3.14 验证记录](resources/Validation-0.3.14.md)，历史检查见[既有记录](resources/Validation.md)。
 
 Windows 发布包使用 `npm run dist:win` 构建；Linux 发布包使用 `npm run dist:linux` 构建。详细流程见[开发与构建说明](resources/Development.md)。
 

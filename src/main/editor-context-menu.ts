@@ -5,6 +5,7 @@ export interface ContextMenuActions {
   zh(): boolean;
   translate(text: string, provider: TranslationProvider): void;
   copyImage(url: string): Promise<void>;
+  imageAction?(action: 'settings' | 'view', x: number, y: number): void;
   error(error: unknown): void;
 }
 
@@ -16,7 +17,11 @@ export function editorContextTemplate(params: ContextMenuParams, actions: Contex
     id: 'copy-image', label: t('复制图片', 'Copy image'),
     enabled: params.hasImageContents && params.srcURL.startsWith('markedown-image://document/'),
     click: () => { void actions.copyImage(params.srcURL).catch(actions.error); },
-  }, { type: 'separator' });
+  }, ...(['settings', 'view'] as const).map(action => ({
+    id: `image-${action}`, label: action === 'settings' ? t('图片设置', 'Image settings') : t('查看大图', 'View full image'),
+    enabled: !!actions.imageAction && params.srcURL.startsWith('markedown-image://document/'),
+    click: () => actions.imageAction?.(action, params.x, params.y),
+  })), { type: 'separator' });
   items.push(
     { id: 'copy', label: t('复制', 'Copy'), accelerator: 'CommandOrControl+C', enabled: selected && params.editFlags.canCopy, click: () => edit('copy') },
     { id: 'paste', label: t('粘贴', 'Paste'), accelerator: 'CommandOrControl+V', enabled: params.isEditable && params.editFlags.canPaste, click: () => edit('paste') },

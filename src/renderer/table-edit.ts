@@ -114,7 +114,7 @@ export function tableShape(source: string): TableShape | null {
   if (lines.length < 2) return null;
   const columns = cellsInLine(lines[0]).length;
   if (!columns || !/^\s*\|?\s*:?-{3,}:?/.test(lines[1])) return null;
-  const tokens = markdown.parse(source, {});
+  const tokens = markdown.parse(lines.slice(0, 2).join('\n'), {});
   if (!tokens.some(token => token.type === 'table_open')) return null;
   return { rows: Math.max(1, lines.length - 1), columns };
 }

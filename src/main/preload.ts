@@ -41,6 +41,7 @@ const api: MarkedownAPI = {
   windowCommand: action => invoke('windowCommand', action),
   editCommand: action => invoke('editCommand', action),
   openExternal: url => invoke('openExternal', url),
+  openDocumentLink: (id, destination) => invoke('openDocumentLink', id, destination),
   revealFile: path => invoke('revealFile', path),
   droppedPaths: files => files.map(file => webUtils.getPathForFile(file)).filter(Boolean),
   onEvent: listener => {

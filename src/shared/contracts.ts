@@ -184,7 +184,9 @@ export type AppEvent =
   | { type: 'external'; id: string; deleted: boolean }
   | { type: 'settings'; settings: Settings }
   | { type: 'command'; command: string }
+  | { type: 'navigate'; id: string; offset: number; anchor?: string }
   | { type: 'translate'; text: string; provider: TranslationProvider }
+  | { type: 'image-action'; action: 'settings' | 'view'; x: number; y: number }
   | { type: 'error'; message: string };
 export type ExportFormat = 'html' | 'htmlPlain' | 'pdf' | 'png' | 'docx' | 'epub' | 'tex' | 'rtf' | 'odt' | 'mediawiki' | 'rst' | 'textile' | 'opml';
 export type SettingsAction = 'clearHistory' | 'recoveryFolder' | 'themeFolder' | 'dataFolder' | 'advancedSettings' | 'resetSettings' | 'debug' | 'registerNewFile' | 'unregisterNewFile';
@@ -228,6 +230,7 @@ export interface MarkedownAPI {
   windowCommand(action: 'minimize' | 'maximize' | 'close'): Promise<void>;
   editCommand(action: 'cut' | 'copy' | 'paste'): Promise<void>;
   openExternal(url: string): Promise<void>;
+  openDocumentLink(id: string, destination: string): Promise<Result<boolean>>;
   revealFile(path: string): Promise<void>;
   droppedPaths(files: File[]): string[];
   onEvent(listener: (event: AppEvent) => void): () => void;

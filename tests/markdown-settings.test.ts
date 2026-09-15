@@ -57,10 +57,10 @@ describe('Markdown render preferences', () => {
     expect(html).toContain('<span class="hljs-comment">/* one\n two */</span>');
     expect(renderMarkdown('```js\nx\n```')).not.toContain('md-code-numbers');
   });
-  it('explicitly reports the unavailable offline diagram engine while preserving safe source', () => {
+  it('provides safe diagram source for the bundled offline engine', () => {
     const source = '```mermaid\nflowchart LR\nA["<script>bad</script>"] --> B\n```';
     const html = renderMarkdown(source, { settings: { diagrams: true, language: 'en', diagramTheme: 'dark' } });
-    expect(html).toContain('Mermaid rendering is unavailable');
+    expect(html).toContain('data-diagram="mermaid"');
     expect(html).toContain('data-diagram-theme="dark"');
     expect(html).not.toContain('<script>');
     expect(renderMarkdown(source, { settings: { diagrams: false } })).not.toContain('md-diagram-fallback');

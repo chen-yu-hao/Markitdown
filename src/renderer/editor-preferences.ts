@@ -1,4 +1,4 @@
-import { EditorSelection, EditorState, Facet, Prec, StateField, Transaction, countColumn, type ChangeSpec, type Extension } from '@codemirror/state';
+import { EditorSelection, EditorState, Facet, Prec, StateEffect, StateField, Transaction, countColumn, type ChangeSpec, type Extension } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap, type CompletionContext } from '@codemirror/autocomplete';
 import { insertNewline, insertNewlineKeepIndent } from '@codemirror/commands';
@@ -8,7 +8,7 @@ import { cssLanguage } from '@codemirror/lang-css';
 import { htmlLanguage } from '@codemirror/lang-html';
 import { defaultSettings, type Settings } from '../shared/contracts';
 import { emojiNames, smartTypedInput } from '../shared/markdown-preferences';
-import { getEquationIndex, renderMarkdown } from '../shared/markdown';
+import { getElementIndex, getEquationIndex, renderMarkdown } from '../shared/markdown';
 import { emptyCitationData, type CitationRenderData } from '../shared/academic-contracts';
 import { scanCitations } from '../shared/citations';
 import { documentLineNumbers } from './editor-line-numbers';
@@ -17,6 +17,14 @@ import { headingPointerSelection, stableTextPaste } from './editor-clipboard';
 export const editorPreferences = Facet.define<Settings, Settings>({ combine: values => values[0] || defaultSettings });
 export const editorCitations = Facet.define<CitationRenderData, CitationRenderData>({ combine: values => values[0] || emptyCitationData });
 export const editorSourceMode = Facet.define<boolean, boolean>({ combine: values => values[0] || false });
+export const nodeEditingEffect = StateEffect.define<boolean>();
+export const editorNodeEditing = StateField.define<boolean>({ create: () => false, update: (value, tr) => tr.effects.find(e => e.is(nodeEditingEffect))?.value ?? value });
+const nodeUnlocked = (tr: Transaction) => tr.effects.some(e => e.is(nodeEditingEffect) && !e.value);
+const elementsFor = (state: EditorState): ReturnType<typeof getElementIndex> => {
+  const source = state.doc.toString();
+  return deferAcademicIndex(state, source) ? { ranges: [], headings: [], footnotes: {} } : getElementIndex(source, state.facet(editorPreferences));
+};
+export const editorElements = StateField.define<ReturnType<typeof getElementIndex>>({ create: elementsFor, update: (value, tr) => tr.state.field(editorNodeEditing, false) ? value : tr.docChanged || tr.reconfigured || nodeUnlocked(tr) ? elementsFor(tr.state) : value });
 const emptyEquations: ReturnType<typeof getEquationIndex> = { equations: [], references: [], diagnostics: [] };
 const emptyCitationScan: ReturnType<typeof scanCitations> = { keys: [], clusters: [], bibliographies: [] };
 function deferAcademicIndex(state: EditorState, source: string): boolean {
@@ -35,11 +43,11 @@ const citationsFor = (state: EditorState) => {
 const academicSettingsChanged = (transaction: Transaction) => transaction.startState.facet(editorPreferences) !== transaction.state.facet(editorPreferences) || transaction.startState.facet(editorSourceMode) !== transaction.state.facet(editorSourceMode);
 export const editorEquations = StateField.define<ReturnType<typeof getEquationIndex>>({
   create: equationsFor,
-  update: (value, transaction) => transaction.docChanged || academicSettingsChanged(transaction) ? equationsFor(transaction.state) : value,
+  update: (value, transaction) => transaction.state.field(editorNodeEditing, false) ? value : transaction.docChanged || academicSettingsChanged(transaction) || nodeUnlocked(transaction) ? equationsFor(transaction.state) : value,
 });
 export const editorCitationScan = StateField.define<ReturnType<typeof scanCitations>>({
   create: citationsFor,
-  update: (value, transaction) => transaction.docChanged || academicSettingsChanged(transaction) ? citationsFor(transaction.state) : value,
+  update: (value, transaction) => transaction.state.field(editorNodeEditing, false) ? value : transaction.docChanged || academicSettingsChanged(transaction) || nodeUnlocked(transaction) ? citationsFor(transaction.state) : value,
 });
 export function equationIndexForCommand(state: EditorState) {
   const source = state.doc.toString();

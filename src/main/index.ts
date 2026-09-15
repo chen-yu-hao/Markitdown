@@ -19,7 +19,7 @@ import { defaultSettings } from '../shared/contracts';
 import { ExtensionRegistry } from '../shared/extensions';
 import { ZoteroService } from './zotero-service';
 import { CitationService } from './citation-service';
-import { listMarkdownExtensions } from '../shared/markdown';
+import { analyzeMarkdown, listMarkdownExtensions } from '../shared/markdown';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'markedown-image', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
 app.setName('Markit');
@@ -355,6 +355,7 @@ async function createWindow(paths: string[] = [], transfer?: DocumentTransfer, p
   installEditorContextMenu(win, {
     zh: () => tr('zh', 'en') === 'zh',
     translate: (text, provider) => emit(win.id, { type: 'translate', text, provider }),
+    imageAction: (action, x, y) => emit(win.id, { type: 'image-action', action, x, y }),
     error: error => emit(win.id, { type: 'error', message: String(error) }),
     copyImage: async source => {
       const url = new URL(source);
@@ -620,6 +621,30 @@ function installIPC() {
     } catch (error) { return fail(error); }
   });
   handle('openExternal', (_win, url: string) => safeExternal(url));
+  handle('openDocumentLink', async (win, id: string, destination: string): Promise<Result<boolean>> => {
+    try {
+      own(win, id);
+      if (typeof destination !== 'string' || destination.length > 8192) throw new Error('Invalid document link.');
+      const href = decodeURIComponent(destination);
+      if (/[\u0000-\u001f?]|^[/\\]{2}|^(?![a-z]:[/\\])[a-z][\w+.-]*:/i.test(href)) throw new Error('Unsupported document link.');
+      const [relative, anchor] = href.split('#');
+      const current = service.docs.get(id)!;
+      if (relative && !path.isAbsolute(relative) && !current.path) throw new Error('Save this document before opening relative links.');
+      const filename = relative ? path.resolve(current.path ? path.dirname(current.path) : '', relative) : current.path;
+      const extension = filename ? path.extname(filename).toLowerCase() : '.md';
+      if (filename && !(await stat(filename)).isFile()) throw new Error('The link is not a file.');
+      if (!['.md', '.markdown', '.txt', '.json'].includes(extension)) {
+        if (!filename || !['.pdf','.docx','.xlsx','.pptx','.csv','.png','.jpg','.jpeg','.gif','.webp','.odt','.ods','.odp'].includes(extension)) throw new Error('Unsupported attachment type.');
+        const error = await shell.openPath(filename); if (error) throw new Error(error); return { status:'ok', value:true };
+      }
+      const doc = filename ? await service.open(filename, settings) : current;
+      if (relative && filename) await openPaths(win, [filename]);
+      const heading = anchor ? analyzeMarkdown(doc.source, settings).headings.find(item => item.id === anchor) : undefined;
+      if (anchor && !heading) throw new Error('The target heading was not found.');
+      emit(owners.get(doc.id) ?? win.id, { type:'navigate', id:doc.id, offset:heading?.offset || 0, anchor:heading?.id });
+      return { status:'ok', value:true };
+    } catch (error) { const result = fail(error); emit(win.id, { type:'error', message: error instanceof Error ? error.message : String(error) }); return result; }
+  });
   handle('revealFile', (_win, filename: string) => { if (typeof filename === 'string' && path.isAbsolute(filename)) shell.showItemInFolder(filename); });
 }
 

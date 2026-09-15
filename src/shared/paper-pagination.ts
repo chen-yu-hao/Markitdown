@@ -1,5 +1,5 @@
 /** Browser-only pagination. Keep helpers inside this function for isolated-world export. */
-export async function paginatePaper(host: HTMLElement, blocks: Array<{ html: string; from: number; to: number; kind: string }>, cancelled = () => false) {
+export async function paginatePaper(host: HTMLElement, blocks: Array<{ html: string; from: number; to: number; kind: string }>, cancelled = () => false, prepare?: (root: HTMLElement) => Promise<void>) {
   const doc = host.ownerDocument;
   host.classList.add('paper-pages');
   const staging = doc.createElement('div');
@@ -13,6 +13,7 @@ export async function paginatePaper(host: HTMLElement, blocks: Array<{ html: str
     staging.append(node); return node;
   });
   host.append(staging);
+  await prepare?.(staging);
   await doc.fonts.ready;
   await Promise.all(Array.from(staging.querySelectorAll('img'), image => image.complete ? Promise.resolve() : new Promise<void>(resolve => {
     image.addEventListener('load', () => resolve(), { once: true }); image.addEventListener('error', () => resolve(), { once: true });

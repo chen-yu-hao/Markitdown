@@ -31,4 +31,10 @@ describe('document context menu', () => {
     expect(image.enabled).toBe(true); invoke(image); expect(callbacks.copyImage).toHaveBeenCalledWith(source);
     expect(editorContextTemplate(params({ mediaType: 'image', srcURL: 'https://example.com/pixel.png', hasImageContents: true }), callbacks, vi.fn())[0].enabled).toBe(false);
   });
+  it('routes image settings and viewer to the captured document coordinates', () => {
+    const callbacks = { ...actions(), imageAction: vi.fn() };
+    const items = editorContextTemplate(params({ mediaType: 'image', srcURL: 'markedown-image://document/id?src=figure.png', x: 123, y: 456 }), callbacks, vi.fn());
+    invoke(items.find(item => item.id === 'image-settings')!); invoke(items.find(item => item.id === 'image-view')!);
+    expect(callbacks.imageAction.mock.calls).toEqual([['settings', 123, 456], ['view', 123, 456]]);
+  });
 });

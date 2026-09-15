@@ -8,6 +8,7 @@ import { buildEquationIndex, equationAnchor, equationLabelPattern, installEquati
 import { ExtensionRegistry } from './extensions';
 import { citationCss, installAcademicCitations } from './citations';
 import type { CitationRenderData } from './academic-contracts';
+import { documentElementCss, elementTypes, installDocumentElements, type ElementRange } from './markdown-elements';
 export type { EquationEntry, EquationIndex, EquationDiagnostic, EquationReference } from './equation-references';
 
 export interface RenderOptions {
@@ -20,6 +21,7 @@ export interface RenderOptions {
   equationIndex?: EquationIndex;
   sourceOffset?: number;
   citations?: CitationRenderData;
+  elementContext?: ElementIndex;
 }
 const preferences = (env: unknown): Settings => ((env as RenderOptions | undefined)?.settings as Settings) || defaultSettings;
 
@@ -225,7 +227,7 @@ md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
   const token = tokens[index];
   const language = token.info.trim().split(/\s+/)[0].toLowerCase();
   if (settings.mathCodeBlocks && mathFence(token.info)) return mathBlock(token.content, token.meta?.equation as EquationEntry | undefined, env);
-  if (settings.diagrams && language === 'mermaid') return `<div class="md-diagram-fallback"><p class="md-diagram-note" role="note">${settings.language === 'en' ? 'Mermaid rendering is unavailable. Diagram source is shown below.' : '暂不支持图表预览，以下显示图表源码。'}</p><pre class="md-diagram" data-diagram="mermaid" data-diagram-theme="${settings.diagramTheme}"><code>${md.utils.escapeHtml(token.content)}</code></pre></div>\n`;
+  if (settings.diagrams && language === 'mermaid') return `<div class="md-diagram" data-diagram="mermaid" data-diagram-theme="${settings.diagramTheme}"><pre><code>${md.utils.escapeHtml(token.content)}</code></pre></div>\n`;
   let html = defaultFence(tokens, index, options, env, renderer);
   html = html.replace('<pre>', `<pre class="md-code${settings.codeWordWrap ? ' md-code-wrap' : ' md-code-nowrap'}${settings.codeLineNumbers ? ' md-code-numbered' : ''}">`);
   if (settings.codeLineNumbers) {
@@ -233,7 +235,8 @@ md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
     const count = token.content.replace(/\n$/, '').split('\n').length;
     html = html.replace(/(<pre[^>]*>)/, `$1<span class="md-code-numbers" aria-hidden="true">${Array.from({ length: count }, (_, line) => line + 1).join('\n')}</span>`);
   }
-  return html;
+  const title = /\btitle=(?:"([^"]*)"|'([^']*)')/.exec(token.info);
+  return `<div class="md-code-node" data-element="code" data-language="${md.utils.escapeHtml(language)}">${title ? `<div class="md-code-title">${md.utils.escapeHtml(title[1] ?? title[2])}</div>` : ''}${html}</div>`;
 };
 
 md.renderer.rules.text = (tokens, index, _options, env) => {
@@ -370,7 +373,30 @@ const academicExtensions = new ExtensionRegistry();
 academicExtensions.register({ manifest: { id: 'markedown.equations', name: 'Equation References', version: '1.0.0', apiVersion: 1, capabilities: ['markdown'] }, markdown: installEquationReferences });
 academicExtensions.register({ manifest: { id: 'markedown.citations', name: 'Academic Citations', version: '1.0.0', apiVersion: 1, capabilities: ['markdown'] }, markdown: installAcademicCitations });
 academicExtensions.installMarkdown(md);
+installDocumentElements(md);
 export const listMarkdownExtensions = () => academicExtensions.list();
+
+export interface ElementIndex {
+  ranges: ElementRange[];
+  headings: Array<{ level: number; id: string; text: string; from: number }>;
+  footnotes: Record<string, { from: number; number: number }>;
+}
+export function getElementIndex(source: string, settings: Partial<Settings> = {}): ElementIndex {
+  const env: Record<string, any> = { settings: { ...defaultSettings, ...settings } };
+  const tokens = md.parse(source, env), offsets = [0], ranges: ElementRange[] = [];
+  for (let i = 0; i < source.length; i++) if (source[i] === '\n') offsets.push(i + 1);
+  for (const token of tokens) {
+    if (!token.map) continue;
+    const from = offsets[token.map[0]], to = Math.max(from, (offsets[token.map[1]] ?? source.length + 1) - 1);
+    if (elementTypes.has(token.type)) ranges.push({ from, to, kind: token.type, block: true });
+    if (token.type === 'inline') {
+      const base = source.indexOf(token.content, from);
+      if (base < from || base > to) continue;
+      for (const child of token.children || []) if (elementTypes.has(child.type) && typeof child.meta?.elementOffset === 'number') ranges.push({ from: base + child.meta.elementOffset, to: base + child.meta.elementOffset + child.content.length, kind: child.type, block: false });
+    }
+  }
+  return { ranges, headings: env.elementHeadings || [], footnotes: env.elementFootnotes || Object.create(null) };
+}
 
 export function renderMarkdown(source: string, options: RenderOptions = {}): string {
   const previous = md.options.linkify;
@@ -464,6 +490,7 @@ export function getEquationIndex(source: string, settings: Partial<Settings> = {
 }
 
 export const exportCss = `
+${documentElementCss}
 ${mathCss}
 ${citationCss}
 :root{color-scheme:light;font-variant-numeric:lining-nums;font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#252927;background:#fff}

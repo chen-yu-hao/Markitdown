@@ -9,7 +9,7 @@
 - 首次安装需要访问 npm、Electron 下载服务和 electron-builder 的打包工具下载服务。
 - Pandoc 仅用于扩展格式的导入、导出和相关集成验证。
 
-可下载 GitHub 按版本标签生成的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.10.zip)，或克隆仓库：
+可下载 GitHub 按版本标签生成的 [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.14.zip)，或克隆仓库：
 
 ```bash
 git clone https://github.com/chen-yu-hao/Markitdown.git
@@ -36,6 +36,8 @@ npm run test:ui
 `npm test` 运行 Vitest 测试；`test:e2e` 和 `test:ui` 使用 Playwright 启动真实 Electron 程序。功能专项验证命令见[验证记录](Validation.md)，包括编辑事务、光标定位、大图粘贴、学术引用、导出及实际打包程序。
 
 UI 验证使用独立数据目录，结果和截图写入 `test-results`。部分集成检查需要 Pandoc、Zotero、Word 或额外工具，应按验证记录准备对应环境；跳过的检查不代表已通过。
+
+`node scripts/verify-document-elements.mjs` 检查 `resources/ElementShowcase.md` 中的节点编辑、表格缩放、图片右键、A4 跳转和 HTML/PDF/PNG 导出。可传入解包后的程序路径验证发行包；开发时还可用 `--sample <sample.md 路径>` 检查本机 Nomo 样例，其文件及图片会复制到隔离目录，原文件不会改写。
 
 ## Linux 打包
 

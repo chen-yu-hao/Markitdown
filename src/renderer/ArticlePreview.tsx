@@ -15,6 +15,8 @@ import { sameEditorSettings } from './editor-settings-equality';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import './article-preview.css';
 import { closeNodeEditor, hasNodeEditor, openMathNode, openTableNode, type NodeEditorTarget } from './node-editors';
+import { renderDiagrams } from './diagram-runtime';
+import { openElementNode, openImageNode, showImageViewer } from './element-editors';
 
 export interface ArticlePreviewHandle { command(name: string): boolean; scrollToHeading(id: string): void }
 interface Props { document: DocumentSession; settings: Settings; citations: CitationRenderData; theme: ThemeName; zh: boolean; edit(): void; editor(): EditorHandle | undefined; error(message: string): void }
@@ -70,7 +72,7 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
     if (!next.length) next.push({ from: 0, to: p.document.source.length, kind: 'p', html: `<p>${p.zh ? '点击开始写作' : 'Click to start writing'}</p>` });
     shadow.append(content);
     try {
-      const count = await paginatePaper(content, next, () => sequence !== generation.current || disposed.current);
+      const count = await paginatePaper(content, next, () => sequence !== generation.current || disposed.current, renderDiagrams);
       if (sequence !== generation.current || disposed.current) { content.remove(); return; }
       shadow.querySelectorAll('main').forEach(old => { if (old !== content) old.remove(); });
       content.style.position = ''; content.style.visibility = ''; content.style.top = ''; content.style.left = ''; content.style.pointerEvents = '';
@@ -154,7 +156,7 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
           const view = editing.current?.view; if (view) view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
         } else { editing.current?.view.focus(); void window.markedown.editCommand(name as 'copy' | 'cut' | 'paste'); } return true;
       }
-      if (['undo', 'redo', 'bold', 'italic', 'strike', 'mark', 'code', 'codeblock', 'link', 'paragraph', 'quote', 'unorderedList', 'orderedList', 'task', 'math', 'inlineMath', 'hr', 'image', 'bibliography', 'equationLabel'].includes(name) || /^heading[1-6]$/.test(name)) {
+      if (/^(metadata|toc|footnote|table|comment|underline|diagram:.*|alert:.*)$/.test(name) || ['undo', 'redo', 'bold', 'italic', 'strike', 'mark', 'code', 'codeblock', 'link', 'paragraph', 'quote', 'unorderedList', 'orderedList', 'task', 'math', 'inlineMath', 'hr', 'image', 'bibliography', 'equationLabel'].includes(name) || /^heading[1-6]$/.test(name)) {
         if (!editing.current) beginAt(current.current.document.selection.head);
         masterCommand(name); return true;
       }
@@ -165,6 +167,9 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
     const el = host.current!; if (!el.shadowRoot) el.attachShadow({ mode: 'open' }); disposed.current = false;
     const click = (event: Event) => {
       const target = event.target as Element; if (target.closest('.paper-edit-overlay')) return;
+      if (event.type === 'markit-image-action' && (event as CustomEvent).detail === 'view') { const img = target.closest('img'); if (img) showImageViewer(img.src, img.alt); return; }
+      if (event.type === 'click' && target.closest('img')) { event.preventDefault(); return; }
+      if (event.type === 'dblclick') { const img = target.closest('img'); if (img) { event.preventDefault(); showImageViewer(img.src, img.alt); } return; }
       if (event.type === 'contextmenu' && !target.closest('td,th')) return;
       if (target instanceof HTMLElement && (target.scrollWidth > target.clientWidth || target.scrollHeight > target.clientHeight)) {
         const style = getComputedStyle(target);
@@ -173,10 +178,18 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
       const selection = (el.shadowRoot as ShadowRoot & { getSelection?(): Selection }).getSelection?.() || document.getSelection();
       if (selection && !selection.isCollapsed) return;
       const link = target.closest('a');
+      if (link && link.hasAttribute('data-source-target')) {
+        event.preventDefault(); const position = Number(link.dataset.sourceTarget);
+        if (Number.isInteger(position)) {
+          const node = [...(root()?.querySelectorAll<HTMLElement>('main:not([aria-hidden]) .paper-block[data-source-from]') || [])].find(node => Number(node.dataset.sourceFrom) <= position && Number(node.dataset.sourceTo) > position);
+          node?.scrollIntoView({ block: 'center' });
+        }
+        return;
+      }
       if (link && ((event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey)) {
         event.preventDefault(); const href = link.getAttribute('href') || '';
         if (href.startsWith('#')) { try { root()?.getElementById(decodeURIComponent(href.slice(1)))?.scrollIntoView({ block: 'center' }); } catch { /* Invalid anchor. */ } }
-        else { const safe = getSafeLinkURL(href); if (safe && /^(https?:|mailto:)/i.test(safe)) void window.markedown.openExternal(safe); } return;
+        else { const safe = getSafeLinkURL(href); if (safe && /^(https?:|mailto:)/i.test(safe)) void window.markedown.openExternal(safe); else void window.markedown.openDocumentLink(current.current.document.id, href); } return;
       }
       const block = target.closest<HTMLElement>('.paper-block[data-source-from]'); if (!block) return;
       if (!editing.current) {
@@ -187,12 +200,14 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
         const equation = math && equations.equations.find(eq => eq.from === Number(math.dataset.equationFrom));
         const start = equation ? equation.from : from, end = equation ? equation.to : to;
         const node: NodeEditorTarget = {
-          owner: nodeOwner.current, source: p.document.source.slice(start, end), documentSource: p.document.source, from: start, anchor: math || block, settings: p.settings, equations, citations: p.citations,
+          owner: nodeOwner.current, source: p.document.source.slice(start, end), documentSource: p.document.source, from: start, anchor: math || block, settings: p.settings, equations, citations: p.citations, imageURL: destination => window.markedown.imageURL(p.document.id, destination),
           apply: (previous, next, event) => !!current.current.editor()?.applyPaperEdit(start, previous, next, { anchor: 0, head: 0 }, event),
           close: () => { if (!disposed.current) void render(); },
         };
         if (cell && openTableNode(node, Number(cell.parentElement!.dataset.sourceRow || 0), cell.cellIndex, event.type === 'contextmenu' ? { x: (event as MouseEvent).clientX, y: (event as MouseEvent).clientY } : undefined)) { event.preventDefault(); return; }
         if (equation && openMathNode(node, equation.block)) { event.preventDefault(); return; }
+        if (target.closest('img') && openImageNode(node)) { event.preventDefault(); return; }
+        if (openElementNode(node)) { event.preventDefault(); return; }
       }
       event.preventDefault(); let position = Number(block.dataset.sourceFrom); const active = editing.current;
       if (active) { if (position >= active.originalTo) position += active.text.length - (active.originalTo - active.from); finish(false); void render(undefined, position); }
@@ -200,6 +215,8 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
     };
     el.shadowRoot!.addEventListener('click', click);
     el.shadowRoot!.addEventListener('contextmenu', click);
+    el.shadowRoot!.addEventListener('markit-image-action', click);
+    el.shadowRoot!.addEventListener('dblclick', click);
     const keydown = (event: Event) => {
       const key = event as KeyboardEvent, node = event.target as HTMLElement;
       if ((key.key === 'Enter' || key.key === 'F2') && node.matches('.paper-block[data-source-from]')) {
@@ -213,7 +230,7 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
       const anchor = bookmark();
       if (fitPaper() && !editing.current && !hasNodeEditor(nodeOwner.current)) void render(anchor);
     }); resize.observe(scroller.current!);
-    return () => { disposed.current = true; generation.current++; closeNodeEditor(nodeOwner.current); editing.current?.view.destroy(); editing.current = null; resize.disconnect(); el.shadowRoot?.removeEventListener('click', click); el.shadowRoot?.removeEventListener('contextmenu', click); el.shadowRoot?.removeEventListener('keydown', keydown); };
+    return () => { disposed.current = true; generation.current++; closeNodeEditor(nodeOwner.current); editing.current?.view.destroy(); editing.current = null; resize.disconnect(); el.shadowRoot?.removeEventListener('click', click); el.shadowRoot?.removeEventListener('contextmenu', click); el.shadowRoot?.removeEventListener('markit-image-action', click); el.shadowRoot?.removeEventListener('dblclick', click); el.shadowRoot?.removeEventListener('keydown', keydown); };
   }, []);
   useLayoutEffect(() => {
     if (hasNodeEditor(nodeOwner.current)) {

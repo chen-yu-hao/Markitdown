@@ -88,6 +88,9 @@ jobs:
       - name: Verify Table and Formula Node Editing
         timeout-minutes: 5
         run: node scripts/verify-node-editors.mjs release/win-unpacked/Markit.exe
+      - name: Verify Document Elements and Resizable Tables
+        timeout-minutes: 5
+        run: node scripts/verify-document-elements.mjs release/win-unpacked/Markit.exe
       - run: node scripts/verify-equation-layout.mjs release/win-unpacked/Markit.exe
       - name: Verify Packaged Equation Scrolling
         timeout-minutes: 5
@@ -132,7 +135,7 @@ jobs:
           }
           $notes = Get-Content "resources/Release-$($manifest.version).md" -Raw
           $base = "https://github.com/$env:GH_REPO/blob/$env:RELEASE_TAG"
-          $notes = $notes.Replace('(Validation.md)', "($base/resources/Validation.md)").Replace('(../README.md)', "($base/README.md)")
+          $notes = $notes.Replace('(Validation.md)', "($base/resources/Validation.md)").Replace('(../README.md)', "($base/README.md)").Replace('(../resources/', "($base/resources/")
           $notesPath = Join-Path $env:RUNNER_TEMP release-notes.md
           Set-Content -LiteralPath $notesPath -Value $notes -Encoding utf8
 

@@ -45,8 +45,8 @@ try {
   await scroller.focus();await page.keyboard.press('Control+s');await settle();
   assert(Math.abs(await scroller.evaluate(el=>el.scrollTop)-top)<3,'Saving scrolled the paper');
   assert(await page.evaluate(()=>window.paperBeforeSave===document.querySelector('.article-preview-paper').shadowRoot.querySelector('main')),'Saving rebuilt the paper');
-  const paragraph=page.locator('.paper-sheet').nth(1).locator('.paper-block[data-source-from]').filter({has:page.locator('p')}).first();
-  await paragraph.click(); await page.locator('.paper-edit-overlay .cm-content').waitFor();
+  const paragraph=page.locator('.paper-sheet').nth(1).locator('.paper-block[data-source-from]').filter({hasText:'A reproducible scientific result'}).first();
+  await paragraph.click({position:{x:12,y:12}}); await page.locator('.paper-edit-overlay .cm-content').waitFor();
   const paperSource=async()=>(await page.evaluate(()=>window.markedown.bootstrap())).documents.find(d=>d.path?.endsWith('paper.md')).source;
   const beforeComposition=await paperSource();
   const cdp=await page.context().newCDPSession(page);

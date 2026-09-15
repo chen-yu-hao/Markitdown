@@ -1,10 +1,122 @@
 {
   "product": "Markit",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "platform": "win32",
   "architecture": "x64",
-  "packageLockSha256": "0f0a294d1fa8a41715f01d29868e086cbec6879b519bfacfe29ea0054b32cae9",
+  "packageLockSha256": "577fb4db22937d910e25de83b2f6d544e92ee31b0a19d0cf58bbcdf0ac51d8bf",
   "packages": [
+    {
+      "name": "@antfu/install-pkg",
+      "version": "2.1.0",
+      "location": "node_modules/@antfu/install-pkg",
+      "license": "MIT",
+      "repository": "git+https://github.com/antfu-collective/install-pkg.git",
+      "homepage": "https://github.com/antfu-collective/install-pkg#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "67cd5e903c1f908edfa27c25606fa806ce629d9a8ddb7d83019d9fd1f83f7fde",
+          "bytes": 1094
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@braintree/sanitize-url",
+      "version": "7.1.2",
+      "location": "node_modules/@braintree/sanitize-url",
+      "license": "MIT",
+      "repository": "git+https://github.com/braintree/sanitize-url.git",
+      "homepage": "https://github.com/braintree/sanitize-url#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "0984740e0c3d725c8044dec7edcefe1dbce180ef5a7bc710c251e19607000158",
+          "bytes": 1066
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@chevrotain/cst-dts-gen",
+      "version": "11.1.2",
+      "location": "node_modules/@chevrotain/cst-dts-gen",
+      "license": "Apache-2.0",
+      "repository": "git://github.com/Chevrotain/chevrotain.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@chevrotain/gast",
+      "version": "11.1.2",
+      "location": "node_modules/@chevrotain/gast",
+      "license": "Apache-2.0",
+      "repository": "git://github.com/Chevrotain/chevrotain.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@chevrotain/regexp-to-ast",
+      "version": "11.1.2",
+      "location": "node_modules/@chevrotain/regexp-to-ast",
+      "license": "Apache-2.0",
+      "repository": "git://github.com/Chevrotain/chevrotain.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@chevrotain/types",
+      "version": "11.1.2",
+      "location": "node_modules/@chevrotain/types",
+      "license": "Apache-2.0",
+      "repository": "git://github.com/Chevrotain/chevrotain.git",
+      "homepage": "https://chevrotain.io/documentation/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@chevrotain/utils",
+      "version": "11.1.2",
+      "location": "node_modules/@chevrotain/utils",
+      "license": "Apache-2.0",
+      "repository": "git://github.com/Chevrotain/chevrotain.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358
+        }
+      ],
+      "warnings": []
+    },
     {
       "name": "@codemirror/autocomplete",
       "version": "6.20.3",
@@ -177,6 +289,48 @@
           "path": "LICENSE",
           "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
           "bytes": 1118
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@iconify/types",
+      "version": "2.0.0",
+      "location": "node_modules/@iconify/types",
+      "license": "MIT",
+      "repository": "https://github.com/iconify/iconify.git",
+      "homepage": "https://github.com/iconify/iconify",
+      "licenseFiles": [
+        {
+          "path": "license.txt",
+          "sha256": "045ce74712fc613fdd74d1c55f5140a08d623836ff2aca44132b38d68fbc67ad",
+          "bytes": 1096
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@iconify/utils",
+      "version": "3.1.7",
+      "location": "node_modules/@iconify/utils",
+      "license": "MIT",
+      "repository": "https://github.com/iconify/iconify.git",
+      "homepage": "https://iconify.design/docs/libraries/utils/",
+      "licenseFiles": [
+        {
+          "path": "lib/misc/licenses.d.ts",
+          "sha256": "e9368e5ebf56835ef8345ea6767da98a1cae9550224ad640c1f701fd7160934b",
+          "bytes": 400
+        },
+        {
+          "path": "lib/misc/licenses.js",
+          "sha256": "8ea44900e9e81f48b95dc858af237e0c0a06d4d94a28db9e91e85fd1234f03e6",
+          "bytes": 1321
+        },
+        {
+          "path": "license.txt",
+          "sha256": "a86793ac023162ce98b91899601c15f6712f44943163c4f92a0a4bf89152b3bf",
+          "bytes": 1083
         }
       ],
       "warnings": []
@@ -375,6 +529,534 @@
       "warnings": []
     },
     {
+      "name": "@mermaid-js/parser",
+      "version": "2.0.0",
+      "location": "node_modules/@mermaid-js/parser",
+      "license": "MIT",
+      "repository": "https://github.com/mermaid-js/mermaid.git",
+      "homepage": "https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "d374061c40bfb6f99c5033290caefda97a9b3e7e477e5ee02f487143ef2177e8",
+          "bytes": 1077
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3",
+      "version": "7.4.3",
+      "location": "node_modules/@types/d3",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-array",
+      "version": "3.2.2",
+      "location": "node_modules/@types/d3-array",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-array",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-axis",
+      "version": "3.0.6",
+      "location": "node_modules/@types/d3-axis",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-axis",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-brush",
+      "version": "3.0.6",
+      "location": "node_modules/@types/d3-brush",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-brush",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-chord",
+      "version": "3.0.6",
+      "location": "node_modules/@types/d3-chord",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-chord",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-color",
+      "version": "3.1.3",
+      "location": "node_modules/@types/d3-color",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-color",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-contour",
+      "version": "3.0.6",
+      "location": "node_modules/@types/d3-contour",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-contour",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-delaunay",
+      "version": "6.0.4",
+      "location": "node_modules/@types/d3-delaunay",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-delaunay",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-dispatch",
+      "version": "3.0.7",
+      "location": "node_modules/@types/d3-dispatch",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-dispatch",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-drag",
+      "version": "3.0.7",
+      "location": "node_modules/@types/d3-drag",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-drag",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-dsv",
+      "version": "3.0.7",
+      "location": "node_modules/@types/d3-dsv",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-dsv",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-ease",
+      "version": "3.0.2",
+      "location": "node_modules/@types/d3-ease",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-ease",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-fetch",
+      "version": "3.0.7",
+      "location": "node_modules/@types/d3-fetch",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-fetch",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-force",
+      "version": "3.0.10",
+      "location": "node_modules/@types/d3-force",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-force",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-format",
+      "version": "3.0.4",
+      "location": "node_modules/@types/d3-format",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-format",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-geo",
+      "version": "3.1.1",
+      "location": "node_modules/@types/d3-geo",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-geo",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-hierarchy",
+      "version": "3.1.7",
+      "location": "node_modules/@types/d3-hierarchy",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-hierarchy",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-interpolate",
+      "version": "3.0.4",
+      "location": "node_modules/@types/d3-interpolate",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-interpolate",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-path",
+      "version": "3.1.1",
+      "location": "node_modules/@types/d3-path",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-path",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-polygon",
+      "version": "3.0.2",
+      "location": "node_modules/@types/d3-polygon",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-polygon",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-quadtree",
+      "version": "3.0.6",
+      "location": "node_modules/@types/d3-quadtree",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-quadtree",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-random",
+      "version": "3.0.4",
+      "location": "node_modules/@types/d3-random",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-random",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-scale",
+      "version": "4.0.9",
+      "location": "node_modules/@types/d3-scale",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-scale",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-scale-chromatic",
+      "version": "3.1.0",
+      "location": "node_modules/@types/d3-scale-chromatic",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-scale-chromatic",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-selection",
+      "version": "3.0.12",
+      "location": "node_modules/@types/d3-selection",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-selection",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-shape",
+      "version": "3.2.0",
+      "location": "node_modules/@types/d3-shape",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-shape",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-time",
+      "version": "3.0.4",
+      "location": "node_modules/@types/d3-time",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-time",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-time-format",
+      "version": "4.0.3",
+      "location": "node_modules/@types/d3-time-format",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-time-format",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-timer",
+      "version": "3.0.2",
+      "location": "node_modules/@types/d3-timer",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-timer",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-transition",
+      "version": "3.0.9",
+      "location": "node_modules/@types/d3-transition",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-transition",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/d3-zoom",
+      "version": "3.0.8",
+      "location": "node_modules/@types/d3-zoom",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-zoom",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "@types/geojson",
+      "version": "7946.0.16",
+      "location": "node_modules/@types/geojson",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/geojson",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "@types/trusted-types",
       "version": "2.0.7",
       "location": "node_modules/@types/trusted-types",
@@ -391,6 +1073,22 @@
       "warnings": []
     },
     {
+      "name": "@upsetjs/venn.js",
+      "version": "2.0.0",
+      "location": "node_modules/@upsetjs/venn.js",
+      "license": "MIT",
+      "repository": "https://github.com/upsetjs/venn.js.git",
+      "homepage": "https://github.com/upsetjs/venn.js",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "6a3508febf2cfccfee96597394543a6154a4bb0b1f91f28404be42c09e9fcb54",
+          "bytes": 1106
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "@xmldom/xmldom",
       "version": "0.8.15",
       "location": "node_modules/@xmldom/xmldom",
@@ -402,6 +1100,22 @@
           "path": "LICENSE",
           "sha256": "4da724fc305d81606b245b324d4d2586916b9d248b23d82183df753ace0fdf71",
           "bytes": 1298
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "chevrotain",
+      "version": "11.1.2",
+      "location": "node_modules/chevrotain",
+      "license": "Apache-2.0",
+      "repository": "git://github.com/Chevrotain/chevrotain.git",
+      "homepage": "https://chevrotain.io/docs/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358
         }
       ],
       "warnings": []
@@ -434,6 +1148,22 @@
       }
     },
     {
+      "name": "cose-base",
+      "version": "1.0.3",
+      "location": "node_modules/cose-base",
+      "license": "MIT",
+      "repository": "git+https://github.com/iVis-at-Bilkent/cose-base.git",
+      "homepage": "https://github.com/iVis-at-Bilkent/cose-base#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "5fb3cf4a14c3c5af6e473a192df8bca10c77754e3a0c6492c79fb92a76a5478a",
+          "bytes": 1081
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "crelt",
       "version": "1.0.7",
       "location": "node_modules/crelt",
@@ -445,6 +1175,699 @@
           "path": "LICENSE",
           "sha256": "23852ebf6aef7fadffc92514b3c5df163a8651f2c3ed0dbb494cb49d93bd5de5",
           "bytes": 1089
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "cytoscape",
+      "version": "3.34.3",
+      "location": "node_modules/cytoscape",
+      "license": "MIT",
+      "repository": "https://github.com/cytoscape/cytoscape.js.git",
+      "homepage": "http://js.cytoscape.org",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "eb319c6e6f233607f71e8e2f450391751883cfc0eeb3ca7ef574c13d1d9c2203",
+          "bytes": 1082
+        },
+        {
+          "path": "license-update.mjs",
+          "sha256": "4a5a644717fc90d678e8fbbc537a08452d0566726710eef47b196abd6363e635",
+          "bytes": 1416
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "cytoscape-cose-bilkent",
+      "version": "4.1.0",
+      "location": "node_modules/cytoscape-cose-bilkent",
+      "license": "MIT",
+      "repository": "https://github.com/cytoscape/cytoscape.js-cose-bilkent.git",
+      "homepage": "https://github.com/cytoscape/cytoscape.js-cose-bilkent",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "440fc58a56a12814e417d2b341da89b050da052dc75bdb235607d37ec5fe74ef",
+          "bytes": 1084
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "cytoscape-fcose",
+      "version": "2.2.0",
+      "location": "node_modules/cytoscape-fcose",
+      "license": "MIT",
+      "repository": "https://github.com/iVis-at-Bilkent/cytoscape.js-fcose.git",
+      "homepage": "https://github.com/iVis-at-Bilkent/cytoscape.js-fcose",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "2837634f403949215760fcdd2fa1ed0c64875d02099ecc8318c704b852f1421d",
+          "bytes": 1079
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "cose-base",
+      "version": "2.2.0",
+      "location": "node_modules/cytoscape-fcose/node_modules/cose-base",
+      "license": "MIT",
+      "repository": "git+https://github.com/iVis-at-Bilkent/cose-base.git",
+      "homepage": "https://github.com/iVis-at-Bilkent/cose-base#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "5fb3cf4a14c3c5af6e473a192df8bca10c77754e3a0c6492c79fb92a76a5478a",
+          "bytes": 1081
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "layout-base",
+      "version": "2.0.1",
+      "location": "node_modules/cytoscape-fcose/node_modules/layout-base",
+      "license": "MIT",
+      "repository": "git+https://github.com/iVis-at-Bilkent/layout-base.git",
+      "homepage": "https://github.com/iVis-at-Bilkent/layout-base#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "eabb762d8a95109a39c9be3247325529a5239a7aca327d909c3ccdc41f3a06bf",
+          "bytes": 1069
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3",
+      "version": "7.9.0",
+      "location": "node_modules/d3",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3.git",
+      "homepage": "https://d3js.org",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "3e6849627f74ff73c257a3ae1efb574015d94fc1035c05ec3c15805165efcbc4",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-array",
+      "version": "3.2.4",
+      "location": "node_modules/d3-array",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-array.git",
+      "homepage": "https://d3js.org/d3-array/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "3e6849627f74ff73c257a3ae1efb574015d94fc1035c05ec3c15805165efcbc4",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-axis",
+      "version": "3.0.0",
+      "location": "node_modules/d3-axis",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-axis.git",
+      "homepage": "https://d3js.org/d3-axis/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-brush",
+      "version": "3.0.0",
+      "location": "node_modules/d3-brush",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-brush.git",
+      "homepage": "https://d3js.org/d3-brush/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-chord",
+      "version": "3.0.1",
+      "location": "node_modules/d3-chord",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-chord.git",
+      "homepage": "https://d3js.org/d3-chord/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-color",
+      "version": "3.1.0",
+      "location": "node_modules/d3-color",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-color.git",
+      "homepage": "https://d3js.org/d3-color/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "faa682e3e430941f958d26180458f5934a62f58dac4d70ccdd15608c15d0f884",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-contour",
+      "version": "4.0.2",
+      "location": "node_modules/d3-contour",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-contour.git",
+      "homepage": "https://d3js.org/d3-contour/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e51cba0e4fa1d8c078e15319868f2b90188f413f9ce9dac1043b62db32901e93",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-delaunay",
+      "version": "6.0.4",
+      "location": "node_modules/d3-delaunay",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-delaunay.git",
+      "homepage": "https://github.com/d3/d3-delaunay",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "582c3022bd01942336095f92b58a90b1be624dc547d987555c6c956512dd24c1",
+          "bytes": 757
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-dispatch",
+      "version": "3.0.1",
+      "location": "node_modules/d3-dispatch",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-dispatch.git",
+      "homepage": "https://d3js.org/d3-dispatch/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-drag",
+      "version": "3.0.0",
+      "location": "node_modules/d3-drag",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-drag.git",
+      "homepage": "https://d3js.org/d3-drag/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-dsv",
+      "version": "3.0.1",
+      "location": "node_modules/d3-dsv",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-dsv.git",
+      "homepage": "https://d3js.org/d3-dsv/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "7842a82012622e5a37bfe4f6c1b67cd3bae6350716b5bf87f36cea0bdc1319dc",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "commander",
+      "version": "7.2.0",
+      "location": "node_modules/d3-dsv/node_modules/commander",
+      "license": "MIT",
+      "repository": "https://github.com/tj/commander.js.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "04512a63dce4d2d506ad612dc0bd7681ccf6e3655f7b6eaef7dfac8323d1ec0b",
+          "bytes": 1098
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-ease",
+      "version": "3.0.1",
+      "location": "node_modules/d3-ease",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/d3/d3-ease.git",
+      "homepage": "https://d3js.org/d3-ease/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "b989d9085148d21ff64a75e14462aefa06b2589a55553b07b1460c70081c7d08",
+          "bytes": 1504
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-fetch",
+      "version": "3.0.1",
+      "location": "node_modules/d3-fetch",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-fetch.git",
+      "homepage": "https://d3js.org/d3-fetch/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "ffdc17dc9040006bddeb891c95bfbb492e86d6bc64a4a4233666febab1be35e0",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-force",
+      "version": "3.0.0",
+      "location": "node_modules/d3-force",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-force.git",
+      "homepage": "https://d3js.org/d3-force/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-format",
+      "version": "3.1.2",
+      "location": "node_modules/d3-format",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-format.git",
+      "homepage": "https://d3js.org/d3-format/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-geo",
+      "version": "3.1.1",
+      "location": "node_modules/d3-geo",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-geo.git",
+      "homepage": "https://d3js.org/d3-geo/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "3e3edc1224eec9c39cd26491a21304a62883c1e5b6a65c5283ccc7a6cc94baee",
+          "bytes": 1857
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-hierarchy",
+      "version": "3.1.2",
+      "location": "node_modules/d3-hierarchy",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-hierarchy.git",
+      "homepage": "https://d3js.org/d3-hierarchy/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-interpolate",
+      "version": "3.0.1",
+      "location": "node_modules/d3-interpolate",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-interpolate.git",
+      "homepage": "https://d3js.org/d3-interpolate/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-path",
+      "version": "3.1.0",
+      "location": "node_modules/d3-path",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-path.git",
+      "homepage": "https://d3js.org/d3-path/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "a09b0d6d76e768fca2085fad05743ee81ddd11946bcda160a3cf5e1081a479aa",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-polygon",
+      "version": "3.0.1",
+      "location": "node_modules/d3-polygon",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-polygon.git",
+      "homepage": "https://d3js.org/d3-polygon/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-quadtree",
+      "version": "3.0.1",
+      "location": "node_modules/d3-quadtree",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-quadtree.git",
+      "homepage": "https://d3js.org/d3-quadtree/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-random",
+      "version": "3.0.1",
+      "location": "node_modules/d3-random",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-random.git",
+      "homepage": "https://d3js.org/d3-random/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-sankey",
+      "version": "0.12.3",
+      "location": "node_modules/d3-sankey",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/d3/d3-sankey.git",
+      "homepage": "https://github.com/d3/d3-sankey",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "2bf785e778d67a4f5266cffcd4f2cc5bb98cde73791666e7efeb8002ba32dfa5",
+          "bytes": 1471
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-array",
+      "version": "2.12.1",
+      "location": "node_modules/d3-sankey/node_modules/d3-array",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/d3/d3-array.git",
+      "homepage": "https://d3js.org/d3-array/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "0747bebeb06b10954913149be9b9a8bdf6fad3e6fdcbd9f9524e7a94c13d2cea",
+          "bytes": 1475
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-path",
+      "version": "1.0.9",
+      "location": "node_modules/d3-sankey/node_modules/d3-path",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/d3/d3-path.git",
+      "homepage": "https://d3js.org/d3-path/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "b8265327ab678f554800e71188b1cc6b1ff57522e292d2b1c0be66f27cf328b6",
+          "bytes": 1475
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-shape",
+      "version": "1.3.7",
+      "location": "node_modules/d3-sankey/node_modules/d3-shape",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/d3/d3-shape.git",
+      "homepage": "https://d3js.org/d3-shape/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "7eea8533ea92bd8c32a901e89ecb0305890905bb12711449565ddff96891146d",
+          "bytes": 1475
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "internmap",
+      "version": "1.0.1",
+      "location": "node_modules/d3-sankey/node_modules/internmap",
+      "license": "ISC",
+      "repository": "https://github.com/mbostock/internmap.git",
+      "homepage": "https://github.com/mbostock/internmap/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "9ea8903938dab5f12c4572d60725069bec2d1b0dc3bcc210b09bae946a5ebb1f",
+          "bytes": 726
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-scale",
+      "version": "4.0.2",
+      "location": "node_modules/d3-scale",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-scale.git",
+      "homepage": "https://d3js.org/d3-scale/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-scale-chromatic",
+      "version": "3.1.0",
+      "location": "node_modules/d3-scale-chromatic",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-scale-chromatic.git",
+      "homepage": "https://d3js.org/d3-scale-chromatic/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "0986d93944902cca9af86824b6a641b4b7c2d10602fc510c433a8bcd443919fe",
+          "bytes": 1423
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-selection",
+      "version": "3.0.0",
+      "location": "node_modules/d3-selection",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-selection.git",
+      "homepage": "https://d3js.org/d3-selection/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-shape",
+      "version": "3.2.0",
+      "location": "node_modules/d3-shape",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-shape.git",
+      "homepage": "https://d3js.org/d3-shape/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "faa682e3e430941f958d26180458f5934a62f58dac4d70ccdd15608c15d0f884",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-time",
+      "version": "3.1.0",
+      "location": "node_modules/d3-time",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-time.git",
+      "homepage": "https://d3js.org/d3-time/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "faa682e3e430941f958d26180458f5934a62f58dac4d70ccdd15608c15d0f884",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-time-format",
+      "version": "4.1.0",
+      "location": "node_modules/d3-time-format",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-time-format.git",
+      "homepage": "https://d3js.org/d3-time-format/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-timer",
+      "version": "3.0.1",
+      "location": "node_modules/d3-timer",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-timer.git",
+      "homepage": "https://d3js.org/d3-timer/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-transition",
+      "version": "3.0.1",
+      "location": "node_modules/d3-transition",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-transition.git",
+      "homepage": "https://d3js.org/d3-transition/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "d3-zoom",
+      "version": "3.0.0",
+      "location": "node_modules/d3-zoom",
+      "license": "ISC",
+      "repository": "https://github.com/d3/d3-zoom.git",
+      "homepage": "https://d3js.org/d3-zoom/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "dagre-d3-es",
+      "version": "7.0.14",
+      "location": "node_modules/dagre-d3-es",
+      "license": "MIT",
+      "repository": "git+https://github.com/tbo47/dagre-es.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "d01eb84ccce437dbf5fd40853bceea0f287930920acea066597a4a25ead63858",
+          "bytes": 1328
         }
       ],
       "warnings": []
@@ -482,6 +1905,22 @@
       "warnings": []
     },
     {
+      "name": "delaunator",
+      "version": "5.1.0",
+      "location": "node_modules/delaunator",
+      "license": "ISC",
+      "repository": "https://github.com/mapbox/delaunator.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "0b348fff56384b43dbb37593906904e56d0f9deb51eae590d4dc6d427fbf1808",
+          "bytes": 738
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "detect-libc",
       "version": "2.1.2",
       "location": "node_modules/detect-libc",
@@ -499,7 +1938,7 @@
     },
     {
       "name": "dom-serializer",
-      "version": "3.1.1",
+      "version": "2.0.0",
       "location": "node_modules/dom-serializer",
       "license": "MIT",
       "repository": "git://github.com/cheeriojs/dom-serializer.git",
@@ -507,15 +1946,31 @@
       "licenseFiles": [
         {
           "path": "LICENSE",
-          "sha256": "fd495b1bdd024995c6b3bd612584a4e37513250317bb5a6586f62c7756f9aff1",
-          "bytes": 1075
+          "sha256": "94cfe87de9b178e8fee313a19178e625129e2ce559db32e772e7bd95114ee6ff",
+          "bytes": 1098
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "entities",
+      "version": "4.5.0",
+      "location": "node_modules/dom-serializer/node_modules/entities",
+      "license": "BSD-2-Clause",
+      "repository": "git://github.com/fb55/entities.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
+          "bytes": 1260
         }
       ],
       "warnings": []
     },
     {
       "name": "domelementtype",
-      "version": "3.0.0",
+      "version": "2.3.0",
       "location": "node_modules/domelementtype",
       "license": "BSD-2-Clause",
       "repository": "git://github.com/fb55/domelementtype.git",
@@ -531,7 +1986,7 @@
     },
     {
       "name": "domhandler",
-      "version": "6.0.1",
+      "version": "5.0.3",
       "location": "node_modules/domhandler",
       "license": "BSD-2-Clause",
       "repository": "git://github.com/fb55/domhandler.git",
@@ -573,7 +2028,7 @@
     },
     {
       "name": "domutils",
-      "version": "4.0.2",
+      "version": "3.2.2",
       "location": "node_modules/domutils",
       "license": "BSD-2-Clause",
       "repository": "git://github.com/fb55/domutils.git",
@@ -612,6 +2067,22 @@
       ]
     },
     {
+      "name": "elkjs",
+      "version": "0.9.3",
+      "location": "node_modules/elkjs",
+      "license": "EPL-2.0",
+      "repository": "https://github.com/kieler/elkjs.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "89591d4578fb1ebd91501312a3d25f021bd865a2e436641c1cf7b1bc7e3c1617",
+          "bytes": 14480
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "entities",
       "version": "8.0.0",
       "location": "node_modules/entities",
@@ -623,6 +2094,27 @@
           "path": "LICENSE",
           "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
           "bytes": 1260
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "es-toolkit",
+      "version": "1.52.0",
+      "location": "node_modules/es-toolkit",
+      "license": "MIT",
+      "repository": "https://github.com/toss/es-toolkit.git",
+      "homepage": "https://es-toolkit.dev",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "51f3674294d988d89dbebd31273baaeb3c697a15482d9699b14d1fded2e132a7",
+          "bytes": 1077
+        },
+        {
+          "path": "NOTICE",
+          "sha256": "11ee5e3bce9b0a4dde7f73811caf98978e710228d891c3111ad8ef8d7d2a916f",
+          "bytes": 1698
         }
       ],
       "warnings": []
@@ -676,6 +2168,22 @@
       "warnings": []
     },
     {
+      "name": "hachure-fill",
+      "version": "0.5.2",
+      "location": "node_modules/hachure-fill",
+      "license": "MIT",
+      "repository": "git+https://github.com/pshihn/hachure-fill.git",
+      "homepage": "https://github.com/pshihn/hachure-fill#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "5e807b516a9be9229ed459880bf353a336e2d947867247290680d437017be391",
+          "bytes": 1068
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "highlight.js",
       "version": "11.12.0",
       "location": "node_modules/highlight.js",
@@ -693,7 +2201,7 @@
     },
     {
       "name": "htmlparser2",
-      "version": "12.0.0",
+      "version": "10.0.0",
       "location": "node_modules/htmlparser2",
       "license": "MIT",
       "repository": "git://github.com/fb55/htmlparser2.git",
@@ -703,6 +2211,70 @@
           "path": "LICENSE",
           "sha256": "204cfa747341660e4da64cd23e8c876c6b20279d247f48564993d3fc4a2eab47",
           "bytes": 1104
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "entities",
+      "version": "6.0.1",
+      "location": "node_modules/htmlparser2/node_modules/entities",
+      "license": "BSD-2-Clause",
+      "repository": "git://github.com/fb55/entities.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
+          "bytes": 1260
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "iconv-lite",
+      "version": "0.6.3",
+      "location": "node_modules/iconv-lite",
+      "license": "MIT",
+      "repository": "git://github.com/ashtuchkin/iconv-lite.git",
+      "homepage": "https://github.com/ashtuchkin/iconv-lite",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "ac779f7314c74f232ef847ea86e714abe25cf6eeb5cc97b69451b74e2af6492d",
+          "bytes": 1064
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "import-meta-resolve",
+      "version": "4.2.0",
+      "location": "node_modules/import-meta-resolve",
+      "license": "MIT",
+      "repository": "wooorm/import-meta-resolve",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "license",
+          "sha256": "8770a1a4b69ee722636643e81340ce4a8f0b8415b1c568487edc9062338bfcc7",
+          "bytes": 3493
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "internmap",
+      "version": "2.0.3",
+      "location": "node_modules/internmap",
+      "license": "ISC",
+      "repository": "https://github.com/mbostock/internmap.git",
+      "homepage": "https://github.com/mbostock/internmap/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "9ea8903938dab5f12c4572d60725069bec2d1b0dc3bcc210b09bae946a5ebb1f",
+          "bytes": 726
         }
       ],
       "warnings": []
@@ -756,6 +2328,24 @@
       "warnings": []
     },
     {
+      "name": "khroma",
+      "version": "2.1.0",
+      "location": "node_modules/khroma",
+      "license": "UNDECLARED",
+      "repository": "github:fabiospampinato/khroma",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "license",
+          "sha256": "66b333b0f66759a0b710459e03f7029abe17f4358114a128d2c972e642961b49",
+          "bytes": 1105
+        }
+      ],
+      "warnings": [
+        "The package does not declare a license; no default license has been assigned."
+      ]
+    },
+    {
       "name": "launder",
       "version": "1.7.1",
       "location": "node_modules/launder",
@@ -766,6 +2356,22 @@
       "warnings": [
         "No legal notice file was found in the installed package."
       ]
+    },
+    {
+      "name": "layout-base",
+      "version": "1.0.2",
+      "location": "node_modules/layout-base",
+      "license": "MIT",
+      "repository": "git+https://github.com/iVis-at-Bilkent/layout-base.git",
+      "homepage": "https://github.com/iVis-at-Bilkent/layout-base#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "eabb762d8a95109a39c9be3247325529a5239a7aca327d909c3ccdc41f3a06bf",
+          "bytes": 1069
+        }
+      ],
+      "warnings": []
     },
     {
       "name": "linkify-it",
@@ -779,6 +2385,22 @@
           "path": "LICENSE",
           "sha256": "95e3f7f0e81e9b4940cdfaa1956aaff5e4dfd2fb1565041e7c78eb9a606f23e3",
           "bytes": 1058
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "lodash-es",
+      "version": "4.17.23",
+      "location": "node_modules/lodash-es",
+      "license": "MIT",
+      "repository": "lodash/lodash",
+      "homepage": "https://lodash.com/custom-builds",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "f71e8ed126b46346494aad5486874cd8f0aafe95092ed67d2e3cb6110f939abc",
+          "bytes": 1952
         }
       ],
       "warnings": []
@@ -842,6 +2464,22 @@
       "warnings": []
     },
     {
+      "name": "marked",
+      "version": "16.4.2",
+      "location": "node_modules/marked",
+      "license": "MIT",
+      "repository": "git://github.com/markedjs/marked.git",
+      "homepage": "https://marked.js.org",
+      "licenseFiles": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+          "bytes": 2942
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "mathjax-full",
       "version": "3.2.2",
       "location": "node_modules/mathjax-full",
@@ -869,6 +2507,22 @@
           "path": "LICENSE",
           "sha256": "6b6a356c4337e2446841f30f3cdf7e7023af8c5260b5e347c0f987b9f6aa2644",
           "bytes": 2303
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "mermaid",
+      "version": "12.0.0",
+      "location": "node_modules/mermaid",
+      "license": "MIT",
+      "repository": "https://github.com/mermaid-js/mermaid",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80",
+          "bytes": 1089
         }
       ],
       "warnings": []
@@ -919,6 +2573,22 @@
       "warnings": []
     },
     {
+      "name": "package-manager-detector",
+      "version": "1.8.0",
+      "location": "node_modules/package-manager-detector",
+      "license": "MIT",
+      "repository": "git+https://github.com/antfu-collective/package-manager-detector.git",
+      "homepage": "https://github.com/antfu-collective/package-manager-detector#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "05c365176db3cc00e951c44b921c809c75b8e99d2d724f7daf00381e26fb0850",
+          "bytes": 1102
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "parse-srcset",
       "version": "1.0.2",
       "location": "node_modules/parse-srcset",
@@ -935,6 +2605,22 @@
       "warnings": []
     },
     {
+      "name": "path-data-parser",
+      "version": "0.1.0",
+      "location": "node_modules/path-data-parser",
+      "license": "MIT",
+      "repository": "git+https://github.com/pshihn/path-data-parser.git",
+      "homepage": "https://github.com/pshihn/path-data-parser#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e9754a00aebde654e80f40bcf41dab667d6a41dfbbd2912bcf14fb07d468bf71",
+          "bytes": 1068
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "picocolors",
       "version": "1.1.1",
       "location": "node_modules/picocolors",
@@ -946,6 +2632,38 @@
           "path": "LICENSE",
           "sha256": "6582629e2979466878f6014313dcc2f3756c9616148682227ce3063dde310750",
           "bytes": 787
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "points-on-curve",
+      "version": "0.2.0",
+      "location": "node_modules/points-on-curve",
+      "license": "MIT",
+      "repository": "git+https://github.com/pshihn/bezier-points.git",
+      "homepage": "https://github.com/pshihn/bezier-points#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e9754a00aebde654e80f40bcf41dab667d6a41dfbbd2912bcf14fb07d468bf71",
+          "bytes": 1068
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "points-on-path",
+      "version": "0.2.1",
+      "location": "node_modules/points-on-path",
+      "license": "MIT",
+      "repository": "git+https://github.com/pshihn/points-on-path.git",
+      "homepage": "https://github.com/pshihn/points-on-path#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "b6fc1f7f1d96a48bc97176f3dcef959e364c5c17ba44167511de421500a86c6c",
+          "bytes": 1062
         }
       ],
       "warnings": []
@@ -1015,6 +2733,70 @@
       "warnings": []
     },
     {
+      "name": "robust-predicates",
+      "version": "3.0.3",
+      "location": "node_modules/robust-predicates",
+      "license": "Unlicense",
+      "repository": "https://github.com/mourner/robust-predicates.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "88d9b4eb60579c191ec391ca04c16130572d7eedc4a86daa58bf28c6e14c9bcd",
+          "bytes": 1210
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "roughjs",
+      "version": "4.6.6",
+      "location": "node_modules/roughjs",
+      "license": "MIT",
+      "repository": "git+https://github.com/pshihn/rough.git",
+      "homepage": "https://roughjs.com",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "dca9a392272606ac748ac0976a2a1133f14eef841c27beaa51a844d53c56a09d",
+          "bytes": 1068
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "rw",
+      "version": "1.3.3",
+      "location": "node_modules/rw",
+      "license": "BSD-3-Clause",
+      "repository": "http://github.com/mbostock/rw.git",
+      "homepage": "https://github.com/mbostock/rw",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "e273680c43c2ab5bb3b50af28de6a08000b333396834db7bf6129cd6f130c9cd",
+          "bytes": 1429
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "safer-buffer",
+      "version": "2.1.2",
+      "location": "node_modules/safer-buffer",
+      "license": "MIT",
+      "repository": "git+https://github.com/ChALkeR/safer-buffer.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "4bc935e71be198c67ddf3c2b5fddb195f6edc182bfc155a96a6db61b44b494b9",
+          "bytes": 1094
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "sanitize-html",
       "version": "2.17.7",
       "location": "node_modules/sanitize-html",
@@ -1026,6 +2808,86 @@
           "path": "LICENSE",
           "sha256": "24526b61784870909780321dac50fcd3a33ff0bdfd507549dd63163899237bd1",
           "bytes": 1072
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "dom-serializer",
+      "version": "3.1.1",
+      "location": "node_modules/sanitize-html/node_modules/dom-serializer",
+      "license": "MIT",
+      "repository": "git://github.com/cheeriojs/dom-serializer.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "fd495b1bdd024995c6b3bd612584a4e37513250317bb5a6586f62c7756f9aff1",
+          "bytes": 1075
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "domelementtype",
+      "version": "3.0.0",
+      "location": "node_modules/sanitize-html/node_modules/domelementtype",
+      "license": "BSD-2-Clause",
+      "repository": "git://github.com/fb55/domelementtype.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
+          "bytes": 1260
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "domhandler",
+      "version": "6.0.1",
+      "location": "node_modules/sanitize-html/node_modules/domhandler",
+      "license": "BSD-2-Clause",
+      "repository": "git://github.com/fb55/domhandler.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
+          "bytes": 1260
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "domutils",
+      "version": "4.0.2",
+      "location": "node_modules/sanitize-html/node_modules/domutils",
+      "license": "BSD-2-Clause",
+      "repository": "git://github.com/fb55/domutils.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
+          "bytes": 1260
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "htmlparser2",
+      "version": "12.0.0",
+      "location": "node_modules/sanitize-html/node_modules/htmlparser2",
+      "license": "MIT",
+      "repository": "git://github.com/fb55/htmlparser2.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "204cfa747341660e4da64cd23e8c876c6b20279d247f48564993d3fc4a2eab47",
+          "bytes": 1104
         }
       ],
       "warnings": []
@@ -1159,6 +3021,54 @@
       "warnings": []
     },
     {
+      "name": "stylis",
+      "version": "4.4.0",
+      "location": "node_modules/stylis",
+      "license": "MIT",
+      "repository": "https://github.com/thysultan/stylis.js",
+      "homepage": "https://github.com/thysultan/stylis.js",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "88c579c6ee44b41137a21321190d177982e5b17d4fa1b83a4a2e3ea325a8fc9a",
+          "bytes": 1078
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "tinyexec",
+      "version": "1.3.1",
+      "location": "node_modules/tinyexec",
+      "license": "MIT",
+      "repository": "git+https://github.com/tinylibs/tinyexec.git",
+      "homepage": "https://github.com/tinylibs/tinyexec#readme",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "f95f668fe64081ddb4153b322e34fdd719b991285ed08177d5ad7133b7988d92",
+          "bytes": 1065
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "ts-dedent",
+      "version": "2.3.0",
+      "location": "node_modules/ts-dedent",
+      "license": "MIT",
+      "repository": "https://github.com/tamino-martinius/node-ts-dedent.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "eff13095d9d762c3bd9dda74370c81e2130c28f2691bc455603abf973bac25b9",
+          "bytes": 1073
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "tslib",
       "version": "2.8.1",
       "location": "node_modules/tslib",
@@ -1191,6 +3101,22 @@
       "warnings": []
     },
     {
+      "name": "uuid",
+      "version": "14.0.2",
+      "location": "node_modules/uuid",
+      "license": "MIT",
+      "repository": "https://github.com/uuidjs/uuid.git",
+      "homepage": null,
+      "licenseFiles": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "beaa6b04fb82e41dd2ad679e19e27953afb5999b1abbb455b6564e78ebfeb332",
+          "bytes": 1109
+        }
+      ],
+      "warnings": []
+    },
+    {
       "name": "w3c-keyname",
       "version": "2.2.8",
       "location": "node_modules/w3c-keyname",
@@ -1218,6 +3144,22 @@
           "path": "LICENSE",
           "sha256": "1691999de7a5de50698e735c25506ea8ab6b71d008d27ef9e1400a5075000e78",
           "bytes": 1110
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "name": "yaml",
+      "version": "2.9.1",
+      "location": "node_modules/yaml",
+      "license": "ISC",
+      "repository": "github:eemeli/yaml",
+      "homepage": "https://eemeli.org/yaml/",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "sha256": "5bba27375d93e9119f76c1015f7672cf9ad5f70952296e0842fb2243d6376869",
+          "bytes": 738
         }
       ],
       "warnings": []
@@ -1391,6 +3333,7 @@
   "warnings": [
     "@img/sharp-win32-x64@0.34.5: The installed package omits its declared LGPL text. Supplemental upstream legal materials are included; see their provenance for exact component coverage.",
     "citeproc@2.4.63: The npm package.json declares CPAL-1.0 OR AGPL-1.0, while its LICENSE, runtime source header and pinned upstream CPAL Exhibit A explicitly offer CPAL version 1 or later OR GNU AGPL version 3 or later. This distribution uses the CPAL 1.0 option for citeproc only; no overall application license is changed.",
+    "khroma@2.1.0: The package does not declare a license; no default license has been assigned.",
     "launder@1.7.1: No legal notice file was found in the installed package.",
     "mj-context-menu@0.6.1: The installed package omits legal notice files. Supplemental upstream attribution and license text are included; see resources/native-licenses/mj-context-menu-0.6.1-provenance.json for exact source and scope."
   ],
