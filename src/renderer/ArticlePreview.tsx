@@ -28,6 +28,14 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
   const generation = useRef(0), disposed = useRef(false), last = useRef<{ source: string; settings: Settings; citations: CitationRenderData } | null>(null);
   const [pages, setPages] = useState(0), [inEditor, setInEditor] = useState(false);
   const root = () => host.current?.shadowRoot;
+  function fitPaper() {
+    if (!host.current || !scroller.current) return false;
+    const available = scroller.current.clientWidth - 48;
+    const zoom = Math.min(1, Math.max(.35, available / (210 * 96 / 25.4))).toFixed(6);
+    if (Number(host.current.style.zoom) === Number(zoom)) return false;
+    host.current.style.zoom = zoom;
+    return true;
+  }
   function bookmark() {
     const scroll = scroller.current;
     const nodes = [...(root()?.querySelectorAll<HTMLElement>('main:not([aria-hidden]) .paper-block[data-source-from]') || [])];
@@ -36,6 +44,9 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
   }
   async function render(anchor = bookmark(), resume?: number) {
     const el = host.current; if (!el) return;
+    // CSS zoom can change text/border rounding and therefore table row heights.
+    // Measure at the final window scale, including on the first layout.
+    fitPaper();
     const sequence = ++generation.current, p = current.current;
     const shadow = el.shadowRoot!;
     if (!shadow.querySelector('style')) {
@@ -198,7 +209,10 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
       }
     };
     el.shadowRoot!.addEventListener('keydown', keydown);
-    const resize = new ResizeObserver(() => { const available = scroller.current!.clientWidth - 48; el.style.zoom = String(Math.min(1, Math.max(.35, available / (210 * 96 / 25.4)))); }); resize.observe(scroller.current!);
+    const resize = new ResizeObserver(() => {
+      const anchor = bookmark();
+      if (fitPaper() && !editing.current && !hasNodeEditor(nodeOwner.current)) void render(anchor);
+    }); resize.observe(scroller.current!);
     return () => { disposed.current = true; generation.current++; closeNodeEditor(nodeOwner.current); editing.current?.view.destroy(); editing.current = null; resize.disconnect(); el.shadowRoot?.removeEventListener('click', click); el.shadowRoot?.removeEventListener('contextmenu', click); el.shadowRoot?.removeEventListener('keydown', keydown); };
   }, []);
   useLayoutEffect(() => {

@@ -143,6 +143,9 @@ try {
   assert.deepEqual(errors, []);
   checks.push('main-process position, tab switching and unchanged Markdown/dirty state');
   await page.screenshot({ path: path.join(run, 'editor.png') });
+  // A narrow initial window used to paginate at zoom=1 before ResizeObserver
+  // applied its final scale; the resulting table height overflowed the page.
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1024, 720));
   await page.evaluate(() => window.markedown.updateSettings({ readingLayout: 'double' }));
   await page.locator('.article-preview main:not([aria-hidden]) .paper-sheet').first().waitFor();
   await settle();
@@ -156,6 +159,16 @@ try {
     assert.equal(await paper.locator('table').count(),await paper.locator('table thead').count(),'Continued tables need headers');
   }
   assert(await paper.locator('.paper-column').evaluateAll(nodes=>nodes.every(node=>node.scrollHeight<=node.clientHeight+2)),'A column overflows its A4 page');
+  for (const width of [1280, 1037, 760, 1000]) {
+    await page.evaluate(() => { window.paperBeforeResize = document.querySelector('.article-preview-paper').shadowRoot.querySelector('main:not([aria-hidden])'); });
+    await app.evaluate(({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 720), width);
+    await page.waitForFunction(() => document.querySelector('.article-preview-paper').shadowRoot.querySelector('main:not([aria-hidden])') !== window.paperBeforeResize);
+    await settle();
+    assert(await paper.locator('.paper-column').evaluateAll(nodes=>nodes.every(node=>node.scrollHeight<=node.clientHeight+2)), `A4 column overflow after resizing to ${width}px`);
+    assert.deepEqual(await paper.locator('.csl-entry').evaluateAll(nodes=>nodes.map(node=>node.dataset.referenceKey)), resolved.entries.map(entry=>entry.key));
+    if (!documentArgument) assert.equal(await paper.locator('tbody tr').count(),46,'Resizing lost table rows');
+  }
+  checks.push('initial narrow window and four resizes repaginate without column overflow, lost rows or duplicate references');
   const paperScroll=page.locator('.article-preview-scroll');
   for(const fraction of [1,0,.7,1]){await paperScroll.evaluate((node,fraction)=>{node.scrollTop=(node.scrollHeight-node.clientHeight)*fraction;},fraction);await settle();}
   await paper.locator('.csl-entry').last().scrollIntoViewIfNeeded();await settle();
