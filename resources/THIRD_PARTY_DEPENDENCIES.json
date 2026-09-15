@@ -1,9 +1,9 @@
 {
-  "product": "Markedown",
-  "version": "0.3.11",
+  "product": "Markit",
+  "version": "0.3.12",
   "platform": "win32",
   "architecture": "x64",
-  "packageLockSha256": "0a804afe0f7d0e130d620edb22cb6a134004113b3169761aa4fcbefaf26a3e65",
+  "packageLockSha256": "f6c270157f0290938663ff1786c38767da61a68b86150ad8c1647853567c6ae6",
   "packages": [
     {
       "name": "@codemirror/autocomplete",

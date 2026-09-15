@@ -7,7 +7,7 @@ await mkdir(evidence, { recursive: true });
 const run = await mkdtemp(path.join(evidence, 'run-'));
 const file = path.join(run, '中文 测试.md');
 const second = path.join(run, 'second.md');
-const source = '# Welcome to Markedown\n\n## 中文写作与排版\n\n记录每一个值得留下的想法。Use **bold**, *emphasis* and ==highlights==.\n\n> [!NOTE]\n> Markdown 始终是文稿的唯一数据源。\n\n| 功能 | 体验 |\n| --- | --- |\n| 多标签 | 独立撤销 |\n| 五种主题 | 即时切换 |\n\n```javascript\nconst ideas = ["write", "think", "create"];\n```\n\n$$E = mc^2$$\n\n## 下一段\n\nFind this needle.\n';
+const source = '# Welcome to Markit\n\n## 中文写作与排版\n\n记录每一个值得留下的想法。Use **bold**, *emphasis* and ==highlights==.\n\n> [!NOTE]\n> Markdown 始终是文稿的唯一数据源。\n\n| 功能 | 体验 |\n| --- | --- |\n| 多标签 | 独立撤销 |\n| 五种主题 | 即时切换 |\n\n```javascript\nconst ideas = ["write", "think", "create"];\n```\n\n$$E = mc^2$$\n\n## 下一段\n\nFind this needle.\n';
 await writeFile(file, source.replaceAll('\n', '\r\n')); await writeFile(second, '# Second\n\nIndependent history.\n');
 const env = { ...process.env, MARKEDOWN_DATA_DIR: path.join(run, 'data') }; delete env.ELECTRON_RUN_AS_NODE; delete env.MARKEDOWN_DEV_URL;
 const checks = [], errors = [];

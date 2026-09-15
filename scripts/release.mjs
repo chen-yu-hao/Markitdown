@@ -87,7 +87,7 @@ function artifactNames(product, version, platform) {
   const stem = `${product}-${version}-${platform.label}`;
   return platform.id === 'windows'
     ? { installer: `${stem}-x64-Setup.exe`, portable: `${stem}-x64.zip`, source: `${stem}-Source.zip` }
-    : { appImage: `${stem}-x64.AppImage`, deb: `${stem}-x64.deb`, tarball: `${stem}-x64.tar.gz`, source: `${stem}-Source.zip` };
+    : { appImage: `${stem}-x64.AppImage`, deb: `${stem}-x64.deb`, rpm: `${stem}-x64.rpm`, tarball: `${stem}-x64.tar.gz`, source: `${stem}-Source.zip` };
 }
 
 export async function release({ checkOnly = false, root = projectRoot, platform = process.platform } = {}) {
@@ -95,7 +95,7 @@ export async function release({ checkOnly = false, root = projectRoot, platform 
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   if (!/^\d+\.\d+\.\d+(?:-[a-z\d.-]+)?$/i.test(manifest.version)) throw new Error('Invalid release version.');
   const output = path.resolve(root, manifest.build?.directories?.output ?? 'release');
-  const product = 'Markedown';
+  const product = 'Markit';
   const names = artifactNames(product, manifest.version, target);
   const files = await collectSourceFiles(root);
   const notices = ['THIRD_PARTY_LICENSES.txt', 'THIRD_PARTY_DEPENDENCIES.json', 'ThirdPartyNotices.md'];
@@ -106,7 +106,7 @@ export async function release({ checkOnly = false, root = projectRoot, platform 
     console.log(`Expected outputs: ${Object.values(names).join(', ')}, SHA256SUMS.txt`);
     return { files: files.length, names };
   }
-  const required = target.id === 'windows' ? [names.installer, names.portable] : [names.appImage, names.deb, names.tarball];
+  const required = target.id === 'windows' ? [names.installer, names.portable] : [names.appImage, names.deb, names.rpm, names.tarball];
   for (const filename of required) if (!(await stat(path.join(output, filename))).isFile()) throw new Error(`Missing ${filename}. Run npm run dist:${target.id === 'windows' ? 'win' : 'linux'} to build the ${target.label} packages first.`);
   const executable = await getPath7za();
   if (target.id === 'windows') {

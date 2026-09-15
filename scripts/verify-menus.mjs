@@ -24,8 +24,8 @@ try {
   const help = page.getByRole('menuitem', { name: '帮助', exact: true });
   const documentsBeforeHelp = await page.evaluate(async () => (await window.markedown.bootstrap()).documents.length);
   await help.click();
-  await page.getByRole('menu', { name: '帮助', exact: true }).getByRole('menuitem', { name: '关于 Markedown', exact: true }).click();
-  const about = page.getByRole('dialog', { name: '关于 Markedown', exact: true });
+  await page.getByRole('menu', { name: '帮助', exact: true }).getByRole('menuitem', { name: '关于 Markit', exact: true }).click();
+  const about = page.getByRole('dialog', { name: '关于 Markit', exact: true });
   await about.waitFor();
   assert(await page.getByTestId('preferences').count() === 0, 'About opened Preferences');
   assert(await page.evaluate(async () => (await window.markedown.bootstrap()).documents.length) === documentsBeforeHelp, 'About changed the open documents');
@@ -53,7 +53,7 @@ try {
   for (const label of ['偏好设置…', '撤销', '重做', '剪切', '复制', '粘贴', '全选', '查找…', '替换…', '格式']) assert(await root.getByRole('menuitem', { name: label, exact: true }).count() === 1, `${label} is missing from Edit`);
   await format.hover();
   await child.waitFor();
-  const expected = ['正文', ...Array.from({ length: 6 }, (_, i) => `标题 ${i + 1}`), '加粗', '斜体', '删除线', '高亮', '引用', '无序列表', '有序列表', '任务列表', '链接', '插入图片…', '行内代码', '代码块', '公式', '分隔线'];
+  const expected = ['正文', ...Array.from({ length: 6 }, (_, i) => `标题 ${i + 1}`), '加粗', '斜体', '删除线', '高亮', '引用', '无序列表', '有序列表', '任务列表', '链接', '插入图片…', '行内代码', '代码块', '行间公式', '行内公式', '分隔线'];
   assert(await child.getByRole('menuitem').count() === expected.length, 'Format commands were lost or duplicated');
   for (const label of expected) assert(await child.getByRole('menuitem', { name: label, exact: true }).count() === 1, `${label} is missing from Format`);
   await page.screenshot({ path: path.join(evidence, 'format-submenu.png') });
@@ -109,15 +109,20 @@ try {
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
   assert(await page.getByRole('menu').count() === 0 && await edit.evaluate(el => el === document.activeElement), 'Root Escape did not restore trigger focus');
   checks.push('viewport clamping and scrollable submenu at 150% zoom');
+  // Restore normal device coordinates after the native zoom/layout check before
+  // exercising a physical pointer click on the tab close button.
+  await app.evaluate(({ BrowserWindow }) => { const win = BrowserWindow.getAllWindows()[0]; win.webContents.setZoomFactor(1); win.setSize(1280, 860); });
   await page.locator('.cm-content:visible').focus();
   await page.keyboard.press('Control+w');
   await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.length === 0));
+  await wait(() => page.getByTestId('document-tab').count().then(count => count === 0));
   await page.keyboard.press('Control+n');
   await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.length === 1));
   // Exercise the tab close control itself. This is especially important on
   // Windows, where a close-button pointer event must not start the tab drag.
   await page.getByTestId('document-tab').getByRole('button', { name: /^关闭/ }).click();
   await wait(() => page.evaluate(async () => (await window.markedown.bootstrap()).documents.length === 0));
+  await wait(async () => await page.getByTestId('document-tab').count() === 0 && await page.locator('.cm-content:visible').count() === 0);
   assert(await page.getByTestId('document-tab').count() === 0, 'Closing the last document created a replacement tab');
   assert(await page.locator('.cm-content:visible').count() === 0, 'Closing the last document left an editor mounted');
   checks.push('closing the last document leaves the window with zero open documents');

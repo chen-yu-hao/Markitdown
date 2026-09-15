@@ -1,14 +1,14 @@
-# Markedown 第三方与来源说明
+# Markit 第三方与来源说明
 
 ## 用户提供的原始工程和素材
 
-当前 Electron 版本以用户提供的 `Markedown-authored-source-0.1.6-2026-09-06.zip` 为行为和素材来源。对照资料保存在 `reference/macos/Markedown`。原工程 README 声明界面与图标为原创；本工程沿用 Markedown 名称与其中的图标，不为原归档添加新的授权条款。
+当前 Electron 版本以用户提供的 `Markit-authored-source-0.1.6-2026-09-06.zip` 为行为和素材来源。对照资料保存在 `reference/macos/Markit`。原工程 README 声明界面与图标为原创；本工程沿用 Markit 名称与其中的图标，不为原归档添加新的授权条款。
 
 - `resources/icon.png` 与原工程 `Resources/Assets.xcassets/AppIcon.appiconset/markedown-icon-256.png` 内容一致，SHA-256 为 `2958645e18020083f8ec0f64aa65481373bef53ebd6ab7fddb1e84ef75497f4b`。
 - `resources/icon.ico` 封装原工程的 16、32、64、128、256 像素 PNG，供 Windows 在不同显示尺寸下使用。
 - `resources/icons/256x256.png` 复用同一 256 像素 PNG，供 Linux 桌面包使用。
 - `resources/FeatureTour.md` 与原工程 `Samples/FeatureTour.md` 内容一致，SHA-256 为 `9c7676202343445162b5ae3b931eb6ffeb21450c1548f5fcde09843079271f86`。
-- 原版的 Swift 依赖声明保留在 `reference/macos/Markedown/Resources/ThirdPartyNotices.md` 和 `Vendor/PROVENANCE.md`。这些 Swift 依赖不参与 Electron 编译；作者源码归档中的 `Vendor` 仅含来源记录，不能将其描述为完整的第三方依赖源码包。
+- 原版的 Swift 依赖声明保留在 `reference/macos/Markit/Resources/ThirdPartyNotices.md` 和 `Vendor/PROVENANCE.md`。这些 Swift 依赖不参与 Electron 编译；作者源码归档中的 `Vendor` 仅含来源记录，不能将其描述为完整的第三方依赖源码包。
 
 ## 直接运行依赖
 
@@ -62,7 +62,7 @@ Linux 构建应在 Linux 环境重新执行 `npm ci` 和 `npm run notices`，使
 
 完整 CPAL、AGPLv3、原始 LICENSE 和 Exhibit B 署名已保存在 `resources/native-licenses/citeproc-2.4.63-*`。CPAL 第 14 条及 Exhibit B 要求 Larger Work 启动或开始会话时显著展示 `(c) Frank Bennett`、`citeproc-js implements the Citation Style Language` 和 `https://citationstyles.org/`；仅把信息放在需主动打开的关于窗口中不满足其启动展示条件。许可证要求显示足够时间供合理知悉，未规定固定秒数。
 
-citeproc-js 的受许可源码按 CPAL 1.0 提供，位于随包附带的 `resources/source-archives/citeproc-js-73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9.tar.gz`，也可从 [固定上游提交](https://github.com/Juris-M/citeproc-js/tree/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9) 获取。该归档包括 930 个上游文件及其构建脚本；其中 `citeproc_commonjs.js` 与已安装运行库逐字节一致。Markedown 未修改上游源码，构建时通过 esbuild 将运行库机械合并到主进程程序中，集成日期为 2026-09-07。原始代码和署名来源均为 Frank Bennett 的 citeproc-js；应用适配源码、构建配置与此归档一同随源码包提供。
+citeproc-js 的受许可源码按 CPAL 1.0 提供，位于随包附带的 `resources/source-archives/citeproc-js-73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9.tar.gz`，也可从 [固定上游提交](https://github.com/Juris-M/citeproc-js/tree/73bc1b44bc7d54d0bfec4e070fd27f5efe024ff9) 获取。该归档包括 930 个上游文件及其构建脚本；其中 `citeproc_commonjs.js` 与已安装运行库逐字节一致。Markit 未修改上游源码，构建时通过 esbuild 将运行库机械合并到主进程程序中，集成日期为 2026-09-07。原始代码和署名来源均为 Frank Bennett 的 citeproc-js；应用适配源码、构建配置与此归档一同随源码包提供。
 
 CPAL 的源码通知、修改说明、署名和分发条件继续适用于其中的 Covered Code。来源记录会校验所附源码归档、许可证及本地运行库的 SHA-256；生成清单同时列明原始元数据、源码中的授权表达及本次选用的许可，不把 CPAL 表述为 MIT 或其他宽松许可。
 

@@ -15,7 +15,7 @@ const fixtureImage = path.join(workspace, 'assets', 'icon.png');
 // Keep the smoke fixture self-contained; release checkouts do not require a
 // source image asset to be present under resources/.
 await writeFile(fixtureImage, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lZkAAAAASUVORK5CYII=', 'base64'));
-const source = '# Markedown Windows\n\n## \u7814\u7a76\u7b14\u8bb0\n\nMarkdown keeps **important ideas**, *emphasis*, ==highlights== and H<sub>2</sub>O together.\n\nneedle needle\n\n| Document | Status |\n| --- | --- |\n| Windows edition | Ready |\n\n```javascript\nconst windows = true;\n```\n\n$$\nx^2 + y^2 = 1\n$$\n\n![Markedown](assets/icon.png)\n\n## Next section\n\nA final paragraph.\n';
+const source = '# Markit Windows\n\n## \u7814\u7a76\u7b14\u8bb0\n\nMarkdown keeps **important ideas**, *emphasis*, ==highlights== and H<sub>2</sub>O together.\n\nneedle needle\n\n| Document | Status |\n| --- | --- |\n| Windows edition | Ready |\n\n```javascript\nconst windows = true;\n```\n\n$$\nx^2 + y^2 = 1\n$$\n\n![Markit](assets/icon.png)\n\n## Next section\n\nA final paragraph.\n';
 await writeFile(alpha,Buffer.concat([Buffer.from([0xef,0xbb,0xbf]),Buffer.from(source.replaceAll('\n','\r\n'))]));
 await writeFile(beta,'# Second document\n\nIndependent editing history.\n');
 await writeFile(nested,'# Nested note\n\nworkspace-match belongs here.\n');
@@ -193,7 +193,7 @@ try {
   checks.push('UI HTML/PDF export including unsaved content and local images');
 
   await page.getByRole('tab',{name:'Outline',exact:true}).click();
-  await page.locator('.outline-list button').filter({hasText:'Markedown Windows'}).click();
+  await page.locator('.outline-list button').filter({hasText:'Markit Windows'}).click();
   await page.evaluate(()=>window.markedown.updateSettings({language:'zh-CN'}));
   await page.getByRole('menuitem',{name:'编辑',exact:true}).waitFor();
   const dismissToast=page.getByRole('button',{name:'\u5173\u95ed\u63d0\u793a',exact:true});

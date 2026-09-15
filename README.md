@@ -1,16 +1,16 @@
-# Markedown
+# Markit
 
 面向日常记录与论文写作的 Windows 与 Linux Markdown 编辑器。
 
-Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出放在同一个写作环境中。文稿以本地 Markdown 文件保存，可随时切换到源码模式继续编辑。
+Markit 将即时排版、公式编号、Zotero 文献引用和多格式导出放在同一个写作环境中。文稿以本地 Markdown 文件保存，可随时切换到源码模式继续编辑。
 
 **[下载最新版](https://github.com/chen-yu-hao/Markitdown/releases/latest)** · [学术写作指南](resources/AcademicWriting.md) · [构建说明](resources/Development.md) · [反馈问题](https://github.com/chen-yu-hao/Markitdown/issues)
 
-![Markedown 编辑界面：研究笔记、公式编号与大纲](resources/images/editor.png)
+![Markit 编辑界面：研究笔记、公式编号与大纲](resources/images/editor.png)
 
 ## 下载与安装
 
-当前发布版本：**0.3.12**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版。Linux x64 已支持从源码打包 AppImage、DEB 和 tar.gz。
+当前发布版本：**0.3.12**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版。当前主分支已增加 Linux x64 的 AppImage、DEB、RPM 和 tar.gz 打包支持，构建方法见[开发说明](resources/Development.md)。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
@@ -22,9 +22,11 @@ Markedown 将即时排版、公式编号、Zotero 文献引用和多格式导出
 
 当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.12)提供更新说明，Assets 保留安装版、便携版和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
 
+主分支中的应用名称已统一为 **Markit**；上面的 0.3.12 下载仍使用发布时的 **Markedown** 名称。Linux 包将在后续发布中提供：Ubuntu/Debian 使用 DEB，Fedora/RHEL 使用 RPM，Manjaro/Arch 可使用 AppImage 或 tar.gz。
+
 ### 更新已有版本
 
-更新前保存文稿并退出 Markedown。
+更新前保存文稿并退出 Markit。
 
 - **安装版**：下载新版 EXE，安装到原目录，无需先卸载。设置与恢复数据保存在用户应用数据目录。
 - **便携版**：将新版解压到新目录，把旧版的 `data` 目录复制到新版目录中，再启动新版。另行存放的文稿和图片仍在原位置。
@@ -108,7 +110,7 @@ $$
 | Pandoc 导出 | Word（DOCX）、EPUB、LaTeX、RTF、ODT、MediaWiki、reStructuredText、Textile、OPML |
 | Pandoc 导入 | DOCX、ODT、EPUB、HTML、reStructuredText、Textile、OPML |
 
-使用扩展格式时，需安装 [Pandoc](https://pandoc.org/installing.html)。Markedown 会检查 `PATH` 和常见安装目录，也可在偏好设置中指定 `pandoc.exe`。内建导出无需 Pandoc。
+使用扩展格式时，需安装 [Pandoc](https://pandoc.org/installing.html)。Markit 会检查 `PATH` 和常见安装目录，也可在偏好设置中指定 `pandoc.exe`。内建导出无需 Pandoc。
 
 **偏好设置 → 导出 → Word** 可设置中西文字体、颜色、正文和各级标题样式。Word 公式以原生可编辑数学对象导出；公式编号和参考文献列表保留导出时的结果，不是 Word 自动编号域或引文管理器记录。
 
@@ -120,10 +122,12 @@ LaTeX、RST、Textile、MediaWiki 等文本导出会生成相邻的 `markedown-a
 
 | 数据 | 位置 |
 | --- | --- |
-| Windows 安装版设置、恢复记录与缓存 | 通常为 `%APPDATA%\Markedown` |
-| Windows 便携版设置、恢复记录与缓存 | `Markedown.exe` 旁的 `data` 目录 |
-| Linux 设置、恢复记录与缓存 | 通常为 `~/.config/Markedown`，或 `XDG_CONFIG_HOME` 指定的位置 |
+| Windows 安装版设置、恢复记录与缓存 | 通常为 `%APPDATA%\Markit` |
+| Windows 便携版设置、恢复记录与缓存 | `Markit.exe` 旁的 `data` 目录 |
+| Linux 设置、恢复记录与缓存 | 通常为 `~/.config/Markit`，或 `XDG_CONFIG_HOME` 指定的位置 |
 | 默认图片目录 | 文稿旁的 `assets`，可在图像设置中调整 |
+
+从旧版升级时会继续使用已有的 `Markedown` 数据目录，保留设置、缓存和未保存文稿；全新安装使用 `Markit` 数据目录。
 
 恢复的文稿需要先手动保存一次，才会重新启用自动写回。遇到外部修改冲突时，可重新加载、另存副本或取消。撤销图片插入会撤销文稿中的 Markdown 文本，已写入的图片文件仍保留。
 
@@ -169,7 +173,3 @@ Windows 发布包使用 `npm run dist:win` 构建；Linux 发布包使用 `npm r
 欢迎通过 [GitHub Issues](https://github.com/chen-yu-hao/Markitdown/issues)反馈问题或提出功能建议。报告问题时请附上应用版本、系统版本、复现步骤及去除个人信息的最小示例；涉及排版或点击定位时，也请注明主题和显示缩放。
 
 第三方组件、图标来源及许可证说明见[第三方与来源说明](resources/ThirdPartyNotices.md)。依赖清单与许可证文本位于程序可执行文件旁，也保存在源码的 `resources` 目录中。
-
-
-
-

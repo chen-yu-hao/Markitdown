@@ -10,7 +10,7 @@ const run = await mkdtemp(path.join(directory, 'run-'));
 const entry = path.join(directory, 'main', 'index.cjs');
 await build({ entryPoints: ['src/main/index.ts'], bundle: true, platform: 'node', format: 'cjs', target: 'node22', outfile: entry, external: ['electron', 'sharp'] });
 await build({ entryPoints: ['src/main/preload.ts'], bundle: true, platform: 'node', format: 'cjs', target: 'node22', outfile: path.join(directory, 'main', 'preload.cjs'), external: ['electron'] });
-await writeFile(path.join(directory, 'index.html'), '<!doctype html><html><head><meta charset="utf-8"></head><body><p>Markedown main-process verification</p><script>window.qaEvents=[];window.markedown.onEvent(event=>window.qaEvents.push(event));window.markedown.bootstrap().then(bootstrap=>window.qaBootstrap=bootstrap);</script></body></html>');
+await writeFile(path.join(directory, 'index.html'), '<!doctype html><html><head><meta charset="utf-8"></head><body><p>Markit main-process verification</p><script>window.qaEvents=[];window.markedown.onEvent(event=>window.qaEvents.push(event));window.markedown.bootstrap().then(bootstrap=>window.qaBootstrap=bootstrap);</script></body></html>');
 const realDocument = path.join(run, 'image-test.md');
 const oversized = path.join(run, 'oversized.png');
 await writeFile(realDocument, '# Image test\n');
