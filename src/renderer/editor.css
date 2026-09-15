@@ -4,6 +4,10 @@
 .markedown-editor .cm-editor.cm-focused{outline:none}.markedown-editor .cm-scroller{overflow:auto;font-family:inherit;line-height:1.85;overscroll-behavior:contain;scrollbar-gutter:stable}
 .markedown-editor .cm-content{min-height:calc(100% + var(--editor-pointer-bottom,0px));max-width:calc(var(--editor-width) + 72px);width:100%;margin:0 auto;padding:calc(40px + var(--editor-pointer-top,0px)) 36px calc(120px + var(--editor-pointer-bottom,0px));caret-color:var(--editor-accent)}
 .markedown-editor .cm-line{padding:0;overflow-wrap:anywhere}.markedown-editor .cm-cursor{border-left:2px solid var(--editor-accent)}
+.markedown-editor .cm-gutters{background:transparent;color:var(--editor-muted);border-right:1px solid var(--editor-line);font-family:Consolas,"Cascadia Mono",monospace;font-variant-numeric:lining-nums tabular-nums;user-select:none}
+.markedown-editor .cm-lineNumbers .cm-gutterElement{min-width:3ch;padding:0 10px 0 8px;text-align:right}
+.markedown-editor .cm-gutters .cm-activeLineGutter{color:var(--editor-accent);background:var(--editor-code)}
+.markedown-editor.editor-source .cm-gutters{font-size:.91em;line-height:1.7}
 .markedown-editor .cm-selectionBackground,.markedown-editor .cm-focused .cm-selectionBackground{background:#73a7903b!important}.markedown-editor .cm-content ::selection{background:#73a7903b}
 .markedown-editor.editor-source .cm-content{font-family:Consolas,"Cascadia Mono","Microsoft YaHei",monospace;font-size:.91em;line-height:1.7}
 .markedown-editor.editor-typewriter .cm-content{padding-top:calc(40vh + var(--editor-pointer-top,0px));padding-bottom:calc(48vh + var(--editor-pointer-bottom,0px))}

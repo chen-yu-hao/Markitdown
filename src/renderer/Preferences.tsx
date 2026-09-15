@@ -40,6 +40,7 @@ export default function Preferences({ settings: s, zh, version, platform, arch, 
       { title:t('文件树与文件库','File tree & library'),content:<>{check('showHiddenFiles','显示隐藏文件','Show hidden files')}{row(t('文件类型','File types'),select('fileFilter',[['text',t('Markdown 和文本文件','Markdown and text files')],['markdown',t('仅 Markdown','Markdown only')],['all',t('所有文件','All files')]],t('文件类型','File types')))}</> },
     ],
     editor: [
+      { title:t('行号','Line numbers'),content:check('showLineNumbers','显示全文行号','Show document line numbers',t('按 Markdown 源码行编号，自动折行不重复编号。也可通过“视图 → 显示行号”切换。','Number Markdown source lines without numbering wrapped continuations. Also available under View → Show line numbers.')) },
       { title:t('缩进','Indentation'),content:<>{row(t('缩进宽度','Indent width'),number('indentWidth',t('缩进宽度','Indent width'),1,8))}{check('alignIndent','对齐缩进','Align indentation')}<pre className="indent-preview">{'• '+t('列表','List')+'\n'+' '.repeat(s.indentWidth)+'• '+t('嵌套内容','Nested content')+'\n'+' '.repeat(s.indentWidth*2)+'• '+t('继续书写','Keep writing')}</pre></> },
       { title:t('自动补全','Auto completion'),content:<>{check('pairBrackets','自动配对括号和引号','Auto pair brackets and quotes')}{check('pairMarkdown','自动配对 Markdown 字符','Auto pair Markdown characters')}{check('emojiAutocomplete','Emoji 自动补全','Emoji autocomplete',t('输入 :smile 等名称时显示建议。','Type a name such as :smile to show suggestions.'))}</> },
       { title:t('即时渲染','Live rendering'),content:check('showActiveBlockSource','显示当前编辑块的 Markdown 源码','Show Markdown source in the current block') },

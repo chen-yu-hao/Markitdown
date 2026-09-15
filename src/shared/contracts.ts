@@ -51,6 +51,8 @@ export interface Settings {
   reopenWorkspace: boolean;
   showToolbar: boolean;
   showStatusBar: boolean;
+  /** Global source line numbers in the editor, independent of code-block numbering. */
+  showLineNumbers: boolean;
   pageSize: 'A4' | 'Letter';
   exportOutline: boolean;
   htmlRemoteImages: boolean;
@@ -151,7 +153,7 @@ export const defaultExportPresets: ExportPreset[] = [
 ].map(([format, name]) => ({ id: format, name, format: format as ExportFormat }));
 export const defaultSettings: Settings = {
   theme: 'github', separateDarkTheme: false, darkTheme: 'night', language: 'system', fontSize: 17, readingWidth: 800, readingLayout: 'single',
-  autoSave: true, reopenWorkspace: true, showToolbar: false, showStatusBar: true,
+  autoSave: true, reopenWorkspace: true, showToolbar: false, showStatusBar: true, showLineNumbers: false,
   pageSize: 'A4', exportOutline: true, htmlRemoteImages: false, pandocPath: '', recentWorkspaces: [],
   recentFiles: [], startup: 'new', defaultExtension: 'md', saveOnSwitch: false, recordHistory: true,
   outlineCollapsible: true, dropFolders: 'open', dropMarkdown: 'open', dropDocuments: 'import', showHiddenFiles: false, fileFilter: 'text',
