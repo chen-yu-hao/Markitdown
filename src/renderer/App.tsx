@@ -252,13 +252,15 @@ export default function App() {
   useEffect(() => {
     if (!active?.path) { if (active && reviewStates[active.id]) setReviewStates(previous => { const next = { ...previous }; delete next[active.id]; return next; }); return; }
     let stale = false;
-    const timer = setTimeout(() => void window.markedown.review.current(active.id).then(result => {
+    const refresh = () => void window.markedown.review.current(active.id).then(result => {
       if (stale) return;
       if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value }));
       else if (result.status === 'error') showError(result.message);
-    }).catch(error => { if (!stale) showError(String(error)); }), 180);
-    return () => { stale = true; clearTimeout(timer); };
-  }, [active?.id, active?.path, active?.source, showError]);
+    }).catch(error => { if (!stale) showError(String(error)); });
+    const timer = setTimeout(refresh, 180);
+    const poll = activeReview?.enabled ? setInterval(refresh, 1500) : undefined;
+    return () => { stale = true; clearTimeout(timer); if (poll) clearInterval(poll); };
+  }, [active?.id, active?.path, active?.source, activeReview?.enabled, showError]);
   useEffect(() => {
     if (!active || active.mode === 'source' && active.source.length > 1024 * 1024 / 3 && new TextEncoder().encode(active.source).length > 1024 * 1024 && referenceRefresh <= consumedReferenceRefresh.current) return;
     let stale = false;
@@ -462,12 +464,18 @@ export default function App() {
       case 'reviewAccept': {
         if (!active || !activeReview?.hunks.length) break;
         const hunk = activeReview.hunks[0];
-        void window.markedown.review.acceptHunk(active.id, hunk.id, activeReview.revision).then(result => { if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value.state })); else if (result.status === 'error' || result.status === 'conflict') showError(result.message); }).catch(error => showError(String(error)));
+        void save(active.id).then(saved => {
+          if (!saved) return;
+          return window.markedown.review.acceptHunk(active.id, hunk.id, activeReview.revision).then(result => { if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value.state })); else if (result.status === 'error' || result.status === 'conflict') showError(result.message); });
+        }).catch(error => showError(String(error)));
         break;
       }
       case 'reviewAcceptAll': {
         if (!active || !activeReview?.hunks.length) break;
-        void window.markedown.review.acceptAll(active.id, activeReview.revision).then(result => { if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value })); else if (result.status === 'error' || result.status === 'conflict') showError(result.message); }).catch(error => showError(String(error)));
+        void save(active.id).then(saved => {
+          if (!saved) return;
+          return window.markedown.review.acceptAll(active.id, activeReview.revision).then(result => { if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value })); else if (result.status === 'error' || result.status === 'conflict') showError(result.message); });
+        }).catch(error => showError(String(error)));
         break;
       }
       case 'cut': case 'copy': case 'paste': editor?.focus(); void window.markedown.editCommand(name).catch(error => showError(String(error))); break;

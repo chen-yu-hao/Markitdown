@@ -192,6 +192,17 @@ async function saveWithDialog(win: BrowserWindow, id: string, saveAs = false): P
     return result;
   } finally { saving.delete(id); }
 }
+/** Save the editor snapshot before a Git-backed review operation. */
+async function saveForReview(win: BrowserWindow, id: string): Promise<Result<DocumentSession>> {
+  const doc = own(win, id);
+  if (!doc.path) return { status: 'error', message: tr('请先保存文稿，再使用审阅模式。', 'Save the document before using Review mode.') };
+  clearTimeout(saveTimers.get(id)); saveTimers.delete(id); saving.add(id);
+  try {
+    const result = await service.save(id);
+    if (result.status === 'ok') { externallyNotified.delete(id); publish(result.value); if (result.value.dirty) scheduleAutoSave(id); }
+    return result;
+  } finally { saving.delete(id); }
+}
 async function closeDocuments(win: BrowserWindow, ids: string[], entireWindow = false): Promise<Result<boolean>> {
   if (closeRequests.has(win.id) || transfers.forWindow(win.id)) return { status: 'cancelled' };
   closeRequests.add(win.id);
@@ -450,7 +461,28 @@ function installIPC() {
     catch (error) { return fail(error); }
   });
   handle('review.enable', async (win, id: string) => {
-    try { const doc = reviewDocument(win, id); return await reviews.enable(doc.path!, doc.source, doc.savedSource); }
+    try {
+      let doc = reviewDocument(win, id);
+      const inspection = await reviews.inspect(doc.path!);
+      if (inspection.status !== 'ok') return inspection;
+      let allowInit = false;
+      if (!inspection.value) {
+        const choice = await dialog.showMessageBox(win, {
+          type: 'question', title: tr('创建 Git 仓库', 'Create Git repository'),
+          message: tr('此 Markdown 文件不在 Git 工作区内。是否在当前文件夹创建 Git 仓库并启用审阅模式？', 'This Markdown file is not inside a Git worktree. Create a Git repository in its folder and enable Review mode?'),
+          detail: tr('这会在当前文件夹执行 git init，并创建审阅基线提交。', 'This runs git init in the current folder and creates a review baseline commit.'),
+          buttons: [tr('创建并启用', 'Create and enable'), tr('取消', 'Cancel')], defaultId: 0, cancelId: 1, noLink: true,
+        });
+        if (choice.response !== 0) return { status: 'cancelled' };
+        allowInit = true;
+      }
+      if (!inspection.value || !inspection.value.tracked || !inspection.value.head) {
+        const saved = await saveForReview(win, id);
+        if (saved.status !== 'ok') return saved;
+        doc = saved.value;
+      }
+      return await reviews.enable(doc.path!, doc.source, doc.savedSource, { allowInit });
+    }
     catch (error) { return fail(error); }
   });
   handle('review.disable', async (win, id: string) => {
@@ -459,14 +491,16 @@ function installIPC() {
   });
   handle('review.acceptHunk', async (win, id: string, hunkId: string, revision: string) => {
     try {
-      const doc = reviewDocument(win, id);
+      const saved = await saveForReview(win, id); if (saved.status !== 'ok') return saved;
+      const doc = saved.value;
       if (typeof hunkId !== 'string' || hunkId.length > 256 || typeof revision !== 'string' || revision.length > 256) throw new Error('Invalid review change.');
       return await reviews.acceptHunk(doc.path!, doc.source, hunkId, revision);
     } catch (error) { return fail(error); }
   });
   handle('review.acceptAll', async (win, id: string, revision?: string) => {
     try {
-      const doc = reviewDocument(win, id);
+      const saved = await saveForReview(win, id); if (saved.status !== 'ok') return saved;
+      const doc = saved.value;
       if (revision !== undefined && (typeof revision !== 'string' || revision.length > 256)) throw new Error('Invalid review revision.');
       return await reviews.acceptAll(doc.path!, doc.source, revision);
     } catch (error) { return fail(error); }

@@ -571,6 +571,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
   const pendingPreferencesRef = useRef<Settings | null>(null);
   const pendingCitationsRef = useRef<CitationRenderData | null>(null);
   const deferredBibliographyRef = useRef(false);
+  const deferredCompositionPublish = useRef(false);
   const pendingExternalRef = useRef<DocumentSession | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const transferLocked = useRef(props.transferState !== undefined);
@@ -869,6 +870,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
               return false;
             },
             compositionend(_event, editor) {
+              editor.dom.classList.remove('md-composing');
               setTimeout(() => {
                 if (viewRef.current !== editor) return;
                 if (pendingExternalRef.current) applyExternal(editor, pendingExternalRef.current);
@@ -879,9 +881,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
                   const source = editor.state.doc.toString(), citations = scanCitations(source, editor.state.facet(editorPreferences));
                   if (citations.keys.length && !citations.bibliographies.length) editor.dispatch({ changes: { from: editor.state.doc.length, insert: bibliographySuffix(source) }, selection: editor.state.selection, annotations: Transaction.userEvent.of('input.type.compose') });
                 }
+                if (deferredCompositionPublish.current) { deferredCompositionPublish.current = false; publish(editor); }
               }, 0);
               return false;
             },
+            compositionstart(_event, editor) { editor.dom.classList.add('md-composing'); return false; },
             scroll(_event, editor) {
               if (!propsRef.current.active) return false;
               scrollPosition(editor);
@@ -891,7 +895,10 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
           }),
           EditorView.updateListener.of(update => {
             if (update.docChanged && !update.transactions.some(transaction => transaction.annotation(externalChange))) versionRef.current++;
-            if ((update.docChanged || update.selectionSet) && !update.transactions.some(transaction => transaction.annotation(externalChange))) publish(update.view);
+            if ((update.docChanged || update.selectionSet) && !update.transactions.some(transaction => transaction.annotation(externalChange))) {
+              if (update.view.composing || update.view.compositionStarted) deferredCompositionPublish.current = true;
+              else publish(update.view);
+            }
             if (update.docChanged || update.selectionSet) reportSearch(update.view);
             if (propsRef.current.typewriter && !update.transactions.some(transaction => transaction.isUserEvent('input.paste')) && (update.docChanged || ((propsRef.current.settings || defaultSettings).alwaysCenterCaret && update.selectionSet)) && update.view.hasFocus && !update.view.composing && !centerPending) {
               centerPending = true;
