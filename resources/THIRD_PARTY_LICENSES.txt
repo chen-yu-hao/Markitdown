@@ -1,5 +1,5 @@
-Markit 0.4.0 - Third-party license texts
-Generated from package-lock.json SHA-256: ebdc21c642b5e43752e5c00f949e9328f8d7df6279846ed5a0be6001a11d2509
+Markit 0.4.1 - Third-party license texts
+Generated from package-lock.json SHA-256: b25f2a11357132cacb17b3283500c61516db2ecfd8f5ae61bbcc9fa3d4870ec9
 Build platform: win32-x64
 Includes installed production npm dependencies and the Electron runtime package.
 Optional packages absent from this platform are listed in THIRD_PARTY_DEPENDENCIES.json.
