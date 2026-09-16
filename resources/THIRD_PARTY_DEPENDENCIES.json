@@ -1,9 +1,9 @@
 {
   "product": "Markit",
-  "version": "0.3.14",
+  "version": "0.4.0",
   "platform": "win32",
   "architecture": "x64",
-  "packageLockSha256": "577fb4db22937d910e25de83b2f6d544e92ee31b0a19d0cf58bbcdf0ac51d8bf",
+  "packageLockSha256": "ebdc21c642b5e43752e5c00f949e9328f8d7df6279846ed5a0be6001a11d2509",
   "packages": [
     {
       "name": "@antfu/install-pkg",

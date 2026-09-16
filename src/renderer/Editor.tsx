@@ -7,6 +7,7 @@ import { defaultHighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirr
 import { SearchQuery, findNext as searchNext, findPrevious, getSearchQuery, replaceAll, replaceNext, search, setSearchQuery } from '@codemirror/search';
 import { GFM } from '@lezer/markdown';
 import { defaultSettings, type DocumentPatch, type DocumentSession, type Settings } from '../shared/contracts';
+import type { ReviewState } from '../shared/review';
 import { getSafeLinkURL, renderMarkdown, type EquationIndex, type ElementIndex } from '../shared/markdown';
 import { emptyCitationData, type CitationRenderData } from '../shared/academic-contracts';
 import { BIBLIOGRAPHY_MARKER, scanCitations } from '../shared/citations';
@@ -16,7 +17,7 @@ import { academicInsertion, bibliographySuffix, bibliographyTypingExtension, dis
 import { preservePointerPosition } from './editor-pointer';
 import { sameEditorSettings } from './editor-settings-equality';
 import { pasteWithoutScroll } from './editor-clipboard';
-import { closeNodeEditor, openMathNode, openTableNode, type NodeEditorTarget } from './node-editors';
+import { closeNodeEditor, openInlineTable, openMathNode, type NodeEditorTarget } from './node-editors';
 import 'katex/dist/katex.min.css';
 import './editor.css';
 import { renderDiagrams } from './diagram-runtime';
@@ -54,6 +55,7 @@ export interface EditorProps {
   onFindResult?(result: { current: number; total: number }): void;
   transferState?: unknown;
   onTransferReady?(accepted: boolean): Promise<void>;
+  review?: ReviewState | null;
 }
 
 const sourceLimit = 5 * 1024 * 1024;
@@ -66,6 +68,8 @@ const liveTableLimit = 512 * 1024;
 const externalChange = Annotation.define<boolean>();
 const formatChange = Transaction.userEvent.of('input.format');
 const liveMode = Facet.define<boolean, boolean>({ combine: values => values[0] ?? true });
+const reviewFacet = Facet.define<ReviewState | null, ReviewState | null>({ combine: values => values[0] ?? null });
+const reviewConfig = new Compartment();
 const imageResolver = Facet.define<(destination: string) => string, (destination: string) => string>({ combine: values => values[0] || (() => '') });
 const viewportEffect = StateEffect.define<{ from: number; to: number }>();
 const trackInsertion = StateEffect.define<{ id: string; from: number; to: number }>();
@@ -119,6 +123,36 @@ function isScrollableWidgetSurface(target: EventTarget | null): boolean {
   const style = getComputedStyle(target);
   return (horizontal && /^(auto|scroll)$/.test(style.overflowX)) || (vertical && /^(auto|scroll)$/.test(style.overflowY));
 }
+
+class ReviewDeletedWidget extends WidgetType {
+  constructor(readonly text: string) { super(); }
+  eq(other: ReviewDeletedWidget) { return other.text === this.text; }
+  toDOM() {
+    const span = document.createElement('span');
+    span.className = 'md-review-deleted';
+    span.textContent = this.text;
+    span.title = 'Deleted in review';
+    return span;
+  }
+  ignoreEvent() { return true; }
+}
+const reviewDecorations = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations = this.build(view); }
+  update(update: ViewUpdate) {
+    if (update.docChanged || update.transactions.some(transaction => transaction.reconfigured) || update.viewportChanged) this.decorations = this.build(update.view);
+  }
+  build(view: EditorView) {
+    const review = view.state.facet(reviewFacet);
+    if (!review?.enabled || !review.hunks.length) return Decoration.none;
+    const ranges: Range<Decoration>[] = [];
+    for (const hunk of review.hunks) {
+      if (hunk.inserted && hunk.to > hunk.from) ranges.push(Decoration.mark({ class: 'md-review-added' }).range(Math.max(0, hunk.from), Math.min(view.state.doc.length, hunk.to)));
+      if (hunk.deleted) ranges.push(Decoration.widget({ widget: new ReviewDeletedWidget(hunk.deleted), side: -1 }).range(Math.max(0, Math.min(view.state.doc.length, hunk.from))));
+    }
+    return Decoration.set(ranges, true);
+  }
+}, { decorations: value => value.decorations });
 
 function nodeTarget(view: EditorView, source: string, from: number, anchor: HTMLElement): NodeEditorTarget {
   let length = source.length;
@@ -194,7 +228,7 @@ class RenderedWidget extends WidgetType {
       if (link && (pointer.ctrlKey || pointer.metaKey)) { const id = /\/document\/([^?]+)/.exec(this.resolveImage(''))?.[1]; openLink(link.getAttribute('href') || '', id && decodeURIComponent(id)); return; }
       if ((event.target as Element).closest('table')) {
         const cell = (event.target as Element).closest<HTMLTableCellElement>('td,th');
-        if (cell && openTableNode(nodeTarget(view, this.source, this.from, dom), (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex)) return;
+        if (cell && openInlineTable(nodeTarget(view, this.source, this.from, dom), cell.closest('table') as HTMLTableElement, (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex)) return;
       }
       const equation = this.equations.equations.find(item => item.from === this.from && item.to === this.from + this.source.length);
       if (equation && openMathNode(nodeTarget(view, this.source, this.from, dom), equation.block)) {
@@ -216,7 +250,7 @@ class RenderedWidget extends WidgetType {
       const event = raw as MouseEvent, cell = (event.target as Element).closest<HTMLTableCellElement>('td,th');
       if (!cell) { if ((event.target as Element).closest('img')) return; if (openElementNode(nodeTarget(view, this.source, this.from, dom))) { event.preventDefault(); event.stopPropagation(); } return; }
       event.preventDefault(); event.stopPropagation();
-      openTableNode(nodeTarget(view, this.source, this.from, dom), (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex, { x: event.clientX, y: event.clientY });
+      openInlineTable(nodeTarget(view, this.source, this.from, dom), cell.closest('table') as HTMLTableElement, (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex);
     });
     if (dom.querySelector('table,.math-block,.md-equation-inline')) {
       dom.tabIndex = 0;
@@ -224,7 +258,10 @@ class RenderedWidget extends WidgetType {
         const event = raw as KeyboardEvent;
         if (!['Enter', 'F2'].includes(event.key)) return;
         event.preventDefault(); event.stopPropagation();
-        if (dom.querySelector('table')) openTableNode(nodeTarget(view, this.source, this.from, dom));
+        if (dom.querySelector('table')) {
+          const table = dom.querySelector('table');
+          if (table) openInlineTable(nodeTarget(view, this.source, this.from, dom), table, 0, 0);
+        }
         else openMathNode(nodeTarget(view, this.source, this.from, dom), this.block);
       });
     }
@@ -272,12 +309,26 @@ function buildLiveDecorations(state: EditorState, from: number, to: number): Dec
   let activeFrom = selection.from;
   let activeTo = selection.to;
   if (settings.showActiveBlockSource) {
-    activeFrom = state.doc.lineAt(selection.from).from;
-    activeTo = state.doc.lineAt(selection.to).to;
+    // Semantic editing exposes the smallest source construct around the caret.
+    // A paragraph used to be treated as one node, which made every `**marker**`
+    // in a long paragraph appear as source. Keep block constructs intact, but
+    // limit inline constructs to the exact syntax node under the selection.
+    activeFrom = selection.empty ? selection.head : selection.from;
+    activeTo = selection.empty ? selection.head : selection.to;
+    const blockPattern = /^(ATXHeading\d|SetextHeading\d|FencedCode|CodeBlock|Table|Blockquote|List)$/;
+    const inlinePattern = /^(StrongEmphasis|Emphasis|Strikethrough|InlineCode|Link|Image|Autolink|Superscript|Subscript|Highlight)$/;
     for (const position of [selection.from, selection.to]) {
+      let inline: { from: number; to: number } | undefined;
+      let block: { from: number; to: number } | undefined;
       for (let node = syntaxTree(state).resolveInner(position, 1); node; node = node.parent!) {
-        if (/^(Paragraph|ATXHeading\d|SetextHeading\d|FencedCode|CodeBlock|Table)$/.test(node.name)) { activeFrom = Math.min(activeFrom, node.from); activeTo = Math.max(activeTo, node.to); break; }
+        if (!inline && inlinePattern.test(node.name)) inline = { from: node.from, to: node.to };
+        if (blockPattern.test(node.name)) { block = { from: node.from, to: node.to }; break; }
       }
+      if (inline) {
+        // A collapsed caret reveals only the inline construct under it.
+        if (selection.empty) { activeFrom = inline.from; activeTo = inline.to; }
+        else { activeFrom = Math.min(activeFrom, inline.from); activeTo = Math.max(activeTo, inline.to); }
+      } else if (block) { activeFrom = Math.min(activeFrom, block.from); activeTo = Math.max(activeTo, block.to); }
     }
   }
   const isActive = (start: number, end: number) => start <= activeTo && end >= activeFrom;
@@ -757,7 +808,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
         doc: initial.document.source,
         selection: EditorSelection.single(Math.min(initial.document.selection.anchor, initial.document.source.length), Math.min(initial.document.selection.head, initial.document.source.length)),
         extensions: [
-          history(), drawSelection(), dropCursor(), EditorView.lineWrapping, insertions,
+          history(), drawSelection(), dropCursor(), EditorView.lineWrapping, insertions, reviewConfig.of([reviewFacet.of(initial.review || null), reviewDecorations]),
           transferConfig.current.of([EditorState.readOnly.of(transferLocked.current), EditorView.editable.of(!transferLocked.current)]),
           EditorState.transactionFilter.of(transaction => transferLocked.current && (transaction.docChanged || transaction.selection) ? [] : transaction),
           EditorState.transactionExtender.of(transaction => ['input.format', 'input.replace', 'input.paste'].some(event => transaction.isUserEvent(event)) ? { annotations: isolateHistory.of('full') } : null),
@@ -881,6 +932,12 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(prop
       view.destroy();
     };
   }, []);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: reviewConfig.reconfigure([reviewFacet.of(props.review || null), reviewDecorations]) });
+  }, [props.review]);
 
   useEffect(() => {
     const view = viewRef.current;

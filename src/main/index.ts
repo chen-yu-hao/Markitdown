@@ -20,6 +20,8 @@ import { ExtensionRegistry } from '../shared/extensions';
 import { ZoteroService } from './zotero-service';
 import { CitationService } from './citation-service';
 import { analyzeMarkdown, listMarkdownExtensions } from '../shared/markdown';
+import { ReviewService } from './review-service';
+import { computeReviewState } from '../shared/review';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'markedown-image', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
 app.setName('Markit');
@@ -38,6 +40,7 @@ let settings: Settings;
 let zotero: ZoteroService;
 let citations: CitationService;
 let translator: TranslationService;
+let reviews: ReviewService;
 const translationRequests = new Map<number, AbortController>();
 const extensions = new ExtensionRegistry();
 const referenceSearches = new Map<number, AbortController>();
@@ -423,7 +426,7 @@ function installMenu() {
   for (const win of windows.values()) win.setMenu(null);
 }
 function installIPC() {
-  const busyMethods = new Set(['saveDocument', 'resolveExternal', 'importImages', 'exportDocument']);
+  const busyMethods = new Set(['saveDocument', 'resolveExternal', 'importImages', 'exportDocument', 'review.enable', 'review.disable', 'review.acceptHunk', 'review.acceptAll']);
   const handle = (name: string, fn: (win: BrowserWindow, ...args: any[]) => unknown) => ipcMain.handle(`markedown:${name}`, (event, ...args) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win || !windows.has(win.id) || event.senderFrame !== event.sender.mainFrame) throw new Error('Untrusted IPC sender.');
@@ -433,6 +436,41 @@ function installIPC() {
     catch (error) { release(); throw error; }
   });
   handle('references.status', () => zotero.status());
+  const reviewDocument = (win: BrowserWindow, id: string) => {
+    const doc = own(win, id);
+    if (!doc.path) throw new Error(tr('请先保存文稿，再启用审阅模式。', 'Save the document before enabling Review mode.'));
+    return doc;
+  };
+  handle('review.current', async (win, id: string) => {
+    try {
+      const doc = own(win, id);
+      if (!doc.path) return { status: 'ok', value: computeReviewState(doc.source, doc.source, { enabled: false, baselineOrigin: 'saved' }) };
+      return await reviews.current(doc.path, doc.source);
+    }
+    catch (error) { return fail(error); }
+  });
+  handle('review.enable', async (win, id: string) => {
+    try { const doc = reviewDocument(win, id); return await reviews.enable(doc.path!, doc.source, doc.savedSource); }
+    catch (error) { return fail(error); }
+  });
+  handle('review.disable', async (win, id: string) => {
+    try { const doc = reviewDocument(win, id); return await reviews.disable(doc.path!, doc.source); }
+    catch (error) { return fail(error); }
+  });
+  handle('review.acceptHunk', async (win, id: string, hunkId: string, revision: string) => {
+    try {
+      const doc = reviewDocument(win, id);
+      if (typeof hunkId !== 'string' || hunkId.length > 256 || typeof revision !== 'string' || revision.length > 256) throw new Error('Invalid review change.');
+      return await reviews.acceptHunk(doc.path!, doc.source, hunkId, revision);
+    } catch (error) { return fail(error); }
+  });
+  handle('review.acceptAll', async (win, id: string, revision?: string) => {
+    try {
+      const doc = reviewDocument(win, id);
+      if (revision !== undefined && (typeof revision !== 'string' || revision.length > 256)) throw new Error('Invalid review revision.');
+      return await reviews.acceptAll(doc.path!, doc.source, revision);
+    } catch (error) { return fail(error); }
+  });
   handle('references.search', async (win, query: string) => {
     if (typeof query !== 'string' || query.length > 300) throw new Error('Invalid reference search.');
     referenceSearches.get(win.id)?.abort();
@@ -664,6 +702,8 @@ if (singleInstance) void app.whenReady().then(async () => {
     extensions.seal();
     citations = new CitationService(extensions.referenceProvider('zotero')!);
     await service.initialize();
+    reviews = new ReviewService(service.dataDir);
+    await reviews.initialize();
     reportedRecoveryErrors = service.recoveryErrors.length;
     settings = await loadSettings(service.dataDir);
     protocol.handle('markedown-image', async request => {

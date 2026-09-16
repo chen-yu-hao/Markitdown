@@ -11,6 +11,7 @@
 .document-tab-menu>button>span{min-width:0;overflow-wrap:anywhere}
 .document-tab-menu>button:hover:not(:disabled),.document-tab-menu>button:focus-visible{background:var(--hover);outline:none}
 .document-tab-menu>button:disabled{opacity:.4;cursor:default}
+.file-context-menu{width:190px}
 .document-tab-ghost{position:fixed;z-index:121;display:flex;align-items:center;gap:8px;box-sizing:border-box;width:220px;max-width:calc(100vw - 12px);height:34px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--text);box-shadow:0 4px 12px #0002;font-size:12px;pointer-events:none;opacity:.94}
 .document-tab-ghost.is-detaching{border-color:var(--accent)}
 .document-tab-ghost>svg{flex-shrink:0;color:var(--muted)}

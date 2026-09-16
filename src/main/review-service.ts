@@ -36,6 +36,21 @@ export class ReviewService {
     try { await exec('git', ['--version'], { timeout: 5000, windowsHide: true, maxBuffer: 64 * 1024 }); return { status: 'ok', value: true }; }
     catch { return { status: 'error', message: 'Git is required for Review mode. Install Git for Windows and try again.' }; }
   }
+  /** Read the saved file from the user's current Git HEAD without changing its
+   * index, branch, or working tree. This lets Review mode show edits made by
+   * other tools (for example Codex) relative to the last committed version. */
+  private async gitHeadSource(pathname: string): Promise<string | undefined> {
+    try {
+      const directory = path.dirname(pathname);
+      const { stdout: rootOut } = await exec('git', ['-C', directory, 'rev-parse', '--show-toplevel'], { timeout: 5000, windowsHide: true, maxBuffer: 64 * 1024, env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1' } });
+      const root = rootOut.trim();
+      if (!root) return undefined;
+      const relative = path.relative(root, pathname).split(path.sep).join('/');
+      if (!relative || relative.startsWith('../') || path.isAbsolute(relative)) return undefined;
+      const { stdout } = await exec('git', ['-C', root, 'show', `HEAD:${relative}`], { timeout: 8000, windowsHide: true, maxBuffer: 16 * 1024 * 1024, encoding: 'utf8', env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1' } });
+      return typeof stdout === 'string' ? stdout : undefined;
+    } catch { return undefined; }
+  }
   private repoFor(pathname: string) { return path.join(this.root, keyOf(pathname)); }
   private async runGit(repo: string, args: string[], timeout = 12_000) {
     return exec('git', ['-C', repo, ...args], { timeout, windowsHide: true, maxBuffer: 2 * 1024 * 1024, env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1' } });
@@ -69,8 +84,13 @@ export class ReviewService {
     try {
       await mkdir(repo, { recursive: true });
       try { await this.runGit(repo, ['rev-parse', '--is-inside-work-tree']); } catch { await this.runGit(repo, ['init']); }
-      let baseline = existing?.baseline ?? normalizeReviewSource(savedSource);
+      let baseline = existing?.baseline;
       let origin: ReviewState['baselineOrigin'] = existing?.origin ?? 'saved';
+      if (!baseline) {
+        const head = await this.gitHeadSource(pathname);
+        baseline = head === undefined ? normalizeReviewSource(savedSource) : normalizeReviewSource(head);
+        origin = head === undefined ? 'saved' : 'git-head';
+      }
       let commit = existing?.commit;
       if (!existing) commit = await this.commitBaseline(repo, baseline, 'Review baseline');
       const next: Persisted = { version: 1, path: pathname, baseline, enabled: true, origin, commit };

@@ -26,6 +26,14 @@ export const hasNodeEditor = (owner: object) => active?.owner === owner;
 export function closeNodeEditor(owner?: object) { if (!owner || active?.owner === owner) active?.close(); }
 export function nodeEditorCommand(name: string) { return active?.command(name) || false; }
 
+/** Share lifecycle and menu routing with editors mounted inside document nodes. */
+export function registerInlineNodeEditor(owner: object, surface: HTMLElement, close: () => void, command: (name: string) => boolean) {
+  closeNodeEditor();
+  const entry = { owner, panel: surface, close, command };
+  active = entry;
+  return () => { if (active === entry) active = undefined; };
+}
+
 export function panelFor(target: NodeEditorTarget, type: 'table' | 'math' | 'element', label?: [string, string]) {
   closeNodeEditor();
   target.open?.();
@@ -139,6 +147,53 @@ export function openMathNode(target: NodeEditorTarget, block: boolean) {
   return true;
 }
 
+export function openInlineTable(target: NodeEditorTarget, table: HTMLTableElement, initialRow = 0, initialColumn = 0): boolean {
+  const shape = tableShape(target.source);
+  if (!shape || !table.isConnected || target.source.length > 512 * 1024) return false;
+  table.classList.add('md-inline-table-editing');
+  const host = table.parentElement || table, toolbar = document.createElement('div');
+  toolbar.className = 'md-inline-table-toolbar'; toolbar.setAttribute('role', 'toolbar');
+  const label = (cn: string, en: string) => target.settings.language === 'zh-CN' || target.settings.language === 'system' && document.documentElement.lang.startsWith('zh') ? cn : en;
+  const button = (cn: string, en: string, action: () => void) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label(cn, en); b.title = label(cn, en); b.onclick = action; b.onmousedown = e => e.preventDefault(); toolbar.append(b); return b; };
+  host.insertBefore(toolbar, table);
+  let source = target.source, row = Math.max(0, Math.min(initialRow, shape.rows - 1)), column = Math.max(0, Math.min(initialColumn, shape.columns - 1));
+  let unregister: (() => void) | undefined;
+  const close = () => { toolbar.remove(); table.classList.remove('md-inline-table-editing'); unregister?.(); unregister = undefined; target.close?.(); };
+  const apply = (next: string, event = 'input.node.inline') => { if (next === source) return true; const previous = source; if (!target.apply(previous, next, event)) return false; source = next; return true; };
+  const replaceCell = (cell: HTMLTableCellElement) => { const edit = replaceTableCell(source, 0, row, column, cell.textContent || ''); if (!edit) return; const next = source.slice(0, edit.from) + edit.insert + source.slice(edit.to); apply(next); };
+  const op = (fn: () => TableSourceEdit | null) => { const edit = fn(); if (edit) { const changed = apply(edit.from === 0 && edit.to === source.length ? edit.insert : source.slice(0, edit.from) + edit.insert + source.slice(edit.to), 'input.node.commit'); if (changed) close(); } };
+  button('上方插入行', 'Insert row above', () => op(() => insertTableRow(source, 0, row, 'before')));
+  button('下方插入行', 'Insert row below', () => op(() => insertTableRow(source, 0, row, 'after')));
+  button('左侧插入列', 'Insert column left', () => op(() => insertTableColumn(source, 0, column)));
+  button('右侧插入列', 'Insert column right', () => op(() => insertTableColumn(source, 0, column + 1)));
+  button('删除行', 'Delete row', () => op(() => deleteTableRow(source, 0, row)));
+  button('删除列', 'Delete column', () => op(() => deleteTableColumn(source, 0, column)));
+  for (const [cn, en, align] of [['左对齐','Align left','left'],['居中','Align center','center'],['右对齐','Align right','right']] as const) button(cn, en, () => op(() => alignTableColumn(source, column, align)));
+  button('完成', 'Done', close);
+  const cells = [...table.querySelectorAll<HTMLTableCellElement>('th,td')];
+  let focusedCell: HTMLTableCellElement | undefined;
+  unregister = registerInlineNodeEditor(target.owner, host, close, name => {
+    if (!['copy', 'cut', 'paste', 'selectAll'].includes(name) || !focusedCell) return false;
+    focusedCell.focus({ preventScroll: true });
+    if (name === 'selectAll') document.execCommand('selectAll');
+    else void window.markedown.editCommand(name as 'copy' | 'cut' | 'paste');
+    return true;
+  });
+  // Registering first closes any previous node editor. Enable the new editor
+  // afterwards so a stale close callback cannot turn this view read-only.
+  target.open?.();
+  cells.forEach((cell, index) => {
+    const tr = cell.parentElement as HTMLTableRowElement, r = tr.rowIndex, c = cell.cellIndex;
+    cell.dataset.sourceRow = String(r); cell.dataset.sourceColumn = String(c); cell.tabIndex = 0;
+    cell.addEventListener('click', event => { event.stopPropagation(); focusedCell = cell; row = r; column = c; cells.forEach(x => x.classList.remove('md-inline-cell-selected')); cell.classList.add('md-inline-cell-selected'); if (cell.contentEditable !== 'true') { cell.contentEditable = 'true'; cell.classList.add('md-inline-cell-input'); cell.focus(); } });
+    cell.addEventListener('dblclick', event => { event.preventDefault(); event.stopPropagation(); focusedCell = cell; row = r; column = c; cell.contentEditable = 'true'; cell.classList.add('md-inline-cell-input'); cell.focus(); document.execCommand('selectAll'); });
+    cell.addEventListener('input', () => replaceCell(cell));
+    cell.addEventListener('blur', () => { cell.contentEditable = 'false'; cell.classList.remove('md-inline-cell-input'); });
+    cell.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); cell.blur(); } if (event.key === 'Tab') { event.preventDefault(); const next = cells[index + (event.shiftKey ? -1 : 1)]; if (next) next.focus(); } if (event.key === 'Escape') { event.preventDefault(); cell.blur(); } });
+  });
+  cells.find(cell => Number(cell.dataset.sourceRow) === row && Number(cell.dataset.sourceColumn) === column)?.classList.add('md-inline-cell-selected');
+  return true;
+}
 export function openTableNode(target: NodeEditorTarget, initialRow = 0, initialColumn = 0, menuPoint?: { x: number; y: number }) {
   const shape = tableShape(target.source); if (!shape || target.source.length > 512 * 1024) return false;
   const ui = panelFor(target, 'table');

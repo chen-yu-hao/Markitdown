@@ -14,7 +14,7 @@ import { codeLanguage, editorSourceMode, preferenceExtensions } from './editor-p
 import { sameEditorSettings } from './editor-settings-equality';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import './article-preview.css';
-import { closeNodeEditor, hasNodeEditor, openMathNode, openTableNode, type NodeEditorTarget } from './node-editors';
+import { closeNodeEditor, hasNodeEditor, openInlineTable, openMathNode, type NodeEditorTarget } from './node-editors';
 import { renderDiagrams } from './diagram-runtime';
 import { openElementNode, openImageNode, showImageViewer } from './element-editors';
 
@@ -204,7 +204,7 @@ export default forwardRef<ArticlePreviewHandle, Props>(function ArticlePreview(p
           apply: (previous, next, event) => !!current.current.editor()?.applyPaperEdit(start, previous, next, { anchor: 0, head: 0 }, event),
           close: () => { if (!disposed.current) void render(); },
         };
-        if (cell && openTableNode(node, Number(cell.parentElement!.dataset.sourceRow || 0), cell.cellIndex, event.type === 'contextmenu' ? { x: (event as MouseEvent).clientX, y: (event as MouseEvent).clientY } : undefined)) { event.preventDefault(); return; }
+        if (cell && openInlineTable(node, cell.closest('table') as HTMLTableElement, Number(cell.parentElement!.dataset.sourceRow || 0), cell.cellIndex)) { event.preventDefault(); return; }
         if (equation && openMathNode(node, equation.block)) { event.preventDefault(); return; }
         if (target.closest('img') && openImageNode(node)) { event.preventDefault(); return; }
         if (openElementNode(node)) { event.preventDefault(); return; }

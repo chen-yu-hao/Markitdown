@@ -2,7 +2,7 @@
   "name": "markit",
   "productName": "Markit",
   "desktopName": "com.zhuanz.markit",
-  "version": "0.3.14",
+  "version": "0.4.0",
   "private": true,
   "description": "Markit Markdown editor for desktop Linux and Windows",
   "author": "Markit contributors",

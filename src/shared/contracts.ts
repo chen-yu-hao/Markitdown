@@ -1,6 +1,7 @@
 import type { ReferencesAPI } from './academic-contracts';
 import type { ExtensionManifest } from './extensions';
 import type { TranslationConfig, TranslationConfigUpdate, TranslationProvider, TranslationResult, TranslationTarget } from './translation';
+import type { ReviewState } from './review';
 export type EditorMode = 'live' | 'source';
 export type LineEnding = 'LF' | 'CRLF';
 export interface FileRevision { hash: string; size: number; mtimeMs: number }
@@ -192,6 +193,14 @@ export type ExportFormat = 'html' | 'htmlPlain' | 'pdf' | 'png' | 'docx' | 'epub
 export type SettingsAction = 'clearHistory' | 'recoveryFolder' | 'themeFolder' | 'dataFolder' | 'advancedSettings' | 'resetSettings' | 'debug' | 'registerNewFile' | 'unregisterNewFile';
 export interface ImageInput { name: string; bytes: Uint8Array }
 export interface MarkedownAPI {
+  /** Git-backed review state for the active document. */
+  review: {
+    current(id: string): Promise<Result<ReviewState>>;
+    enable(id: string): Promise<Result<ReviewState>>;
+    disable(id: string): Promise<Result<ReviewState>>;
+    acceptHunk(id: string, hunkId: string, revision: string): Promise<Result<{ source: string; state: ReviewState }>>;
+    acceptAll(id: string, revision?: string): Promise<Result<ReviewState>>;
+  };
   translation: {
     getConfig(): Promise<Result<TranslationConfig>>;
     configure(update: TranslationConfigUpdate): Promise<Result<TranslationConfig>>;

@@ -3,6 +3,7 @@ import { AlignLeft, ArrowDown, ArrowUp, Bold, Braces, Check, ChevronDown, Chevro
 import Editor, { type EditorHandle } from './Editor';
 import ArticlePreview, { type ArticlePreviewHandle } from './ArticlePreview';
 import { defaultSettings, type AppEvent, type DirectoryEntry, type DocumentPatch, type DocumentSession, type ExportFormat, type RuntimePlatform, type SearchHit, type Settings } from '../shared/contracts';
+import type { ReviewState } from '../shared/review';
 import { analyzeMarkdown } from '../shared/markdown';
 import TopBar from './TopBar';
 import { shortcutCommand } from '../shared/shortcuts';
@@ -15,6 +16,7 @@ import { emptyCitationData, type CitationRenderData } from '../shared/academic-c
 import { scanCitations } from '../shared/citations';
 import TranslationPanel from './TranslationPanel';
 import { closeNodeEditor, nodeEditorCommand } from './node-editors';
+import FileContextMenu from './FileContextMenu';
 
 type Analysis = ReturnType<typeof analyzeMarkdown>;
 const patchOf = (doc: DocumentSession): DocumentPatch => ({ source: doc.source, mode: doc.mode, selection: doc.selection, scrollTop: doc.scrollTop, editVersion: doc.editVersion, mathNumberingPrefix: doc.mathNumberingPrefix });
@@ -91,7 +93,7 @@ function MarkdownGuide({ zh }: { zh: boolean }) {
   </div>;
 }
 
-function FileTree({ root, refresh, selected, onOpen, onError }: { root: string; refresh: number; selected: string | null; onOpen(path: string): void; onError(message: string): void }) {
+function FileTree({ root, refresh, selected, onOpen, onError, onContextMenu }: { root: string; refresh: number; selected: string | null; onOpen(path: string): void; onError(message: string): void; onContextMenu(path: string, x: number, y: number): void }) {
   const [entries, setEntries] = useState<Record<string, DirectoryEntry[]>>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set([root]));
   const [selection, setSelection] = useState<string | null>(selected);
@@ -104,7 +106,13 @@ function FileTree({ root, refresh, selected, onOpen, onError }: { root: string; 
   useEffect(() => { setEntries({}); setExpanded(new Set([root])); setLoading(true); void load(root).finally(() => setLoading(false)); }, [root, refresh, load]);
   useEffect(() => setSelection(selected), [selected]);
   const rows = (directory: string, depth: number): ReactNode => (entries[directory] || []).map(entry => <div key={entry.path}>
-    <button type="button" className={`tree-row ${selection === entry.path ? 'selected' : ''}`} style={{ paddingLeft: 14 + depth * 16 }} title={entry.path} onClick={event => {
+    <button type="button" className={`tree-row ${selection === entry.path ? 'selected' : ''}`} style={{ paddingLeft: 14 + depth * 16 }} title={entry.path} onContextMenu={event => {
+      if (entry.directory) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setSelection(entry.path);
+      onContextMenu(entry.path, event.clientX, event.clientY);
+    }} onClick={event => {
       if (event.detail > 1) return;
       setSelection(entry.path);
       if (entry.directory) { setExpanded(previous => { const next = new Set(previous); next.has(entry.path) ? next.delete(entry.path) : next.add(entry.path); return next; }); if (!entries[entry.path]) void load(entry.path); }
@@ -119,6 +127,7 @@ function FileTree({ root, refresh, selected, onOpen, onError }: { root: string; 
 
 export default function App() {
   const [documents, setDocuments] = useState<DocumentSession[]>([]);
+  const [reviewStates, setReviewStates] = useState<Record<string, ReviewState>>({});
   const docsRef = useRef<DocumentSession[]>([]);
   const [activeId, setActiveId] = useState('');
   const [documentAnchor, setDocumentAnchor] = useState<{ id: string; offset: number; anchor?: string } | null>(null);
@@ -141,6 +150,7 @@ export default function App() {
   const navigationRef = useRef(navigation); navigationRef.current = navigation;
   const [collapsedHeadings, setCollapsedHeadings] = useState<Set<string>>(new Set());
   const [workspace, setWorkspace] = useState<string | null>(null);
+  const [fileMenu, setFileMenu] = useState<{ path: string; x: number; y: number } | null>(null);
   const [sidebar, setSidebar] = useState(window.innerWidth >= 850);
   const [sidebarTab, setSidebarTab] = useState<'files' | 'outline' | 'search'>('files');
   const [refresh, setRefresh] = useState(0);
@@ -237,7 +247,18 @@ export default function App() {
   useEffect(() => { const media = matchMedia('(prefers-color-scheme: dark)'); const handler = () => setSystemDark(media.matches); media.addEventListener('change', handler); return () => media.removeEventListener('change', handler); }, []);
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; document.documentElement.dataset.editorTheme = effectiveTheme; document.documentElement.lang = zh ? 'zh-CN' : 'en'; }, [dark, effectiveTheme, zh]);
   const active = documents.find(doc => doc.id === activeId);
+  const activeReview = active ? reviewStates[active.id] : undefined;
   const paperPreview = !!active && settings.readingLayout === 'double' && active.mode === 'live';
+  useEffect(() => {
+    if (!active?.path) { if (active && reviewStates[active.id]) setReviewStates(previous => { const next = { ...previous }; delete next[active.id]; return next; }); return; }
+    let stale = false;
+    const timer = setTimeout(() => void window.markedown.review.current(active.id).then(result => {
+      if (stale) return;
+      if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value }));
+      else if (result.status === 'error') showError(result.message);
+    }).catch(error => { if (!stale) showError(String(error)); }), 180);
+    return () => { stale = true; clearTimeout(timer); };
+  }, [active?.id, active?.path, active?.source, showError]);
   useEffect(() => {
     if (!active || active.mode === 'source' && active.source.length > 1024 * 1024 / 3 && new TextEncoder().encode(active.source).length > 1024 * 1024 && referenceRefresh <= consumedReferenceRefresh.current) return;
     let stale = false;
@@ -427,6 +448,28 @@ export default function App() {
     }
     if (paperPreview && name === 'copy') { void window.markedown.editCommand('copy'); return; }
     switch (name) {
+      case 'reviewToggle': {
+        if (!active) break;
+        const request = activeReview?.enabled ? window.markedown.review.disable(active.id) : window.markedown.review.enable(active.id);
+        void request.then(result => { if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value })); else if (result.status === 'error') showError(result.message); }).catch(error => showError(String(error)));
+        break;
+      }
+      case 'reviewPrevious': case 'reviewNext': {
+        const hunk = activeReview?.hunks[0];
+        if (active && hunk) editors.current.get(active.id)?.scrollTo(hunk.from);
+        break;
+      }
+      case 'reviewAccept': {
+        if (!active || !activeReview?.hunks.length) break;
+        const hunk = activeReview.hunks[0];
+        void window.markedown.review.acceptHunk(active.id, hunk.id, activeReview.revision).then(result => { if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value.state })); else if (result.status === 'error' || result.status === 'conflict') showError(result.message); }).catch(error => showError(String(error)));
+        break;
+      }
+      case 'reviewAcceptAll': {
+        if (!active || !activeReview?.hunks.length) break;
+        void window.markedown.review.acceptAll(active.id, activeReview.revision).then(result => { if (result.status === 'ok') setReviewStates(previous => ({ ...previous, [active.id]: result.value })); else if (result.status === 'error' || result.status === 'conflict') showError(result.message); }).catch(error => showError(String(error)));
+        break;
+      }
       case 'cut': case 'copy': case 'paste': editor?.focus(); void window.markedown.editCommand(name).catch(error => showError(String(error))); break;
       case 'back': case 'forward': { const direction = name === 'back' ? -1 : 1; const history = navigationRef.current; let index = history.index + direction; while (index >= 0 && index < history.ids.length && !docsRef.current.some(d => d.id === history.ids[index])) index += direction; if (index >= 0 && index < history.ids.length) { setNavigation({ ...history, index }); select(history.ids[index], false); } break; }
       case 'zoomIn': void updateSettings({ zoom: Math.min(200, settingsRef.current.zoom + 10) }); break;
@@ -529,13 +572,13 @@ export default function App() {
       else if (result.status === 'error') showError(result.message);
     }).catch(error => showError(String(error)));
   }}>
-    <TopBar zh={zh} title={active ? (active.dirty ? '• ' : '') + active.title + ' — Markit' : 'Markit'} settings={settings} hasDocument={!!active && !modalOpen} sourceMode={active?.mode === 'source'} focus={focusMode} typewriter={typewriter} canBack={navigation.index > 0} canForward={navigation.index < navigation.ids.length - 1} command={name => actions.current(name)} update={patch => void updateSettings(patch)} />
+    <TopBar zh={zh} title={active ? (active.dirty ? '• ' : '') + active.title + ' — Markit' : 'Markit'} settings={settings} hasDocument={!!active && !modalOpen} sourceMode={active?.mode === 'source'} focus={focusMode} typewriter={typewriter} canBack={navigation.index > 0} canForward={navigation.index < navigation.ids.length - 1} reviewEnabled={activeReview?.enabled} reviewCount={activeReview?.hunks.length || 0} command={name => actions.current(name)} update={patch => void updateSettings(patch)} />
     <div className="workspace" inert={modalOpen} aria-hidden={modalOpen}>
       {!focusMode && sidebar && <aside className="sidebar" data-testid="sidebar">
         <div className="sidebar-switcher" role="tablist" aria-label={t('工作区视图', 'Workspace views')}>
           {(['files', 'outline', 'search'] as const).map((tab, index) => <button key={tab} role="tab" aria-selected={sidebarTab === tab} title={[t('文件', 'Files'), t('目录', 'Outline'), t('搜索', 'Search')][index]} onClick={() => setSidebarTab(tab)}>{[<Folder size={16} />, <AlignLeft size={16} />, <Search size={16} />][index]}<span>{[t('文件', 'Files'), t('目录', 'Outline'), t('搜索', 'Search')][index]}</span></button>)}
         </div>
-        {sidebarTab === 'files' && <><div className="sidebar-heading"><span title={workspace || ''}>{workspace ? basename(workspace) : t('工作区', 'Workspace')}</span><div><IconButton label={t('刷新', 'Refresh')} onClick={() => setRefresh(value => value + 1)} disabled={!workspace}><RefreshCw /></IconButton><IconButton label={t('打开文件夹', 'Open folder')} onClick={() => void chooseWorkspace()}><FolderOpen /></IconButton></div></div>{workspace ? <FileTree root={workspace} refresh={refresh + (settings.showHiddenFiles ? 1000000 : 0) + ['text','markdown','all'].indexOf(settings.fileFilter) * 2000000} selected={active?.path || null} onOpen={path => void openFiles([path])} onError={showError} /> : <div className="empty-workspace"><FolderOpen size={32} strokeWidth={1.2} /><button className="text-command" onClick={() => void chooseWorkspace()}><Plus size={15} />{t('打开文件夹', 'Open folder')}</button>{settings.recentWorkspaces.length > 0 && <div className="recent-workspaces"><span>{t('最近使用', 'Recent')}</span>{settings.recentWorkspaces.map(root => <button key={root} title={root} onClick={() => void chooseWorkspace(root)}><Folder size={14} /><span>{basename(root)}</span></button>)}</div>}</div>}</>}
+        {sidebarTab === 'files' && <><div className="sidebar-heading"><span title={workspace || ''}>{workspace ? basename(workspace) : t('工作区', 'Workspace')}</span><div><IconButton label={t('刷新', 'Refresh')} onClick={() => setRefresh(value => value + 1)} disabled={!workspace}><RefreshCw /></IconButton><IconButton label={t('打开文件夹', 'Open folder')} onClick={() => void chooseWorkspace()}><FolderOpen /></IconButton></div></div>{workspace ? <FileTree root={workspace} refresh={refresh + (settings.showHiddenFiles ? 1000000 : 0) + ['text','markdown','all'].indexOf(settings.fileFilter) * 2000000} selected={active?.path || null} onOpen={path => void openFiles([path])} onError={showError} onContextMenu={(path, x, y) => setFileMenu({ path, x, y })} /> : <div className="empty-workspace"><FolderOpen size={32} strokeWidth={1.2} /><button className="text-command" onClick={() => void chooseWorkspace()}><Plus size={15} />{t('打开文件夹', 'Open folder')}</button>{settings.recentWorkspaces.length > 0 && <div className="recent-workspaces"><span>{t('最近使用', 'Recent')}</span>{settings.recentWorkspaces.map(root => <button key={root} title={root} onClick={() => void chooseWorkspace(root)}><Folder size={14} /><span>{basename(root)}</span></button>)}</div>}</div>}</>}
         {sidebarTab === 'outline' && <><div className="sidebar-heading"><span>{t('文稿目录', 'Document outline')}</span><span className="count">{analysis.headings.length}</span></div><div className="outline-list">{analysis.headings.length ? analysis.headings.filter((heading,index,all) => !settings.outlineCollapsible || !all.slice(0,index).some((ancestor, ancestorIndex) => collapsedHeadings.has(ancestor.id) && ancestor.level < heading.level && !all.slice(ancestorIndex+1,index).some(other => other.level <= ancestor.level))).map((heading, index, visible) => <button key={heading.id} style={{ paddingLeft: 16 + (heading.level - 1) * 12 }} onClick={() => goToHeading(heading.id)} title={heading.text}><span className="heading-level" role={settings.outlineCollapsible ? 'button' : undefined} aria-label={t('折叠或展开标题','Fold or expand heading')} onClick={event => { if (!settings.outlineCollapsible) return; event.stopPropagation(); setCollapsedHeadings(previous => { const next = new Set(previous); next.has(heading.id) ? next.delete(heading.id) : next.add(heading.id); return next; }); }}>{settings.outlineCollapsible ? collapsedHeadings.has(heading.id) ? '▸' : '▾' : 'H'+heading.level}</span><span>{heading.text}</span></button>) : <div className="quiet-state">{t('暂无标题', 'No headings')}</div>}</div></>}
         {sidebarTab === 'search' && <><div className="workspace-search"><div className="input-with-tools"><Search size={15} /><input aria-label={t('搜索工作区', 'Search workspace')} placeholder={t('搜索文稿', 'Search documents')} value={workspaceQuery} onChange={event => setWorkspaceQuery(event.target.value)} disabled={!workspace} /><IconButton label={t('区分大小写', 'Match case')} active={workspaceCase} onClick={() => setWorkspaceCase(value => !value)}><Type size={15} /></IconButton></div><div className="search-summary">{searching ? <LoaderCircle size={14} className="spin" /> : workspaceQuery ? `${hits.length}${searchTruncated ? '+' : ''} ${t('个结果', 'results')}` : workspace ? '' : t('未打开工作区', 'No workspace open')}</div></div><div className="search-results">{hits.map((hit, index) => <button key={`${hit.path}:${hit.offset}:${index}`} title={hit.path} onClick={() => void openFiles([hit.path], hit.offset)}><span className="search-location"><FileText size={13} /><strong>{basename(hit.path)}</strong><small>{hit.line}:{hit.column}</small></span><span className="search-preview">{hit.preview}</span></button>)}</div></>}
         <div className="sidebar-footer"><span>{t('本地文稿', 'Local documents')}</span><IconButton label={t('收起侧栏', 'Hide sidebar')} onClick={() => setSidebar(false)}><PanelLeft size={15} /></IconButton></div>
@@ -545,7 +588,7 @@ export default function App() {
         {!focusMode && settings.showToolbar && <div className="format-toolbar"><div className="toolbar-group"><select className="heading-select" aria-label={t('段落样式', 'Paragraph style')} value={paragraphStyle} onChange={event => actions.current(event.target.value)} disabled={!active}><option value="paragraph">{t('正文', 'Text')}</option>{[1, 2, 3, 4, 5, 6].map(level => <option key={level} value={`heading${level}`}>{t('标题', 'Heading')} {level}</option>)}</select>{tool('bold', '加粗', 'Bold', <Bold />)}{tool('italic', '斜体', 'Italic', <Italic />)}{tool('strike', '删除线', 'Strikethrough', <Strikethrough />)}{tool('mark', '高亮', 'Highlight', <Highlighter />)}<span className="divider" />{tool('link', '链接', 'Link', <Link />)}{tool('image', '插入图片', 'Insert image', <ImagePlus />)}{tool('code', '行内代码', 'Inline code', <Code2 />)}{tool('codeblock', '代码块', 'Code block', <Braces />)}<span className="divider" />{tool('quote', '引用', 'Quote', <Quote />)}{tool('unorderedList', '无序列表', 'Bullet list', <List />)}{tool('orderedList', '有序列表', 'Numbered list', <ListOrdered />)}{tool('task', '任务列表', 'Task list', <ListChecks />)}</div><div className="toolbar-right">{tool('undo', '撤销', 'Undo', <Undo2 />)}{tool('redo', '重做', 'Redo', <Redo2 />)}<span className="divider" /><IconButton label={t('专注模式', 'Focus mode')} active={focusMode} onClick={() => setFocusMode(value => !value)}><Maximize2 /></IconButton></div></div>}
         {findOpen && <div className="find-bar" data-testid="find-bar"><div className="find-primary"><IconButton label={t('替换', 'Replace')} active={replaceOpen} onClick={() => setReplaceOpen(value => !value)}>{replaceOpen ? <ChevronDown /> : <ChevronRight />}</IconButton><div className={`input-with-tools find-input ${invalidRegex ? 'invalid' : ''}`}><Search size={15} /><input autoFocus aria-label={t('查找内容', 'Find text')} placeholder={t('查找', 'Find')} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') editors.current.get(activeId)?.findNext(event.shiftKey); if (event.key === 'Escape') setFindOpen(false); }} /><span className="find-count">{invalidRegex ? t('表达式无效', 'Invalid regex') : `${findResult.current} / ${findResult.total}`}</span></div><IconButton label={t('区分大小写', 'Match case')} active={findOptions.caseSensitive} onClick={() => setFindOptions(value => ({ ...value, caseSensitive: !value.caseSensitive }))}><Type /></IconButton><IconButton label={t('全字匹配', 'Whole word')} active={findOptions.wholeWord} onClick={() => setFindOptions(value => ({ ...value, wholeWord: !value.wholeWord }))}><ChevronsLeftRight /></IconButton><IconButton label={t('正则表达式', 'Regular expression')} active={findOptions.regex} onClick={() => setFindOptions(value => ({ ...value, regex: !value.regex }))}><span className="regex-symbol">.*</span></IconButton><IconButton label={t('上一个', 'Previous match')} onClick={() => editors.current.get(activeId)?.findNext(true)}><ArrowUp /></IconButton><IconButton label={t('下一个', 'Next match')} onClick={() => editors.current.get(activeId)?.findNext()}><ArrowDown /></IconButton><IconButton label={t('关闭查找', 'Close find')} onClick={() => setFindOpen(false)}><X /></IconButton></div>{replaceOpen && <div className="replace-row"><input aria-label={t('替换为', 'Replace with')} placeholder={t('替换为', 'Replace with')} value={replacement} onChange={event => setReplacement(event.target.value)} /><button className="text-command" disabled={!query || invalidRegex} onClick={() => editors.current.get(activeId)?.replace(replacement)}>{t('替换', 'Replace')}</button><button className="text-command" disabled={!query || invalidRegex} onClick={() => editors.current.get(activeId)?.replace(replacement, true)}>{t('全部替换', 'Replace all')}</button></div>}</div>}
         {active?.recovered && <div className="recovery-banner"><span>{t('已恢复未保存的文稿', 'Unsaved document recovered')}</span><button className="text-command" onClick={() => void save()}><Save size={14} />{t('保存恢复内容', 'Save recovered content')}</button></div>}
-        <div className="editor-stack" data-testid="editor-stack">{!ready && <div className="editor-loading"><LoaderCircle className="spin" /></div>}{documents.map(doc => <Editor key={doc.id} ref={handle => { if (handle) editors.current.set(doc.id, handle); else editors.current.delete(doc.id); }} document={doc} active={doc.id === activeId && !paperPreview} settings={editorSettings.get(doc.id)} citations={citationData[doc.id] || emptyCitationData} fontSize={settings.fontSizeMode === 'auto' ? 17 : settings.fontSize} readingWidth={settings.readingWidth} theme={dark ? 'dark' : 'light'} typewriter={typewriter} transferState={transfer?.id === doc.id ? transfer.editorState : undefined} onTransferReady={async accepted => { await window.markedown.completeDocumentTransfer(doc.id, accepted); setTransfer(null); }} onChange={patch => change(doc.id, patch)} onScroll={(top, version) => scroll(doc.id, top, version)} onImportImages={files => insertImages(doc.id, files)} onFindResult={result => { if (activeIdRef.current === doc.id) setFindResult(result); }} />)}{paperPreview && active && <ArticlePreview ref={paperEditor} editor={() => editors.current.get(active.id)} error={showError} key={active.id} document={active} settings={editorSettings.get(active.id) || settings} citations={citationData[active.id] || emptyCitationData} theme={effectiveTheme} zh={zh} edit={() => change(active.id, { ...patchOf(active), mode: 'source' })} />}</div>
+        <div className="editor-stack" data-testid="editor-stack">{!ready && <div className="editor-loading"><LoaderCircle className="spin" /></div>}{documents.map(doc => <Editor key={doc.id} ref={handle => { if (handle) editors.current.set(doc.id, handle); else editors.current.delete(doc.id); }} document={doc} active={doc.id === activeId && !paperPreview} settings={editorSettings.get(doc.id)} review={reviewStates[doc.id]} citations={citationData[doc.id] || emptyCitationData} fontSize={settings.fontSizeMode === 'auto' ? 17 : settings.fontSize} readingWidth={settings.readingWidth} theme={dark ? 'dark' : 'light'} typewriter={typewriter} transferState={transfer?.id === doc.id ? transfer.editorState : undefined} onTransferReady={async accepted => { await window.markedown.completeDocumentTransfer(doc.id, accepted); setTransfer(null); }} onChange={patch => change(doc.id, patch)} onScroll={(top, version) => scroll(doc.id, top, version)} onImportImages={files => insertImages(doc.id, files)} onFindResult={result => { if (activeIdRef.current === doc.id) setFindResult(result); }} />)}{paperPreview && active && <ArticlePreview ref={paperEditor} editor={() => editors.current.get(active.id)} error={showError} key={active.id} document={active} settings={editorSettings.get(active.id) || settings} citations={citationData[active.id] || emptyCitationData} theme={effectiveTheme} zh={zh} edit={() => change(active.id, { ...patchOf(active), mode: 'source' })} />}</div>
         {!focusMode && settings.showStatusBar && <footer className="status-bar"><div><span>{analysis.words.toLocaleString()} {t('字', 'words')}</span><span className="status-secondary">{analysis.characters.toLocaleString()} {t('字符', 'characters')}</span><span className="status-secondary">{analysis.words ? Math.max(1, Math.ceil(analysis.words / settings.readingSpeed)) : 0} {t('分钟', 'min')}</span></div><div><IconButton label={t('打字机模式', 'Typewriter mode')} active={typewriter} onClick={() => setTypewriter(value => !value)}><AlignLeft size={14} /></IconButton><span>{active?.bom ? 'UTF-8 BOM' : 'UTF-8'}</span><span>{active?.lineEnding || 'LF'}</span><button className={`mode-button ${active?.mode === 'source' ? 'source' : ''}`} onClick={toggleMode} data-testid="mode-toggle"><Code2 size={13} />{active?.mode === 'source' ? t('源码', 'Source') : paperPreview ? t('双栏编辑', 'Two columns') : t('即时排版', 'Live')}</button></div></footer>}
       </main>
     </div>
@@ -560,5 +603,6 @@ export default function App() {
     {conflictDoc && <Modal title={t('文件已在外部修改', 'File changed on disk')} onClose={dismissConflict}><div className="conflict-content"><FileText size={30} /><strong>{conflictDoc.title}</strong><p>{t('当前编辑内容尚未写回文件。', 'Your current edits have not been written to disk.')}</p><div className="modal-actions"><button className="text-command" onClick={() => void resolveConflict('reload')}>{t('重新加载', 'Reload')}</button><button className="primary-command" onClick={() => void resolveConflict('copy')}><Save size={15} />{t('另存副本', 'Save a copy')}</button><button className="text-command" onClick={dismissConflict}>{t('取消', 'Cancel')}</button></div></div></Modal>}
     {recoveryErrors.length > 0 && <Modal title={t('恢复记录提示', 'Recovery notices')} onClose={dismissRecoveryErrors}><div className="recovery-errors">{recoveryErrors.map((message, index) => <p key={index}>{message}</p>)}</div></Modal>}
     {translationRequest && <Modal title={t('翻译选中文字', 'Translate selection')} wide onClose={closeTranslation}><TranslationPanel key={translationRequest.text + translationRequest.provider} text={translationRequest.text} provider={translationRequest.provider} zh={zh} /></Modal>}
+    {fileMenu && <FileContextMenu {...fileMenu} zh={zh} onClose={() => setFileMenu(null)} />}
   </div>;
 }

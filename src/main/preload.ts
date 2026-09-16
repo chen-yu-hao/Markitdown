@@ -3,6 +3,13 @@ import type { AppEvent, MarkedownAPI } from '../shared/contracts';
 
 const invoke = (method: string, ...args: unknown[]) => ipcRenderer.invoke(`markedown:${method}`, ...args);
 const api: MarkedownAPI = {
+  review: {
+    current: id => invoke('review.current', id),
+    enable: id => invoke('review.enable', id),
+    disable: id => invoke('review.disable', id),
+    acceptHunk: (id, hunkId, revision) => invoke('review.acceptHunk', id, hunkId, revision),
+    acceptAll: (id, revision) => invoke('review.acceptAll', id, revision),
+  },
   translation: {
     getConfig: () => invoke('translation.getConfig'),
     configure: update => invoke('translation.configure', update),

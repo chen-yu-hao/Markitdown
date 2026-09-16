@@ -31,18 +31,18 @@ Markit 是面向日常记录与论文写作的桌面 Markdown 编辑器。即时
 
 ## 下载与安装
 
-当前发布版本：**0.3.14**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版，以及 Linux x64 的 AppImage、DEB、RPM 和 tar.gz。构建方法见[开发说明](resources/Development.md)。
+当前发布版本：**0.4.0**，提供 **Windows 10 22H2 / Windows 11 x64** 安装版和便携版，以及 Linux x64 的 AppImage、DEB、RPM 和 tar.gz。构建方法见[开发说明](resources/Development.md)。
 
 | 版本 | 下载 | 使用方式 |
 | --- | --- | --- |
-| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.14/Markit-0.3.14-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
-| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.3.14/Markit-0.3.14-Windows-x64.zip) | 完整解压到可写目录，运行 `Markit.exe` |
-| Linux | [Linux x64 软件包](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.14) | Ubuntu/Debian 使用 DEB，Fedora/RHEL 使用 RPM，其他发行版可使用 AppImage 或 tar.gz |
-| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.3.14.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
+| 安装版 | [Windows x64 EXE](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.4.0/Markit-0.4.0-Windows-x64-Setup.exe) | 运行安装程序，按提示选择安装目录 |
+| 便携版 | [Windows x64 ZIP](https://github.com/chen-yu-hao/Markitdown/releases/download/v0.4.0/Markit-0.4.0-Windows-x64.zip) | 完整解压到可写目录，运行 `Markit.exe` |
+| Linux | [Linux x64 软件包](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.4.0) | Ubuntu/Debian 使用 DEB，Fedora/RHEL 使用 RPM，其他发行版可使用 AppImage 或 tar.gz |
+| 源码 | [Source code (zip)](https://github.com/chen-yu-hao/Markitdown/archive/refs/tags/v0.4.0.zip) | GitHub 按版本标签生成，包含源码、依赖锁文件、测试和中文说明 |
 
 安装程序会添加 Markdown 文件的“打开方式”选项，不会强制修改默认应用。便携版需保留同目录的 `portable.json` 及其余程序文件。
 
-当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.3.14)提供更新说明、各平台软件包和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
+当前发行包未签名。[发布页](https://github.com/chen-yu-hao/Markitdown/releases/tag/v0.4.0)提供更新说明、各平台软件包和 GitHub 自动生成的 Source code（zip / tar.gz）。许可证和依赖说明随程序包与源码提供，不再作为单独的发布附件。
 
 本版应用名称统一为 **Markit**。Windows 安装版继续使用旧版 Markedown 的设置、缓存和恢复数据。
 
@@ -82,8 +82,15 @@ Markit 是面向日常记录与论文写作的桌面 Markdown 编辑器。即时
 
 - **多标签与多窗口**：标签保留独立撤销记录；右键管理标签，拖出标签可移到新窗口，同一文件跨窗口去重。
 - **本地工作区**：侧栏单击打开文件，按需展开文件夹，恢复最近工作区，浏览最近文件。
+- **文件操作菜单**：标签和侧栏文件右键可复制完整路径，或在系统文件夹中显示；目录和未保存文稿会显示适用的菜单项。
 - **可靠写盘**：保留 UTF-8 BOM 和 LF/CRLF，使用同目录临时文件与原子替换，保存期间继续输入仍保留未保存状态。
 - **恢复与冲突处理**：自动保存、异常退出草稿恢复、外部修改检测；恢复的文稿先手动保存，再恢复自动写回。
+
+### 审阅模式
+
+**视图 → 审阅模式** 会为当前文稿建立独立的 Git 审阅基线。审阅期间的新增内容显示为红色下划线，删除内容显示为删除线；工具栏和 **编辑 → 审阅** 菜单可逐条查看、接受当前变更，或一次接受全部变更。审阅基线存放在 Markit 的应用数据目录，不会改写文稿所在项目的 Git 分支、暂存区或提交历史。退出审阅模式不会丢弃未接受的文稿修改；重新启用时会以当前保存内容建立新的基线。
+
+审阅模式也会记录由其他工具（包括 Codex 或外部 Git 操作）写入的变更。若文稿在审阅期间被外部修改，Markit 会提示刷新或重新建立基线，并保留当前编辑缓冲区。
 
 ### 图片、剪贴板与翻译
 
@@ -273,7 +280,7 @@ npm run dist:win
 npm run dist:linux
 ```
 
-每次重新执行 `npm ci` 后，需要运行上面的 Electron 安装步骤。测试、打包与发布流程见[开发与构建说明](resources/Development.md)，本版验证及适用范围见 [0.3.14 验证记录](resources/Validation-0.3.14.md)，历史检查见[既有记录](resources/Validation.md)。
+每次重新执行 `npm ci` 后，需要运行上面的 Electron 安装步骤。测试、打包与发布流程见[开发与构建说明](resources/Development.md)，本版验证及适用范围见 [0.4.0 验证记录](resources/Validation-0.4.0.md)，历史检查见[既有记录](resources/Validation.md)。
 
 Windows 发布包使用 `npm run dist:win` 构建；Linux 发布包使用 `npm run dist:linux` 构建。详细流程见[开发与构建说明](resources/Development.md)。
 

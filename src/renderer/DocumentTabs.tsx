@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { ExternalLink, FileText, PanelsTopLeft, X } from 'lucide-react';
+import { ClipboardCopy, ExternalLink, FileText, FolderOpen, PanelsTopLeft, X } from 'lucide-react';
 import type { DocumentSession } from '../shared/contracts';
 import './document-tabs.css';
 
@@ -231,6 +231,14 @@ export default function DocumentTabs({ documents, activeId, zh, busy, onSelect, 
     </div>
     {menu && createPortal(<div ref={popup} role="menu" aria-label={t('标签菜单', 'Tab menu')} className="document-tab-menu" data-testid="document-tab-menu" onKeyDown={menuKeyDown} onContextMenu={event => event.preventDefault()}>
       <button type="button" role="menuitem" disabled={busy} onClick={() => menuAction(onDetach)}><ExternalLink size={15} /><span>{t('打开新窗口', 'Open in new window')}</span></button>
+      <button type="button" role="menuitem" disabled={busy || !documents.find(doc => doc.id === menu.id)?.path} onClick={() => menuAction(id => {
+        const path = documents.find(doc => doc.id === id)?.path;
+        if (path) void window.markedown.copyText(path);
+      })}><ClipboardCopy size={15} /><span>{t('复制路径', 'Copy path')}</span></button>
+      <button type="button" role="menuitem" disabled={busy || !documents.find(doc => doc.id === menu.id)?.path} onClick={() => menuAction(id => {
+        const path = documents.find(doc => doc.id === id)?.path;
+        if (path) void window.markedown.revealFile(path);
+      })}><FolderOpen size={15} /><span>{t('在文件夹中显示', 'Show in folder')}</span></button>
       <button type="button" role="menuitem" disabled={busy} onClick={() => menuAction(onClose)}><X size={15} /><span>{t('关闭', 'Close')}</span></button>
       <button type="button" role="menuitem" disabled={busy || documents.length < 2} onClick={() => menuAction(onCloseOthers)}><PanelsTopLeft size={15} /><span>{t('关闭其他标签', 'Close other tabs')}</span></button>
     </div>, document.body)}
